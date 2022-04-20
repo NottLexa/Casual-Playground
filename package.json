@@ -1,0 +1,30 @@
+{
+  "name": "casualplaygroung",
+  "description": "Casual Playground: 2D-sandbox inspired by cellular automatons.",
+  "keywords": ["game"],
+  "license": "SEE LICENSE IN COPYING",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NottLexa/Casual-Playground"
+  },
+  "files": [
+    "CASUAL_PLAYGROUND.js",
+    "play.html",
+    "run_nwjs.js",
+    "README.md",
+    "COPYING",
+    "core/"
+  ],
+  "version": "1.0.0",
+  "main": "run_nwjs.js",
+  "devDependencies": {
+    "nwjs-builder-phoenix": "^1.15.0"
+  },
+  "build": {
+    "nwVersion": "0.63.0"
+  },
+  "scripts": {
+    "dist": "build --tasks win-x64,win-x86,mac-x64,linux-x64,linux-x86 --mirror https://dl.nwjs.io/ .",
+    "start": "run --x86 --mirror https://dl.nwjs.io/ ."
+  }
+}
