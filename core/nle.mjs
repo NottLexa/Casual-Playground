@@ -70,33 +70,60 @@ const Display = function(canvas, canvas_width, canvas_height)
     };
 };
 
-var current_room = {do_step: function(){}};
+var current_room = {do_step: function(){}, start: function(){}, end: function(){}};
+const change_current_room = function(new_room)
+{
+    current_room.end();
+    current_room = new_room;
+    current_room.start();
+}
 
 const Room = function(entities)
 {
     this.entities = entities.slice();
 
-    this.do_step = function(deltatime, canvas = undefined)
+    this.do_step = function(canvas = undefined)
     {
         let step_methods = ['step_before', 'step', 'step_after'];
         let draw_methods = ['draw_before', 'draw', 'draw_after'];
-        for (let m in step_methods)
+        for (let i in step_methods)
         {
-            for (let ent in this.entities)
+            let m = step_methods[i];
+            for (let j in this.entities)
             {
-                for (let ins in ent.instances) ent[m](ins, deltatime);
+                let ent = this.entities[j];
+                for (let k in ent.instances)
+                {
+                    let ins = ent.instances[k];
+                    ent[m](ins);
+                }
             }
         }
         if (canvas !== undefined)
         {
-            for (let m in draw_methods)
+            for (let i in draw_methods)
             {
-                for (let ent in this.entities)
+                let m = draw_methods[i];
+                for (let j in this.entities)
                 {
-                    for (let ins in ent.instances) ent[m](ins, deltatime, canvas);
+                    let ent = this.entities[j];
+                    for (let k in ent.instances)
+                    {
+                        let ins = ent.instances[k];
+                        ent[m](ins, canvas);
+                    }
                 }
             }
         }
+    };
+
+    this.start = function()
+    {
+        for (let ent in this.entities) for (let ins in ent.instances) ent.room_start(ins);
+    };
+    this.end = function()
+    {
+        for (let ent in this.entities) for (let ins in ent.instances) ent.room_end(ins);
     };
 };
 
@@ -104,17 +131,24 @@ const Entity = function(events)
 {
     this.instances = [];
 
-    this.create = events.create || function(){};
-    this.step_before = events.step_before || function(){};
-    this.step = events.step || function(){};
-    this.step_after = events.step_after || function(){};
-    this.draw_before = events.draw_before || function(){};
-    this.draw = events.draw || function(){};
-    this.draw_after = events.draw_after || function(){};
+    this.create = events?.create ?? function(){};
+    this.step_before = events?.step_before ?? function(){};
+    this.step = events?.step ?? function(){};
+    this.step_after = events?.step_after ?? function(){};
+    this.draw_before = events?.draw_before ?? function(){};
+    this.draw = events?.draw ?? function(){};
+    this.draw_after = events?.draw_after ?? function(){};
+    this.mouse_move = events?.mouse_move ?? function(){};
+    this.mouse_down = events?.mouse_down ?? function(){};
+    this.mouse_up = events?.mouse_up ?? function(){};
+    this.kb_down = events?.kb_down ?? function(){};
+    this.kb_up = events?.kb_up ?? function(){};
+    this.room_start = events?.room_start ?? function(){};
+    this.room_end = events?.room_end ?? function(){};
 
     this.create_instance = function()
     {
-        let ins = Instance(this);
+        let ins = new Instance(this);
         this.instances.push(ins);
         this.create(ins);
         return ins;
@@ -126,7 +160,7 @@ const Instance = function (entity)
     this.entity = entity;
 };
 
-export {Display, current_room, Room, Entity, Instance, clamp, interpolate};
+export {Display, current_room, change_current_room, Room, Entity, Instance, clamp, interpolate};
 
 /*module.exports =
 {

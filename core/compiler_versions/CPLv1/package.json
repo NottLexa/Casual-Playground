@@ -1,6 +1,0 @@
-{
-  "name": "cplv1",
-  "version": "1.0.0",
-  "dependencies": {},
-  "main": "./__init__.js"
-}

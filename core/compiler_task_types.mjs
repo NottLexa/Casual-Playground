@@ -1,0 +1,1 @@
+const [SET_CELL] = [...Array(5).keys()];

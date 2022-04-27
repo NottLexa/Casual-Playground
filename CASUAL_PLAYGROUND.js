@@ -27,8 +27,9 @@ import * as engine from './core/nle.mjs';
 //const fs = require('fs').promises;
 //#endregion
 
+
 //#region [ИНИЦИАЛИЗАЦИЯ]
-console.log(
+global.console.log(
     ' _____                       _    ______ _                                             _ \n' +
     '/  __ \\                     | |   | ___ \\ |                                           | |\n' +
     '| /  \\/ __ _ ___ _   _  __ _| |   | |_/ / | __ _ _   _  __ _ _ __ ___  _   _ _ __   __| |\n' +
@@ -38,11 +39,11 @@ console.log(
     '                                                  __/ | __/ |                            \n' +
     '                                                 |___/ |___/                             \n' +
     'by:                                                                            version:  \n' +
-    '  Alexey Kozhanov                                                                     #32\n' +
+    '  Alexey Kozhanov                                                                      #1\n' +
     '                                                                               DVLP BUILD\n')
 
-var display_scale = 100;
-var display = new engine.Display(document.getElementById('CasualPlaygroundCanvas'), 16*display_scale, 9*display_scale);
+var scale = 100;
+var display = new engine.Display(document.getElementById('CasualPlaygroundCanvas'), 16*scale, 9*scale);
 display.resizeCanvas(nw.Window.get().width, nw.Window.get().height);
 nw.Window.get().on
 (
@@ -51,27 +52,28 @@ nw.Window.get().on
 )
 //#endregion
 
+
 //#region [LOADING FUNCTIONS]
 
 // INSERT MOD LOADER FUNCTIONS
 
 //#endregion
-/*
+
 //#region [SETTINGS]
 var loc = 'rus';
-import * as locstrings from './core/';
+//import * as locstrings from './core/localization.json';
 var current_instrument = {'type': null};
 var gvars = [{'objdata':{},
-                         'idlist':[],
-                         'logger':[],
-                         'board_width':10,
-                         'board_height':10},
-                        {}];
+              'idlist':[],
+              'logger':[],
+              'board_width':10,
+              'board_height':10},
+             {}];
 var idlist = gvars[0].idlist;
 var objdata = gvars[0].objdata;
 var logger = gvars[0].logger;
 
-var fontsize = display_scale*2;
+var fontsize = scale*2;
 var fontsize_bigger  = Math.floor(32*fontsize/scale);
 var fontsize_big     = Math.floor(24*fontsize/scale);
 var fontsize_default = Math.floor(16*fontsize/scale);
@@ -87,7 +89,7 @@ var fontsize_smaller = Math.floor( 8*fontsize/scale);
 const EntGlobalConsole = new engine.Entity({
     'create': function(target)
     {
-        target.logger_i = 0
+        target.logger_i = 0;
     },
 
     'step': function (target)
@@ -109,7 +111,14 @@ const EntGlobalConsole = new engine.Entity({
     },
     'draw_after': function (target, surface)
     {
-        // INSERT FPS COUNTER
+        surface.fillStyle = 'white';
+        surface.font = `${fontsize_default}px serif`;
+        surface.textAlign = 'right';
+        surface.fillText(
+            `${deltatime !== 0 ? Math.round(1/deltatime) : 0} FPS`,
+            surface.canvas.width-8,
+            8
+        );
     }
 })
 //#endregion
@@ -158,15 +167,15 @@ const EntFieldBoard = new engine.Entity({
         target.viewscale = 16;
         EntFieldBoard.center_view(target);
 
-        target.keys = {'up': False,
-                       'left': False,
-                       'right': False,
-                       'down': False,
-                       'speedup':False,
-                       'speeddown':False,
-                       'rmb':False,
-                       'plus':False,
-                       'minus':False,};
+        target.keys = {'up': false,
+                       'left': false,
+                       'right': false,
+                       'down': false,
+                       'speedup': false,
+                       'speeddown': false,
+                       'rmb': false,
+                       'plus': false,
+                       'minus': false,};
 
         target.cameraspeed = Math.round(Math.log2(Math.pow(2, 9)*scale/100));
         target.mincamspeed = Math.round(Math.log2(Math.pow(2, 6)*scale/100));
@@ -196,15 +205,18 @@ const EntFieldBoard = new engine.Entity({
 })
 //#endregion
 //#region [FIELD STANDARD UI]
+const EntFieldSUI = new engine.Entity();
+//#endregion
+//#endregion
 
-//#endregion
-//#endregion
-*/
 //#region [INSTANCES]
+var globalconsole = EntGlobalConsole.create_instance();
 //#endregion
 
 //#region [ROOMS]
-// var room_field = new engine.Room([]);
+var room_field = new engine.Room([EntGlobalConsole, EntFieldBoard, EntFieldSUI]);
+
+engine.change_current_room(room_field);
 //#endregion
 
 //#region [RUN]
@@ -218,7 +230,7 @@ const main = function (time)
         deltatime = time - prevtime;
         prevtime = time;
         display.clear();
-        engine.current_room.do_step(deltatime, display.buffer);
+        engine.current_room.do_step(display.buffer);
         display.render();
         window.requestAnimationFrame(main);
     }
