@@ -3,9 +3,74 @@
     <head>
         <meta charset="UTF-8">
         <title>Casual Playground</title>
+        <style>
+            @font-face {
+                font-family: 'DejaVu Sans Mono';
+                src: url('data/fonts/default.ttf') format('truetype');
+                font-weight: normal;
+                font-style: normal;
+            }
+            @font-face {
+                font-family: 'Montserrat';
+                src: url('data/fonts/montserrat.ttf') format('truetype');
+                font-weight: normal;
+                font-style: normal;
+            }
+
+            table.table-custom {
+                background: rgb(0,0,0);
+                background: radial-gradient(circle, rgba(0,0,0,1) 0%, rgb(43, 18, 124) 100%);
+                color: #fff;
+                border-bottom: 1px solid black;
+                border-collapse: collapse;
+            }
+            td.table-cell {
+                /*border: 2px solid black;*/
+                margin: 0;
+                padding: 0;
+            }
+
+            button.button-exit, button.button-exit:hover, button.button-exit:active, button.button-exit:focus {
+                color: white;
+                border: 0;
+                width: 30px;
+                height: 30px;
+            }
+
+            button.button-exit {
+                background: #f00;
+            }
+            button.button-exit:hover {
+                background: #f44;
+            }
+            button.button-exit:active {
+                background: #f77;
+            }
+
+            .drag-enable {
+                -webkit-app-region: drag;
+            }
+            .drag-disable {
+                -webkit-app-region: no-drag;
+            }
+        </style>
     </head>
     <body style="margin: 0; padding: 0; overflow: hidden;">
-        <canvas id="CasualPlaygroundCanvas"></canvas>
+        <div style="border: 1px solid black; font-family: 'Montserrat',serif">
+            <table class="table-custom" style="width: 100%; text-align: center">
+                <tr>
+                    <td class="table-cell drag-enable" id="window-name">
+                        Casual Playground
+                    </td>
+                    <td class="table-cell drag-disable" style="width: 0; white-space: nowrap">
+                        <button class="button-exit" onclick="nw.Window.get().close()">
+                            X
+                        </button>
+                    </td>
+                </tr>
+            </table>
+            <canvas class="drag-disable" id="CasualPlaygroundCanvas"></canvas>
+        </div>
         <script type="module" src="CASUAL_PLAYGROUND.js"></script>
     </body>
 </html>

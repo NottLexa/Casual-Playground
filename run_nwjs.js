@@ -1,7 +1,7 @@
 nw.Window.open
 (
     'play.html',
-    {},
+    {'frame': false},
     function (win)
     {
         //win.resizeTo(window.width, window.height);

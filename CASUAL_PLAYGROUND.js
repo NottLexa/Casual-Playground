@@ -39,12 +39,15 @@ global.console.log(
     '                                                  __/ | __/ |                            \n' +
     '                                                 |___/ |___/                             \n' +
     'by:                                                                            version:  \n' +
-    '  Alexey Kozhanov                                                                      #1\n' +
+    '  Alexey Kozhanov                                                                      #2\n' +
     '                                                                               DVLP BUILD\n')
+
+document.getElementById('window-name').innerText = 'Casual Playground - DVLP BUILD #2';
 
 var scale = 100;
 var display = new engine.Display(document.getElementById('CasualPlaygroundCanvas'), 16*scale, 9*scale);
-display.resizeCanvas(nw.Window.get().width, nw.Window.get().height);
+//alert(JSON.stringify(nw.Window.get().y));
+display.resizeCanvas(nw.Window.get().cWindow.width, nw.Window.get().cWindow.height);
 nw.Window.get().on
 (
     'resize',
@@ -115,9 +118,9 @@ const EntGlobalConsole = new engine.Entity({
         surface.font = `${fontsize_default}px serif`;
         surface.textAlign = 'right';
         surface.fillText(
-            `${deltatime !== 0 ? Math.round(1/deltatime) : 0} FPS`,
-            surface.canvas.width-8,
-            8
+            `${(deltatime !== 0) ? Math.round(1/deltatime) : 0} FPS`,
+            surface.canvas.width-10,
+            30
         );
     }
 })
@@ -227,7 +230,7 @@ const main = function (time)
 {
     if (running)
     {
-        deltatime = time - prevtime;
+        deltatime = (time - prevtime)/1000;
         prevtime = time;
         display.clear();
         engine.current_room.do_step(display.buffer);

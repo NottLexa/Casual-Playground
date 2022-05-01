@@ -40,12 +40,20 @@ const Display = function(canvas, canvas_width, canvas_height)
     this.buffer.canvas.width = canvas_width;
     this.buffer.canvas.height = canvas_height;
 
+    this.cw = () => this.buffer.canvas.width;
+    this.ch = () => this.buffer.canvas.height;
+    this.sw = () => this.ctx.canvas.width;
+    this.sh = () => this.ctx.canvas.height;
+
     // Resizes canvas.
     this.resizeCanvas = function(width, height)
     {
-        //alert(window.width + ', ' + window.height);
         this.ctx.canvas.width = width;
         this.ctx.canvas.height = height;
+        this.scale_level = Math.min(this.sw()/this.cw(), this.sh()/this.ch())
+        this.scaled_size = [this.cw() * this.scale_level, this.ch() * this.scale_level];
+        this.offset_x = this.sw() - this.scaled_size[0];
+        this.offset_y = this.sh() - this.scaled_size[1];
     };
 
     // Applies this.buffer on the real canvas element.
@@ -58,15 +66,20 @@ const Display = function(canvas, canvas_width, canvas_height)
             this.buffer.canvas.width / 2, this.buffer.canvas.height / 2 - 32);
         this.buffer.fillText(`${window.width}px, ${window.height}px`,
             this.buffer.canvas.width / 2, this.buffer.canvas.height / 2 + 32);*/
+
+        //alert(this.offset_x + ' ' + this.offset_y + ' ' + this.scaled_size[0] + ' ' + this.scaled_size[1]);
         this.ctx.imageSmoothingEnabled = false;
-        this.ctx.drawImage(this.buffer.canvas, 0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+        this.ctx.drawImage(this.buffer.canvas, this.offset_x/2, this.offset_y/2, ...this.scaled_size);
+
+        //this.ctx.strokeStyle = 'red';
+        //this.ctx.strokeRect(0,0, this.sw(), this.sh());
     };
 
     // Clears buffer by black color.
     this.clear = function ()
     {
         this.buffer.fillStyle = 'black';
-        this.buffer.fillRect(0, 0, this.buffer.canvas.width, this.buffer.canvas.height);
+        this.buffer.fillRect(0, 0, this.cw(), this.ch());
     };
 };
 
