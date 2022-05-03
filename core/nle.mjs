@@ -33,6 +33,38 @@ const clamp = function(value, mn, mx)
     return Math.max(mn, Math.min(mx, value));
 }
 
+const draw_text = function(ctx, x, y, string = 'Sample Text', type = 'fill',
+                           size  = 16, hor_align = 'left', vert_align = 'top',
+                           color = 'black', font_settings = 'serif')
+{
+    let offset_y;
+    switch (vert_align)
+    {
+        case 'top':
+            offset_y = size;
+            break;
+        case 'center':
+            offset_y = Math.round(size);
+            break;
+        case 'bottom':
+        default:
+            offset_y = 0;
+            break;
+    }
+    ctx.font = `${size}px ` + font_settings;
+    ctx.textAlign = hor_align;
+    if (type === 'fill')
+    {
+        ctx.fillStyle = color;
+        ctx.fillText(string, x, y+offset_y);
+    }
+    else
+    {
+        ctx.strokeStyle = color;
+        ctx.strokeText(string, x, y+offset_y);
+    }
+}
+
 const Display = function(canvas, canvas_width, canvas_height)
 {
     this.ctx = canvas.getContext('2d');
@@ -78,6 +110,8 @@ const Display = function(canvas, canvas_width, canvas_height)
     // Clears buffer by black color.
     this.clear = function ()
     {
+        this.ctx.fillStyle = 'black';
+        this.ctx.fillRect(0,0, this.sw(), this.sw())
         this.buffer.fillStyle = 'black';
         this.buffer.fillRect(0, 0, this.cw(), this.ch());
     };
@@ -173,7 +207,8 @@ const Instance = function (entity)
     this.entity = entity;
 };
 
-export {Display, current_room, change_current_room, Room, Entity, Instance, clamp, interpolate};
+export {Display, current_room, change_current_room, Room, Entity, Instance, clamp, interpolate,
+    draw_text};
 
 /*module.exports =
 {
