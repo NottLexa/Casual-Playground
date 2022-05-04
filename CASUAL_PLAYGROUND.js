@@ -59,7 +59,8 @@ var WIDTH = 16*scale;
 var HEIGHT = 9*scale;
 var WIDTH2 = Math.floor(WIDTH/2);
 var HEIGHT2 = Math.floor(HEIGHT/2);
-var display = new engine.Display(document.getElementById('CasualPlaygroundCanvas'), 16*scale, 9*scale);
+var canvas_element = document.getElementById('CasualPlaygroundCanvas');
+var display = new engine.Display(canvas_element, 16*scale, 9*scale);
 var top_panel = document.getElementById('top_panel');
 //alert(JSON.stringify(nw.Window.get().y));
 display.resizeCanvas(nw.Window.get().cWindow.width, nw.Window.get().cWindow.height);
@@ -242,6 +243,10 @@ const board_zoom_out = function(target, mul)
 
     target.surfaces['board'] = draw_board(target);
 }
+const board_do_instrument = function(target)
+{
+
+}
 
 const EntFieldBoard = new engine.Entity({
     create: function(target)
@@ -255,15 +260,18 @@ const EntFieldBoard = new engine.Entity({
         target.viewscale = 16;
         board_center_view(target);
 
-        target.keys = {'up': false,
-                       'left': false,
-                       'right': false,
-                       'down': false,
-                       'speedup': false,
-                       'speeddown': false,
-                       'rmb': false,
-                       'plus': false,
-                       'minus': false,};
+        target.keys = {
+            'up': false,
+            'left': false,
+            'right': false,
+            'down': false,
+            'speedup': false,
+            'speeddown': false,
+            'rmb': false,
+            'plus': false,
+            'minus': false,
+            'shift': false,
+        };
 
         target.cameraspeed = Math.round(Math.log2(Math.pow(2, 9)*scale/100));
         target.mincamspeed = Math.round(Math.log2(Math.pow(2, 6)*scale/100));
@@ -330,7 +338,7 @@ const EntFieldBoard = new engine.Entity({
         target.viewx += deltatime*target.hsp;
         target.viewy += deltatime*target.vsp;
 
-        //do_instrument(target);
+        board_do_instrument(target);
 
         if (!target.time_paused) target.time += deltatime;
         //if (target.time > target.timepertick) board_step(target);
@@ -421,6 +429,10 @@ const EntFieldBoard = new engine.Entity({
             case 'Minus':
                 target.keys.minus = setkey;
                 break;
+            case 'LeftShift':
+            case 'RightShift':
+                target.keys.shift = setkey;
+                break;
             case 'KeyQ':
                 target.cameraspeed = engine.clamp(target.cameraspeed-1, target.mincamspeed, target.maxcamspeed);
                 break;
@@ -472,8 +484,41 @@ const EntFieldBoard = new engine.Entity({
             case 'Minus':
                 target.keys.minus = setkey;
                 break;
+            case 'LeftShift':
+            case 'RightShift':
+                target.keys.shift = setkey;
+                break;
         }
-    }
+    },
+    mouse_down: function (target, mx, my, mb)
+    {
+        let setkey = true;
+        switch (mb)
+        {
+            case engine.RMB:
+                target.keys.rmb = setkey;
+                break;
+            case engine.WHEELUP:
+                if (target.keys.shift) current_instrument.scale++;
+                else board_zoom_in(target, 1);
+                break;
+            case engine.WHEELDOWN:
+                if (target.keys.shift)
+                    current_instrument.scale = Math.max(current_instrument.scale-1, 1);
+                else board_zoom_out(target, 1);
+                break;
+        }
+    },
+    mouse_up: function (target, mx, my, mb)
+    {
+        let setkey = false;
+        switch (mb)
+        {
+            case engine.RMB:
+                target.keys.rmb = setkey;
+                break;
+        }
+    },
 })
 //#endregion
 //#region [FIELD STANDARD UI]
@@ -503,6 +548,18 @@ document.addEventListener('keydown', function(event)
 document.addEventListener('keyup', function(event)
 {
     engine.current_room.do_kb_up(event);
+});
+canvas_element.addEventListener('mousedown', function(event){
+    let mx = event.offsetX - display.offset_x;
+    let my = event.offsetY - display.offset_y;
+    let mb = event.button;
+    engine.current_room.do_mouse_down(mx, my, mb);
+});
+canvas_element.addEventListener('wheel', function(event){
+    let mx = event.offsetX;
+    let my = event.offsetY;
+    if (event.deltaY > 0) engine.current_room.do_mouse_down(mx, my, engine.WHEELDOWN);
+    else engine.current_room.do_mouse_down(mx, my, engine.WHEELUP);
 });
 const main = function (time)
 {

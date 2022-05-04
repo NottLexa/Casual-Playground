@@ -22,6 +22,8 @@ NLE2 (NotLexaEngine 2) for JavaScript
 Version: 1.0.0
 */
 
+const [LMB, MMB, RMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP] = [...Array(7).keys()];
+
 const interpolate = function(a, b, power = 1)
 {
     let div = Math.pow(2, Math.max(power, 1));
@@ -84,8 +86,8 @@ const Display = function(canvas, canvas_width, canvas_height)
         this.ctx.canvas.height = height;
         this.scale_level = Math.min(this.sw()/this.cw(), this.sh()/this.ch())
         this.scaled_size = [this.cw() * this.scale_level, this.ch() * this.scale_level];
-        this.offset_x = this.sw() - this.scaled_size[0];
-        this.offset_y = this.sh() - this.scaled_size[1];
+        this.offset_x = (this.sw() - this.scaled_size[0])/2;
+        this.offset_y = (this.sh() - this.scaled_size[1])/2;
     };
 
     // Applies this.buffer on the real canvas element.
@@ -101,7 +103,7 @@ const Display = function(canvas, canvas_width, canvas_height)
 
         //alert(this.offset_x + ' ' + this.offset_y + ' ' + this.scaled_size[0] + ' ' + this.scaled_size[1]);
         this.ctx.imageSmoothingEnabled = false;
-        this.ctx.drawImage(this.buffer.canvas, this.offset_x/2, this.offset_y/2, ...this.scaled_size);
+        this.ctx.drawImage(this.buffer.canvas, this.offset_x, this.offset_y, ...this.scaled_size);
 
         //this.ctx.strokeStyle = 'red';
         //this.ctx.strokeRect(0,0, this.sw(), this.sh());
@@ -118,7 +120,7 @@ const Display = function(canvas, canvas_width, canvas_height)
 };
 
 var current_room = {do_step: function(){}, do_start: function(){}, do_end: function(){}, do_kb_down: function(){},
-    do_kb_up: function(){}};
+    do_kb_up: function(){}, do_mouse_down: function(){}, do_mouse_up: function(){}, do_mouse_move: function(){}};
 const change_current_room = function(new_room)
 {
     current_room.do_end();
@@ -178,6 +180,18 @@ const Room = function(entities)
     {
         this.do_for_every('kb_up', event);
     }
+    this.do_mouse_move = function(mx, my)
+    {
+        this.do_for_every('mouse_move', mx, my)
+    }
+    this.do_mouse_down = function(mx, my, mb)
+    {
+        this.do_for_every('mouse_down', mx, my, mb)
+    }
+    this.do_mouse_up = function(mx, my, mb)
+    {
+        this.do_for_every('mouse_up', mx, my, mb)
+    }
 };
 
 const Entity = function(events)
@@ -214,4 +228,4 @@ const Instance = function (entity)
 };
 
 export {Display, current_room, change_current_room, Room, Entity, Instance, clamp, interpolate,
-    draw_text};
+    draw_text, LMB, RMB, MMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP};
