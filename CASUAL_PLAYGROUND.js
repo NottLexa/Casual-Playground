@@ -21,12 +21,12 @@ Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 window.onerror = function(msg, url, linenumber)
 {
     alert('Error message: '+msg+'\nURL: '+url+'\nLine Number: '+linenumber);
+    nw.Window.get().close();
     return true;
 }
 import * as engine from './core/nle.mjs';
 import * as comp from './core/compiler.mjs';
 import * as ctt from './core/compiler_task_types.mjs';
-//const vi = require('./version_info.json');
 const fs = require('fs');
 var vi;
 try { vi = JSON.parse(fs.readFileSync('./version_info.json', {encoding: "utf8"})); }
@@ -72,6 +72,8 @@ nw.Window.get().resizeTo(Math.round(window.screen.width*3/4),
     Math.round(window.screen.height*3/4) + top_panel.offsetHeight);
 nw.Window.get().moveTo(Math.round(window.screen.width*1/8),
     Math.round(window.screen.height*1/8) - Math.round(top_panel.offsetHeight/2));
+
+nw.Window.get().show();
 //#endregion
 
 
@@ -113,12 +115,12 @@ var cellbordersize = 0.125;
 //#region [ENTITIES]
 //#region [GLOBAL CONSOLE]
 const EntGlobalConsole = new engine.Entity({
-    'create': function(target)
+    create: function(target)
     {
         target.logger_i = 0;
     },
 
-    'step': function (target)
+    step: function (target)
     {
         while (target.logger_i < logger.length)
         {
@@ -135,7 +137,7 @@ const EntGlobalConsole = new engine.Entity({
             target.logger_i++;
         }
     },
-    'draw_after': function (target, surface)
+    draw_after: function (target, surface)
     {
         engine.draw_text(surface, surface.canvas.width-10, 10,
             `${(deltatime !== 0) ? Math.round(1/deltatime) : 0} FPS`, 'fill', fontsize_default,
@@ -186,7 +188,7 @@ const draw_board = function(target)
 {
     let bw = target.board_width;
     let bh = target.board_height;
-    let bordersize = Math.round(target.viewscale*cellbordersize);
+    let bordersize = target.viewscale*cellbordersize;
     let cellsize = target.viewscale+bordersize;
     let surface = document.createElement('canvas').getContext('2d');
     surface.canvas.width = (cellsize*bw)+bordersize
@@ -214,8 +216,35 @@ const board_center_view = function(target)
     target.viewy = Math.floor(target.viewscale*target.board_height/2) - (HEIGHT2);
 }
 
+const board_zoom_in = function(target, mul)
+{
+    let oldvs = target.viewscale;
+    target.viewscale = engine.clamp(
+        target.viewscale + engine.clamp(Math.floor(0.2 * mul * target.viewscale), 1, 64),
+        2, 64);
+    let newvs = target.viewscale;
+
+    target.viewx = (target.viewx + (WIDTH2)) * newvs / oldvs - (WIDTH2);
+    target.viewy = (target.viewy + (HEIGHT2)) * newvs / oldvs - (HEIGHT2);
+
+    target.surfaces['board'] = draw_board(target);
+}
+const board_zoom_out = function(target, mul)
+{
+    let oldvs = target.viewscale;
+    target.viewscale = engine.clamp(
+        target.viewscale - engine.clamp(Math.floor(0.2 * mul * target.viewscale), 1, 64),
+        2, 64);
+    let newvs = target.viewscale;
+
+    target.viewx = (target.viewx + (WIDTH2)) * newvs / oldvs - (WIDTH2);
+    target.viewy = (target.viewy + (HEIGHT2)) * newvs / oldvs - (HEIGHT2);
+
+    target.surfaces['board'] = draw_board(target);
+}
+
 const EntFieldBoard = new engine.Entity({
-    'create': function(target)
+    create: function(target)
     {
         target.board_width = 32;
         target.board_height = 32;
@@ -276,7 +305,7 @@ const EntFieldBoard = new engine.Entity({
         target.time_paused = false;
         target.time_elapsed = 0.0;
     },
-    'step': function(target)
+    step: function(target)
     {
         if (target.keys.plus) board_zoom_in(target, target.zoomspeed*deltatime);
         if (target.keys.minus) board_zoom_out(target, target.zoomspeed*deltatime);
@@ -306,7 +335,7 @@ const EntFieldBoard = new engine.Entity({
         if (!target.time_paused) target.time += deltatime;
         //if (target.time > target.timepertick) board_step(target);
     },
-    'step_after': function(target)
+    step_after: function(target)
     {
         if (target.time > target.timepertick)
         {
@@ -314,9 +343,9 @@ const EntFieldBoard = new engine.Entity({
             target.time = 0;
         }
     },
-    'draw': function(target, surface)
+    draw: function(target, surface)
     {
-        let bordersize = Math.round(target.viewscale*cellbordersize);
+        let bordersize = target.viewscale*cellbordersize;
         let cellsize = target.viewscale + bordersize;
         let ox = -target.viewx%cellsize;
         let oy = -target.viewy%cellsize;
@@ -364,6 +393,86 @@ const EntFieldBoard = new engine.Entity({
             'fill', fontsize_default, 'right', 'bottom', 'white');
 
         // INSERT TIME ELAPSED & INSTRUMENT DATA
+    },
+    kb_down: function(target, key)
+    {
+        let setkey = true;
+        switch (key.code)
+        {
+            case 'ArrowUp':
+            case 'KeyW':
+                target.keys.up = setkey;
+                break;
+            case 'ArrowLeft':
+            case 'KeyA':
+                target.keys.left = setkey;
+                break;
+            case 'ArrowDown':
+            case 'KeyS':
+                target.keys.down = setkey;
+                break;
+            case 'ArrowRight':
+            case 'KeyD':
+                target.keys.right = setkey;
+                break;
+            case 'Equal':
+                target.keys.plus = setkey;
+                break;
+            case 'Minus':
+                target.keys.minus = setkey;
+                break;
+            case 'KeyQ':
+                target.cameraspeed = engine.clamp(target.cameraspeed-1, target.mincamspeed, target.maxcamspeed);
+                break;
+            case 'KeyE':
+                target.cameraspeed = engine.clamp(target.cameraspeed+1, target.mincamspeed, target.maxcamspeed);
+                break;
+            case 'KeyC':
+                board_center_view(target);
+                target.hsp = 0;
+                target.vsp = 0;
+                break;
+            case 'KeyF':
+                target.time_paused = !target.time_paused;
+                break;
+            case 'KeyR':
+                target.tpt_power = max(target.tpt_min, target.tpt_power-1);
+                target.timepertick = target.get_tpt(target.tpt_power);
+                break;
+            case 'KeyT':
+                target.tpt_power = max(target.tpt_min, target.tpt_power+1);
+                target.timepertick = target.get_tpt(target.tpt_power);
+                break;
+        }
+    },
+    kb_up: function(target, key)
+    {
+        let setkey = false;
+        switch (key.code)
+        {
+            case 'ArrowUp':
+            case 'KeyW':
+                target.keys.up = setkey;
+                break;
+            case 'ArrowLeft':
+            case 'KeyA':
+                target.keys.left = setkey;
+                break;
+            case 'ArrowDown':
+            case 'KeyS':
+                target.keys.down = setkey;
+                break;
+            case 'ArrowRight':
+            case 'KeyD':
+                target.keys.right = setkey;
+                break;
+            case 'Equal':
+                target.keys.plus = setkey;
+                break;
+            case 'Minus':
+                target.keys.minus = setkey;
+                break;
+        }
     }
 })
 //#endregion
@@ -387,6 +496,14 @@ engine.change_current_room(room_field);
 var running = true;
 var prevtime = 0.0;
 var deltatime = 0.0;
+document.addEventListener('keydown', function(event)
+{
+    engine.current_room.do_kb_down(event);
+});
+document.addEventListener('keyup', function(event)
+{
+    engine.current_room.do_kb_up(event);
+});
 const main = function (time)
 {
     if (running)
@@ -398,7 +515,7 @@ const main = function (time)
         display.render();
         window.requestAnimationFrame(main);
     }
-}
+};
 
 window.requestAnimationFrame(main);
 

@@ -117,17 +117,30 @@ const Display = function(canvas, canvas_width, canvas_height)
     };
 };
 
-var current_room = {do_step: function(){}, start: function(){}, end: function(){}};
+var current_room = {do_step: function(){}, do_start: function(){}, do_end: function(){}, do_kb_down: function(){},
+    do_kb_up: function(){}};
 const change_current_room = function(new_room)
 {
-    current_room.end();
+    current_room.do_end();
     current_room = new_room;
-    current_room.start();
+    current_room.do_start();
 }
 
 const Room = function(entities)
 {
     this.entities = entities.slice();
+
+    this.do_for_every = function(method_name)
+    {
+        let additional = Array.prototype.slice.call(arguments, 1);
+        for (let e in this.entities)
+        {
+            for (let ins in this.entities[e].instances)
+            {
+                this.entities[e][method_name](this.entities[e].instances[ins], ...additional);
+            }
+        }
+    }
 
     this.do_step = function(canvas = undefined)
     {
@@ -136,42 +149,35 @@ const Room = function(entities)
         for (let i in step_methods)
         {
             let m = step_methods[i];
-            for (let j in this.entities)
-            {
-                let ent = this.entities[j];
-                for (let k in ent.instances)
-                {
-                    let ins = ent.instances[k];
-                    ent[m](ins);
-                }
-            }
+            this.do_for_every(m);
         }
         if (canvas !== undefined)
         {
             for (let i in draw_methods)
             {
                 let m = draw_methods[i];
-                for (let j in this.entities)
-                {
-                    let ent = this.entities[j];
-                    for (let k in ent.instances)
-                    {
-                        let ins = ent.instances[k];
-                        ent[m](ins, canvas);
-                    }
-                }
+                this.do_for_every(m, canvas);
             }
         }
     };
 
-    this.start = function()
+    this.do_start = function()
     {
-        for (let ent in this.entities) for (let ins in ent.instances) ent.room_start(ins);
+        this.do_for_every('room_start');
     };
-    this.end = function()
+    this.do_end = function()
     {
-        for (let ent in this.entities) for (let ins in ent.instances) ent.room_end(ins);
+        this.do_for_every('room_end');
     };
+
+    this.do_kb_down = function(event)
+    {
+        this.do_for_every('kb_down', event);
+    }
+    this.do_kb_up = function(event)
+    {
+        this.do_for_every('kb_up', event);
+    }
 };
 
 const Entity = function(events)
@@ -209,12 +215,3 @@ const Instance = function (entity)
 
 export {Display, current_room, change_current_room, Room, Entity, Instance, clamp, interpolate,
     draw_text};
-
-/*module.exports =
-{
-    Display: Display,
-    current_room: current_room,
-    Room: Room,
-    Entity: Entity,
-    Instance: Instance
-};*/
