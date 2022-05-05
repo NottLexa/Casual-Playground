@@ -1,4 +1,4 @@
-import * as CPLv1 from './compiler_versions/CPLv1/base.mjs';
+import * as CPLv1 from './compiler_versions/CPLv1/__init__.mjs';
 import * as ccc from './compiler_conclusions_cursors.mjs';
 import {CompilerConclusion} from './compiler_conclusions_cursors.mjs';
 

@@ -149,6 +149,7 @@ const EntGlobalConsole = new engine.Entity({
 //#region [FIELD BOARD]
 const board_step = function(target)
 {
+    /*
     let start = Date.now();
     for (let y = 0; i < target.board_height; y++)
     {
@@ -158,10 +159,12 @@ const board_step = function(target)
         }
     }
     target.time_elapsed = Date.now() - start;
+    */
 }
 
 const board_tasks = function(target)
 {
+    /*
     let change_board = false;
     for (let y = 0; i < target.board_height; y++)
     {
@@ -183,6 +186,7 @@ const board_tasks = function(target)
     {
         target.surfaces['board'] = EntFieldBoard.draw_board(target);
     }
+    */
 }
 
 const draw_board = function(target)
@@ -245,7 +249,42 @@ const board_zoom_out = function(target, mul)
 }
 const board_do_instrument = function(target)
 {
+    let bordersize = target.viewscale*cellbordersize;
+    let cellsize = bordersize + target.viewscale;
+    let rx = mx + target.viewx - bordersize;
+    let ry = my + target.viewy - bordersize;
+    let cx = Math.floor(rx/cellsize);
+    let cy = Math.floor(ry/cellsize);
+    let maxcx = target.board_width;
+    let maxcy = target.board_height;
+    switch (current_instrument.type)
+    {
+        case 'pencil':
+            scale = current_instrument.scale-1
+            if (current_instrument.penciltype === true) // round
+            {
 
+            }
+            else // square
+            {
+                if (((rx % cellsize) < target.viewscale) && ((ry % cellsize) < target.viewscale))
+                {
+                    for (let ix = cx-scale; ix < cx+scale+1; ix++)
+                    {
+                        for (let iy = cy-scale; iy < cy+scale+1; iy++)
+                        {
+                            if ((0 <= ix) && (ix < maxcx) && (0 <= iy) && (iy < maxcy))
+                            {
+                                let cellid = current_instrument.cell;
+                                target.board[iy][ix] = comp.Cell({X:ix,Y:iy},cellid, target.board,
+                                    gvars);
+                                target.surfaces.board = draw_board(target);
+                            }
+                        }
+                    }
+                }
+            }
+    }
 }
 
 const EntFieldBoard = new engine.Entity({
@@ -338,16 +377,16 @@ const EntFieldBoard = new engine.Entity({
         target.viewx += deltatime*target.hsp;
         target.viewy += deltatime*target.vsp;
 
-        board_do_instrument(target);
+        if (target.keys.rmb) board_do_instrument(target);
 
         if (!target.time_paused) target.time += deltatime;
-        //if (target.time > target.timepertick) board_step(target);
+        if (target.time > target.timepertick) board_step(target);
     },
     step_after: function(target)
     {
         if (target.time > target.timepertick)
         {
-            //board_tasks(target);
+            board_tasks(target);
             target.time = 0;
         }
     },
@@ -368,6 +407,7 @@ const EntFieldBoard = new engine.Entity({
 
         let linex, liney, startx, starty, endx, endy;
         surface.fillStyle = rgb_to_style(...target.linecolor_outfield);
+
         for (let ix = -1; ix < lx; ix++)
         {
             linex = ox+(ix*cellsize);
@@ -387,7 +427,7 @@ const EntFieldBoard = new engine.Entity({
             endx = engine.clamp(WIDTH, -target.viewx, -target.viewx+(cellsize*target.board_width));
             if (!((liney+target.viewy < 0) || (liney+target.viewy > (cellsize*target.board_height))))
             {
-                if (starty-2 > 0) surface.fillRect(0, liney, startx, bordersize);
+                if (startx-2 > 0) surface.fillRect(0, liney, startx, bordersize);
                 if (WIDTH > endx) surface.fillRect(endx+bordersize, liney, WIDTH-endx, bordersize);
             }
             else surface.fillRect(0, liney, WIDTH, bordersize);
@@ -490,7 +530,7 @@ const EntFieldBoard = new engine.Entity({
                 break;
         }
     },
-    mouse_down: function (target, mx, my, mb)
+    mouse_down: function (target, mb)
     {
         let setkey = true;
         switch (mb)
@@ -509,7 +549,7 @@ const EntFieldBoard = new engine.Entity({
                 break;
         }
     },
-    mouse_up: function (target, mx, my, mb)
+    mouse_up: function (target, mb)
     {
         let setkey = false;
         switch (mb)
@@ -541,6 +581,9 @@ engine.change_current_room(room_field);
 var running = true;
 var prevtime = 0.0;
 var deltatime = 0.0;
+
+var mx = 0;
+var my = 0;
 document.addEventListener('keydown', function(event)
 {
     engine.current_room.do_kb_down(event);
@@ -549,17 +592,24 @@ document.addEventListener('keyup', function(event)
 {
     engine.current_room.do_kb_up(event);
 });
-canvas_element.addEventListener('mousedown', function(event){
-    let mx = event.offsetX - display.offset_x;
-    let my = event.offsetY - display.offset_y;
-    let mb = event.button;
-    engine.current_room.do_mouse_down(mx, my, mb);
+canvas_element.addEventListener('mousemove', function(event)
+{
+    mx = event.offsetX - display.offset_x;
+    my = event.offsetY - display.offset_y;
+    engine.current_room.do_mouse_move();
 });
-canvas_element.addEventListener('wheel', function(event){
-    let mx = event.offsetX;
-    let my = event.offsetY;
-    if (event.deltaY > 0) engine.current_room.do_mouse_down(mx, my, engine.WHEELDOWN);
-    else engine.current_room.do_mouse_down(mx, my, engine.WHEELUP);
+canvas_element.addEventListener('mousedown', function(event)
+{
+    engine.current_room.do_mouse_down(event.button);
+});
+canvas_element.addEventListener('mouseup', function(event)
+{
+    engine.current_room.do_mouse_up(event.button);
+});
+canvas_element.addEventListener('wheel', function(event)
+{
+    if (event.deltaY > 0) engine.current_room.do_mouse_down(engine.WHEELDOWN);
+    else engine.current_room.do_mouse_down(engine.WHEELUP);
 });
 const main = function (time)
 {

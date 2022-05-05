@@ -180,17 +180,17 @@ const Room = function(entities)
     {
         this.do_for_every('kb_up', event);
     }
-    this.do_mouse_move = function(mx, my)
+    this.do_mouse_move = function()
     {
-        this.do_for_every('mouse_move', mx, my)
+        this.do_for_every('mouse_move')
     }
-    this.do_mouse_down = function(mx, my, mb)
+    this.do_mouse_down = function(mb)
     {
-        this.do_for_every('mouse_down', mx, my, mb)
+        this.do_for_every('mouse_down', mb)
     }
-    this.do_mouse_up = function(mx, my, mb)
+    this.do_mouse_up = function(mb)
     {
-        this.do_for_every('mouse_up', mx, my, mb)
+        this.do_for_every('mouse_up', mb)
     }
 };
 
