@@ -94,10 +94,10 @@ const split_args3 = function(text, start = 0, end_at = null, ...splitters)
     let spls = [...splitters].sort((a,b)=>(a-b));
     let ret = [''];
     let l = start;
+    let spl, not_break;
     while (l < end)
     {
-        let not_break = true;
-        let spl;
+        not_break = true;
         for (let i in spls)
         {
             spl = spls[i];
