@@ -227,5 +227,16 @@ const Instance = function (entity)
     this.entity = entity;
 };
 
+const join = function(joiner, array)
+{
+    let string = '';
+    for (let i in array)
+    {
+        string = string.concat(array[i]);
+        if (i !== array.length-1) string = string.concat(joiner);
+    }
+    return string;
+}
+
 export {Display, current_room, change_current_room, Room, Entity, Instance, clamp, interpolate,
-    draw_text, LMB, RMB, MMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP};
+    draw_text, LMB, RMB, MMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP, join};
