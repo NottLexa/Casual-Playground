@@ -79,27 +79,27 @@ const Value = function(type, value=null, source=null, ...args)
     {
         case FUNC:
             if (this.source.hasOwnProperty(this.value))
-                this.read = (caller)=>{this.source[this.value](caller, ...this.args)};
+                this.read = (caller)=>{return this.source[this.value](caller, ...this.args)};
             else if (this.source.hasOwnProperty('_'+this.value))
-                this.read = (caller)=>{this.source['_'+this.value](caller, ...this.args)};
+                this.read = (caller)=>{return this.source['_'+this.value](caller, ...this.args)};
             break;
         case LOCALVAR:
-            this.read = (caller)=>{caller.locals[this.value]};
+            this.read = (caller)=>{return caller.locals[this.value]};
             this.write = (nv, caller)=>{caller.locals[this.value] = nv};
             break;
         case TECHVAR:
-            this.read = (caller)=>{caller.techvars[this.value]};
+            this.read = (caller)=>{return caller.techvars[this.value]};
             this.write = (nv, caller)=>{caller.techvars[this.value] = nv};
             break;
         case GLOBALVAR:
-            this.read = (caller)=>{caller.globals[1][this.value]};
+            this.read = (caller)=>{return caller.globals[1][this.value]};
             this.write = (nv, caller)=>{caller.globals[1][this.value] = nv};
             break;
         case GLOBALTECHVAR:
-            this.read = (caller)=>{caller.globals[0][this.value]};
+            this.read = (caller)=>{return caller.globals[0][this.value]};
             break;
         case FIXEDVAR:
-            this.read = (caller)=>{this.value};
+            this.read = (caller)=>{return this.value};
             break;
     }
 }
