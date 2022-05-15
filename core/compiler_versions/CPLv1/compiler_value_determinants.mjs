@@ -170,3 +170,5 @@ const math_resolver = function(allparts)
     });
     return [new ccb.Value(ccb.EMPTY), new ccc.CompilerConclusion(301), new ccc.CompilerCursor()];
 };
+
+export {complex_determinant, simple_determinant, value_determinant, math_resolver};

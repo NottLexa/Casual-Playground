@@ -14,3 +14,8 @@ const s_ascu = new Set(ascii_uppercase);
 const s_asc = new Set([...s_ascl, ...s_ascu]);
 const s_nam = new Set([...s_dig, ...s_asc, '_']);
 const s_nonam = new Set([...s_dig, '_']);
+
+export {
+    whitespace, ascii_lowercase, ascii_uppercase, ascii_letters, digits, naming, punctuation,
+    printable, s_dig, s_num, s_ascl, s_ascu, s_asc, s_nam, s_nonam,
+};

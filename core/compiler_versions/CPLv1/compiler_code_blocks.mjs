@@ -1,5 +1,3 @@
-import {join} from '../../nle.mjs';
-
 const [UNKNOWNBLOCK, SETVAR, RUNFUNC] = [...Array(3).keys()];
 const [FUNC, LOCALVAR, TECHVAR, GLOBALVAR, GLOBALTECHVAR, FIXEDVAR, EMPTY] = [...Array(7).keys()];
 const writable = (type) => {[LOCALVAR, TECHVAR, GLOBALVAR].includes(type)};
@@ -103,3 +101,8 @@ const Value = function(type, value=null, source=null, ...args)
             break;
     }
 }
+
+export {
+    Block, BlockSequence, Gate, While, Value, EMPTY, FIXEDVAR, FUNC, GLOBALTECHVAR, GLOBALVAR,
+    LOCALVAR, RUNFUNC, SETVAR, TECHVAR, UNKNOWNBLOCK, writable
+};
