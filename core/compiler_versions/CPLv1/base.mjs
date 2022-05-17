@@ -110,10 +110,33 @@ const chapter_localization = function(code, startl){
     return [l, ret_localization, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 };
 
+const chapter_script = function(code, startl, version)
+{
+    let l = startl;
+    let ret_script = {};
+    if (code.slice(l, l+6) === 'SCRIPT')
+    {
+        l += 6;
+        while (code[l] === ' ') l++;
+        let write = '';
+        while (!('\n '.includes(code[l]))) write += code[l++];
+        let script_type = write.toLowerCase();
+        while (code[l++] !== '\n'){}
+        [l, ret_script[script_type], concl, cur] = [...read_code(code, l, version, 1)];
+        if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
+    }
+    return [l, ret_script, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
+};
+
 const get = function(code = '', start = 0, end = null)
 {
     if (end === null) end = code.length;
     else end = Math.min(end, code.length);
+};
+
+const read_code = function(code, startl, version, tab = 0)
+{
+
 };
 
 export {get};
