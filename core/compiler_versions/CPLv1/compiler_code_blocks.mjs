@@ -18,7 +18,7 @@ Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 */
 
 const [UNKNOWNBLOCK, SETVAR, RUNFUNC] = [...Array(3).keys()];
-const [FUNC, LOCALVAR, TECHVAR, GLOBALVAR, GLOBALTECHVAR, FIXEDVAR, EMPTY] = [...Array(7).keys()];
+const [EMPTY, FUNC, LOCALVAR, TECHVAR, GLOBALVAR, GLOBALTECHVAR, FIXEDVAR] = [...Array(7).keys()];
 const writable = (type) => {[LOCALVAR, TECHVAR, GLOBALVAR].includes(type)};
 //const back_funcs = (value_to_name) => ['UNKNOWNBLOCK', 'SETVAR', 'RUNFUNC'][value_to_name];
 

@@ -48,18 +48,18 @@ const string_embedded_quotemark = function(text, start, sepsym, save_escapes = f
             {
                 if (text[l+1] === BS)
                 {
-                    write.concat((!save_escapes) ? BS : BS+BS);
+                    write += (!save_escapes) ? BS : BS+BS;
                     l += 2;
                 }
                 else if (text[l+1] === sepsym)
                 {
-                    write.concat((!save_escapes) ? sepsym : BS+sepsym);
+                    write += (!save_escapes) ? sepsym : BS+sepsym;
                     l += 2;
                 }
                 else return [0, 0, '', new ccc.CompilerConclusion(202),
                         new ccc.CompilerCursor(text, l)];
             }
-            else write.concat(text[l++]);
+            else write += text[l++];
         }
         if (count >= 2)
         {
@@ -90,14 +90,14 @@ const string_embedded_brackets = function(text, start, sepsym)
                 {
                     indexes[0] = l;
                     opened = true;
-                    write.concat(text[l++]);
+                    write += text[l++];
                 }
                 else
                 {
                     let _, add, concl, cur;
                     [_, l, add, concl, cur] = string_embedded(text, l, EOC_index[text[l]]);
                     if (!ccc.correct_concl(concl)) return [0, 0, '', concl, cur];
-                    write.concat(add);
+                    write += add;
                 }
             }
             else
@@ -105,7 +105,7 @@ const string_embedded_brackets = function(text, start, sepsym)
                 let _, add, concl, cur;
                 [_, l, add, concl, cur] = string_embedded(text, l, EOC_index[text[l]]);
                 if (!ccc.correct_concl(concl)) return [0, 0, '', concl, cur];
-                write.concat(add);
+                write += add;
             }
         }
         else if (text[l] === sepsym[1])
@@ -113,14 +113,14 @@ const string_embedded_brackets = function(text, start, sepsym)
             if (opened)
             {
                 indexes[1] = l;
-                write.concat(text[l]);
+                write += text[l];
                 not_break = false;
                 break;
             }
             else
                 return [0, 0, '', new ccc.CompilerConclusion(201), new ccc.CompilerCursor(text, l)];
         }
-        else write.concat(text[l++]);
+        else write += text[l++];
     }
     if (not_break)
         return [0, 0, '', new ccc.CompilerConclusion(201), new ccc.CompilerCursor(text, start)];
@@ -134,7 +134,7 @@ const string_embedded = function(text, start, separationtype, save_escapes = fal
     else sepsym = ['()', '[]', '{}', '"', "'"][separationtype];
     if (text[start] !== sepsym[0])
         return [0, 0, '', new ccc.CompilerConclusion(304), new ccc.CompilerCursor()];
-    if (separationtype === DOUBLEQUOTEMARK || separationtype === SINGLEQUOTEMARK)
+    if ('"\''.includes(sepsym[0]))
         return string_embedded_quotemark(text, start, sepsym, save_escapes);
     else
         return string_embedded_brackets(text, start, sepsym);
@@ -142,7 +142,7 @@ const string_embedded = function(text, start, separationtype, save_escapes = fal
 
 const string_only_embedded = function(text, start, separationtype, save_escapes = false)
 {
-    let ret = string_embedded(text, start, separationtype, save_escapes)
+    let ret = string_embedded(text, start, separationtype, save_escapes);
     if (ccc.correct_concl(ret[3]))
         return [ret[0], ret[1], ret[2].slice(1, -1), ret[3], new ccc.CompilerCursor()];
     else return ret;

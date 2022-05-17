@@ -56,9 +56,9 @@ const split_args1 = function(text, start, end_at = null)
             if (!ccc.correct_concl(concl))
                 return [[], concl, cur];
             l = i1-1;
-            write.concat(string);
+            write += string;
         }
-        else write.concat(text[l]);
+        else write += text[l];
         l++;
     }
     if (write !== '') args.push(write);
@@ -74,12 +74,12 @@ const split_args2 = function(text, start)
     let l = start;
     while (l < end)
     {
-        if (code[l] === '\n')
+        if (text[l] === '\n')
         {
             end = l;
             break;
         }
-        if (' \n\t'.includes(text[l]))
+        if (' \t'.includes(text[l]))
         {
             if (write !== '')
             {
@@ -93,9 +93,9 @@ const split_args2 = function(text, start)
             if (!ccc.correct_concl(concl))
                 return [[], concl, cur];
             l = i1-1;
-            write.concat(string);
+            write += text[i0] + string + text[l];
         }
-        else write.concat(text[l]);
+        else write += text[l];
         l++;
 
     }
@@ -107,7 +107,7 @@ const split_args2 = function(text, start)
 const split_args3 = function(text, start = 0, end_at = null, ...splitters)
 {
     let end;
-    if (end === null) end = text.length;
+    if (end_at === null) end = text.length;
     else end = end_at;
 
     let spls = [...splitters].sort((a,b)=>(a-b));
@@ -135,14 +135,14 @@ const split_args3 = function(text, start = 0, end_at = null, ...splitters)
             {
                 let [l0, l1, write, concl, cur] = cep.string_embedded(text, l, text[l])
                 if (!ccc.correct_concl(concl)) return [[], concl, cur];
-                ret[ret.length-1].concat(write);
+                ret[ret.length-1] += write;
                 l = l1;
             }
-            else ret[ret.length-1].concat(text[l++]);
+            else ret[ret.length-1] += text[l++];
         }
     }
     if (ret[ret.length-1] === '') ret.pop();
-    return [ret, new ccc.CompilerCursor(0), new ccc.CompilerCursor()];
+    return [ret, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 }
 
 export {split_args1, split_args2, split_args3}

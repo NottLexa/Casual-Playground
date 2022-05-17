@@ -80,7 +80,7 @@ const CompilerCursor = function(codetxt = null, ...indexes)
 }
 
 const compconcl_get_description = function (code) {
-    let group = Math.floor(code, 100);
+    let group = Math.floor(code/100);
     let errid = code % 100;
     if (group < compconcl_ids.length && errid < compconcl_ids[group].length)
     {

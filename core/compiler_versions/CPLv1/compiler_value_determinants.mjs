@@ -23,7 +23,6 @@ import * as cep from './compiler_embedded_parts.mjs';
 import * as ccb from './compiler_code_blocks.mjs';
 import * as csc from '../../compiler_string_constants.mjs';
 import * as ccc from '../../compiler_conclusions_cursors.mjs';
-import {CoreFuncs} from "./compiler_core_functions";
 
 var MO = [['==', '!=', '>=', '>', '<=', '<'], ['+', '-'], ['*', '/']];
 var LIST_MO = [];
@@ -39,10 +38,20 @@ var symtofunc = {
     '!=':'ne', '>=':'ge', '>':'gt', '<=':'le', '<':'lt',
 };
 
+const arraysEqual = function(a, b) {
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (a.length !== b.length) return false;
+    for (var i = 0; i < a.length; ++i) {
+        if (a[i] !== b[i]) return false;
+    }
+    return true;
+}
+
 const complex_determinant = function(codeparts)
 {
     let joined = codeparts.join('');
-    if (LIST_MO.some(value => value in joined))
+    if (LIST_MO.some(value => joined.includes(value)))
     {
         let inp = [];
         for (let part in codeparts)
@@ -151,10 +160,19 @@ const value_determinant = function(codeparts)
     {
         [splitted, concl, cur] = [...coi.split_args3(codeparts[0], 0, null, ...SET_MO)];
         if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
-        if (splitted === codeparts) return simple_determinant(codeparts[0]);
-        else return complex_determinant(splitted);
+        if (arraysEqual(splitted, codeparts))//(splitted === codeparts)
+        {
+            return simple_determinant(codeparts[0]);
+        }
+        else
+        {
+            return complex_determinant(splitted);
+        }
     }
-    else return complex_determinant(codeparts);
+    else
+    {
+        return complex_determinant(codeparts);
+    }
 };
 
 const math_resolver = function(allparts)
@@ -172,7 +190,7 @@ const math_resolver = function(allparts)
                         vd1 = new ccb.Value(ccb.FIXEDVAR, 0)
                         [vd2, concl, cur] = [...value_determinant(allparts.slice(l+1))];
                         if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
-                        return [new ccb.Value(ccb.FUNC, 'sub', CoreFuncs, [vd1, vd2]),
+                        return [new ccb.Value(ccb.FUNC, 'sub', ccf.CoreFuncs, [vd1, vd2]),
                         new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
                 }
             }
@@ -182,7 +200,7 @@ const math_resolver = function(allparts)
                 if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
                 [vd2, concl, cur] = [...value_determinant(allparts.slice(l+1))];
                 if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
-                return [new ccb.Value(ccb.FUNC, symtofunc[mos], CoreFuncs, [vd1, vd2]),
+                return [new ccb.Value(ccb.FUNC, symtofunc[mos], ccf.CoreFuncs, [vd1, vd2]),
                 new ccc.CompilerConclusion(0), new ccc.CompilerCursor(null)];
             }
         });
