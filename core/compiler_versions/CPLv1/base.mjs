@@ -17,14 +17,72 @@ PURPOSE. See the GNU General Public License for more details.
 Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 */
 
+/*
+Casual Playground Compiler - version 1 (CPLv1)
+
+Hello World!
+*/
+
 import * as coi from './compiler_other_instruments.mjs';
 import * as ccb from './compiler_code_blocks.mjs';
+import * as cep from './compiler_embedded_parts.mjs';
 import * as cbd from './compiler_block_definers.mjs';
+import * as ccc from "../../compiler_conclusions_cursors.mjs";
+
+const LineType = {
+    UNKNOWN: 0,
+    ADDNEW: 1,
+    ADDCONDBLOCK: 2,
+    ADDFALSEBLOCK: 3,
+};
+
+const chapter_cell = function(code, startl)
+{
+    let _, write, concl, cur;
+    let l = startl;
+    let ret = {};
+    if (code.slice(l, l+4) === 'CELL')
+    {
+        l += 4;
+        ret.type = 'CELL';
+        [write, concl, cur] = [...coi.split_args1(code, l, '\n')];
+        if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
+        if (write.length > 0)
+        {
+            [_, _, ret.name, concl, cur] = [...cep.string_only_embedded(write[0], 0, cep.DOUBLEQUOTEMARK)];
+            if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
+        }
+        if (write.length > 1)
+        {
+            [_, _, ret.desc, concl, cur] = [...cep.string_only_embedded(write[1], 0, cep.DOUBLEQUOTEMARK)];
+            if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
+        }
+    }
+    return [l, ret, new ccc.CompilerConclusion(0), new ccc.CompilerCursor(null)];
+};
+
+const chapter_notexture = function(code, startl)
+{
+    let write, concl, cur;
+    let l = startl;
+    let ret = {};
+    if (code.slice(l, l+9) === 'NOTEXTURE')
+    {
+        ret.notexture = [0, 0, 0];
+        l += 9;
+        [l, write, concl, cur] = [...coi.split_args2(code, l)];
+        if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
+        if (write.length > 0) ret.notexture[0] = parseInt(write[0]);
+        if (write.length > 1) ret.notexture[1] = parseInt(write[1]);
+        if (write.length > 2) ret.notexture[2] = parseInt(write[2]);
+    }
+    return [l, ret, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
+};
 
 const get = function(code = '', start = 0, end = null)
 {
     if (end === null) end = code.length;
     else end = Math.min(end, code.length);
-}
+};
 
 export {get};
