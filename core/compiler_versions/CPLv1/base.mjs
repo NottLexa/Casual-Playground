@@ -79,6 +79,37 @@ const chapter_notexture = function(code, startl)
     return [l, ret, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 };
 
+const chapter_localization = function(code, startl){
+    let _;
+    let l = startl;
+    let ret_localization = {};
+    if (code.slice(l, l+12) === 'LOCALIZATION')
+    {
+        l += 12;
+        while (code[l++] !== '\n'){}
+        while (code.slice(l, l+4)) {
+            l += 4;
+            let [write, concl, cur] = [...coi.split_args1(code, l, '\n')];
+            if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
+            ret_localization[write[0]] = {};
+            if (write.length > 1)
+            {
+                [_, _, ret_localization[write[0]].name, concl, cur] =
+                    [...cep.string_only_embedded(write[1], 0, cep.DOUBLEQUOTEMARK)];
+                if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
+            }
+            if (write.length > 2)
+            {
+                [_, _, ret_localization[write[0]].desc, concl, cur] =
+                    [...cep.string_only_embedded(write[2], 0, cep.DOUBLEQUOTEMARK)];
+                if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
+
+            }
+        }
+    }
+    return [l, ret_localization, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
+};
+
 const get = function(code = '', start = 0, end = null)
 {
     if (end === null) end = code.length;
