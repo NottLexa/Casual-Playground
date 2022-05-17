@@ -27,6 +27,7 @@ import * as coi from './compiler_other_instruments.mjs';
 import * as ccb from './compiler_code_blocks.mjs';
 import * as cep from './compiler_embedded_parts.mjs';
 import * as cbd from './compiler_block_definers.mjs';
+import * as cvd from './compiler_value_determinants.mjs';
 import * as ccc from "../../compiler_conclusions_cursors.mjs";
 
 const LineType = {
@@ -35,6 +36,7 @@ const LineType = {
     ADDCONDBLOCK: 2,
     ADDFALSEBLOCK: 3,
 };
+const CodeStructures = new Set(['WHILE', 'IF', 'ELSEIF', 'ELSE']);
 
 const chapter_cell = function(code, startl)
 {
@@ -136,7 +138,88 @@ const get = function(code = '', start = 0, end = null)
 
 const read_code = function(code, startl, version, tab = 0)
 {
+    let code_sequence = new ccb.BlockSequence();
+    let end = code.length;
+    let l = startl;
+    let spaces = 0;
+    while (l < end)
+    {
+        spaces = 0;
+        while (code[l] === ' ')
+        {
+            l++;
+            spaces++;
+        }
+        if (spaces < tab*4) break;
+        else if (spaces > tab*4)
+            return [0, new ccb.BlockSequence(), new ccc.CompilerConclusion(206), new ccc.CompilerCursor(code, l)];
+        else
+        {
+            let [linetype, block, l1, concl, cur] = read_line(code, l-spaces, version, tab)
+            cur = new ccc.CompilerCursor(code, l, l1, cur.sl, cur.el);
+            l = l1;
+            if (!ccc.correct_concl(concl)) return [0, new ccb.BlockSequence(), concl, cur];
+            switch (linetype)
+            {
+                case LineType.ADDNEW:
+                    code_sequence.add(block);
+                    break;
+                case LineType.ADDCONDBLOCK:
+                    if (code_sequence.blocks[code_sequence.blocks.length-1].constructor.name === ccb.Gate.name)
+                        code_sequence[-1].cb.push(block);
+                    else
+                        return [0, new ccb.BlockSequence(),
+                            new ccc.CompilerConclusion(207), new ccc.CompilerCursor()];
+                    break;
+                case LineType.ADDFALSEBLOCK:
+                    if (code_sequence.blocks[code_sequence.blocks.length-1].constructor.name === ccb.Gate.name)
+                        if (code_sequence[-1].fb === null) code_sequence[-1].fb = block;
+                        else return [0, new ccb.BlockSequence(),
+                            new ccc.CompilerConclusion(209), new ccc.CompilerCursor()];
+                    else
+                        return [0, new ccb.BlockSequence(),
+                            new ccc.CompilerConclusion(208), new ccc.CompilerCursor()];
+                    break;
+                default:
+                    code_sequence.add(block);
+                    break;
+            }
+        }
+    }
+    return [l-spaces, code_sequence, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
+};
 
+const read_line = function(code, startl, version, tab = 0)
+{
+    let l = startl;
+    let value, block, seq, write, concl, cur;
+    [l, write, concl, cur] = [...coi.split_args2(code, l)];
+    if (!ccc.correct_concl(concl)) return [LineType.ADDNEW, new ccb.Block(ccb.UNKNOWNBLOCK), 0, concl, cur];
+    else if (CodeStructures.has(write[0]))
+    {
+        if (write[0] !== 'ELSE')
+        {
+            [value, concl, cur] = [...cvd.value_determinant(write.slice(1))];
+            if (!ccc.correct_concl(concl)) return [LineType.UNKNOWN, new ccb.Block(ccb.UNKNOWNBLOCK), 0, concl, cur];
+        }
+        [l, seq, concl, cur] = read_code(code, l, version, tab+1);
+        switch (write[0])
+        {
+            case 'WHILE':
+                return [LineType.ADDNEW, new ccb.While(value, seq), l, concl, cur];
+            case 'IF':
+                return [LineType.ADDNEW, new ccb.Gate([[value, seq]]), l, concl, cur];
+            case 'ELSEIF':
+                return [LineType.ADDCONDBLOCK, [value, seq], l, concl, cur];
+            case 'ELSE':
+                return [LineType.ADDFALSEBLOCK, seq, l, concl, cur];
+        }
+    }
+    else
+    {
+        [block, concl, cur] = [...cbd.definer(write)];
+        return [LineType.ADDNEW, block, l, concl, cur];
+    }
 };
 
 export {get};
