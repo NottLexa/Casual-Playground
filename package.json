@@ -17,7 +17,7 @@
   ],
   "version": "1.0.0",
   "main": "run_nwjs.js",
-  "chromium-args": "--disable-devtools",
+  "chromium-args": "--disable-devtools --enable-logging=stderr",
   "devDependencies": {
     "nwjs-builder-phoenix": "^1.15.0"
   },
