@@ -82,30 +82,29 @@ const chapter_notexture = function(code, startl)
 };
 
 const chapter_localization = function(code, startl){
-    let _;
+    let _1, _2;
     let l = startl;
     let ret_localization = {};
     if (code.slice(l, l+12) === 'LOCALIZATION')
     {
         l += 12;
         while (code[l++] !== '\n'){}
-        while (code.slice(l, l+4)) {
+        while (code.slice(l, l+4) === '    ') {
             l += 4;
             let [write, concl, cur] = [...coi.split_args1(code, l, '\n')];
             if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
             ret_localization[write[0]] = {};
             if (write.length > 1)
             {
-                [_, _, ret_localization[write[0]].name, concl, cur] =
+                [_1, _2, ret_localization[write[0]].name, concl, cur] =
                     [...cep.string_only_embedded(write[1], 0, cep.DOUBLEQUOTEMARK)];
                 if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
             }
             if (write.length > 2)
             {
-                [_, _, ret_localization[write[0]].desc, concl, cur] =
+                [_1, _2, ret_localization[write[0]].desc, concl, cur] =
                     [...cep.string_only_embedded(write[2], 0, cep.DOUBLEQUOTEMARK)];
                 if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
-
             }
         }
     }
@@ -114,6 +113,7 @@ const chapter_localization = function(code, startl){
 
 const chapter_script = function(code, startl, version)
 {
+    let concl, cur;
     let l = startl;
     let ret_script = {};
     if (code.slice(l, l+6) === 'SCRIPT')
@@ -130,10 +130,42 @@ const chapter_script = function(code, startl, version)
     return [l, ret_script, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 };
 
-const get = function(code = '', start = 0, end = null)
+const get = function(code = '', start = 0, end_at = null)
 {
-    if (end === null) end = code.length;
-    else end = Math.min(end, code.length);
+    let end;
+    if (end_at === null) end = code.length;
+    else end = Math.min(end_at, code.length);
+    let ret = {
+        version: 1,
+        type: 'CELL',
+        name: 'Cell',
+        desc: 'No description given.',
+        notexture: [255, 255, 255],
+        localization: {},
+        script: {
+            create: null,
+            step: null,
+        },
+    };
+    let l = start;
+    let ret_expand, concl, cursor;
+    while (l < end)
+    {
+        [l, ret_expand, concl, cursor] = [...chapter_cell(code, l)];
+        if (!ccc.correct_concl(concl)) return [{}, concl, cursor];
+        ret = {...ret, ...ret_expand};
+        [l, ret_expand, concl, cursor] = [...chapter_notexture(code, l)];
+        if (!ccc.correct_concl(concl)) return [{}, concl, cursor];
+        ret = {...ret, ...ret_expand};
+        [l, ret_expand, concl, cursor] = [...chapter_localization(code, l)];
+        if (!ccc.correct_concl(concl)) return [{}, concl, cursor];
+        ret.localization = {...ret.localization, ...ret_expand};
+        [l, ret_expand, concl, cursor] = [...chapter_script(code, l, ret.version)];
+        if (!ccc.correct_concl(concl)) return [{}, concl, cursor];
+        ret.script = {...ret.script, ...ret_expand};
+        l++;
+    }
+    return [ret, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 };
 
 const read_code = function(code, startl, version, tab = 0)
@@ -222,4 +254,4 @@ const read_line = function(code, startl, version, tab = 0)
     }
 };
 
-export {get};
+export {get, read_line, read_code, chapter_script};

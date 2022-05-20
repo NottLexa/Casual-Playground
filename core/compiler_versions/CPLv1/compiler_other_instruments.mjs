@@ -37,8 +37,8 @@ const split_args1 = function(text, start, end_at = null)
     let l = start;
     while (l < end)
     {
-        if (newlinestop && text[l] === '\n') break;
-        if (' \n\t'.includes(text[l]))
+        if (newlinestop && '\n\r'.includes(text[l])) break;
+        if (' \n\t\r'.includes(text[l]))
         {
             if (write !== '')
             {
@@ -74,7 +74,7 @@ const split_args2 = function(text, start)
     let l = start;
     while (l < end)
     {
-        if (text[l] === '\n')
+        if ('\n\r'.includes(text[l]))
         {
             end = l;
             break;

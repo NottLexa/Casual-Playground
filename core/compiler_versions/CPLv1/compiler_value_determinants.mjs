@@ -51,17 +51,7 @@ const arraysEqual = function(a, b) {
 const complex_determinant = function(codeparts)
 {
     let joined = codeparts.join('');
-    if (LIST_MO.some(value => joined.includes(value)))
-    {
-        let inp = [];
-        for (let part in codeparts)
-        {
-            let [write, concl, cur] = coi.split_args3(codeparts[part], ...SET_MO);
-            if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
-            inp.push(...write);
-        }
-        return math_resolver(inp);
-    }
+    if (codeparts.some(value => SET_MO.has(value))) return math_resolver(codeparts);
     else
         return [new ccb.Value(ccb.EMPTY), new ccc.CompilerConclusion(301), new ccc.CompilerCursor()];
 };
@@ -141,7 +131,7 @@ const simple_determinant = function(codepart='')
 
     // NUMBER
     let numeric = a_codepart.every(value => csc.s_num.has(value));
-    if (numeric && !codepart.includes('.'))
+    if (numeric && (!codepart.includes('.')))
         return [new ccb.Value(ccb.FIXEDVAR, Number(codepart)),
             new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
     let count = 0; a_codepart.forEach(value => {if (value === '.') count++});
@@ -177,9 +167,13 @@ const value_determinant = function(codeparts)
 
 const math_resolver = function(allparts)
 {
-    let l, vd1, vd2, concl, cur;
-    MO.forEach((mop)=>{
-        mop.forEach((mos)=>{
+    let l, vd1, vd2, concl, cur, i, j, mop, mos;
+    for (i in MO)
+    {
+        mop = MO[i];
+        for (j in mop)
+        {
+            mos = mop[j];
             l = allparts.length - 1;
             while (l>=0 && allparts[l] !== mos) l -= 1;
             if (l === 0)
@@ -192,6 +186,8 @@ const math_resolver = function(allparts)
                         if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
                         return [new ccb.Value(ccb.FUNC, 'sub', ccf.CoreFuncs, [vd1, vd2]),
                         new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
+                    default:
+                        return [new ccb.Value(ccb.EMPTY), new ccc.CompilerConclusion(301), new ccc.CompilerCursor()];
                 }
             }
             else if (l > 0)
@@ -203,8 +199,8 @@ const math_resolver = function(allparts)
                 return [new ccb.Value(ccb.FUNC, symtofunc[mos], ccf.CoreFuncs, [vd1, vd2]),
                 new ccc.CompilerConclusion(0), new ccc.CompilerCursor(null)];
             }
-        });
-    });
+        }
+    }
     return [new ccb.Value(ccb.EMPTY), new ccc.CompilerConclusion(301), new ccc.CompilerCursor()];
 };
 
