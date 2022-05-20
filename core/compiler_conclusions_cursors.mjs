@@ -135,7 +135,7 @@ const CompilerConclusion = function(conclusion_code)
     this.description = compconcl_get_description(this.code);
     this.__repr__ = () => `<CompCon[${this.code}]>`;
     this.__str__ = () => `<CompilerConclusion: ${this.code}>`;
-    this.full_conclusion = () => `< CompilerConclusion with ID {this.code}\n  ---\n  ${this.description} >`;
+    this.full_conclusion = () => `< CompilerConclusion with ID ${this.code}\n  ---\n  ${this.description} >`;
     this.short_conclusion = () => `<CompilerConclusion with ID ${this.code}: ${this.description}>`;
 }
 
