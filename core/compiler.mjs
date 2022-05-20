@@ -19,7 +19,6 @@ Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 
 import * as CPLv1 from './compiler_versions/CPLv1/__init__.mjs';
 import * as ccc from './compiler_conclusions_cursors.mjs';
-import {CompilerConclusion} from './compiler_conclusions_cursors.mjs';
 
 const COMPILER_VERSIONS = [CPLv1];
 const LAST_COMPILER_VERSION = COMPILER_VERSIONS.length;
@@ -42,26 +41,26 @@ const get = function(code = '')
 {
     if (code === '') return [{}, new ccc.CompilerConclusion(1), null];
     let l = 0;
+    let write = '';
     if (code.slice(l, l+7) === 'VERSION')
     {
         l += 7;
         while (code.charAt(l) === ' ') l += 1;
-        let write = '';
-        while (code.charAt(l) !== '\n') write.concat(code.charAt(l++));
+        while (code.charAt(l) !== '\n') write += code.charAt(l++);
     }
-    else return [{}, new ccc.CompilerConclusion(2), null];
+    else return [{}, new ccc.CompilerConclusion(2), new ccc.CompilerCursor()];
 
     let version = Number(write);
     if (!(0 < version && version <= LAST_COMPILER_VERSION))
     {
-        return [{}, ccc.CompilerConclusion(3), ccc.CompilerCursor(code, 0, 0)];
+        return [{}, new ccc.CompilerConclusion(3), new ccc.CompilerCursor(code, 0, 0)];
     }
 
     let compiler = COMPILER_VERSIONS[version-1];
     let ret = compiler.get(code, l);
-    if (ret[1] === CompilerConclusion(0) && version !== LAST_COMPILER_VERSION)
+    if (ret[1] === new ccc.CompilerConclusion(0) && version !== LAST_COMPILER_VERSION)
     {
-        ret[1] = CompilerConclusion(1);
+        ret[1] = new ccc.CompilerConclusion(1);
     }
     return ret;
 }
