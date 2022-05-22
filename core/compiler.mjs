@@ -22,7 +22,7 @@ import * as ccc from './compiler_conclusions_cursors.mjs';
 
 const COMPILER_VERSIONS = [CPLv1];
 const LAST_COMPILER_VERSION = COMPILER_VERSIONS.length;
-const [X, Y, CELLID] = [...Array(3).keys()];
+const [X, Y, CELLID] = Array(3).keys();
 
 const Globals = {
     REPLY_DEFAULT: 0,
@@ -39,7 +39,7 @@ const LoggerClass = {
 
 const get = function(code = '')
 {
-    if (code === '') return [{}, new ccc.CompilerConclusion(1), null];
+    if (code === '') return [{}, new ccc.CompilerConclusion(1), new ccc.CompilerCursor()];
     let l = 0;
     let write = '';
     if (code.slice(l, l+7) === 'VERSION')
@@ -57,7 +57,13 @@ const get = function(code = '')
     }
 
     let compiler = COMPILER_VERSIONS[version-1];
-    let ret = compiler.get(code, l);
+    let ret;
+    try {
+        ret = compiler.get(code, l);
+    }
+    catch (err) {
+        ret = [{}, new ccc.CompilerConclusion(200), new ccc.CompilerCursor()];
+    }
     if (ret[1] === new ccc.CompilerConclusion(0) && version !== LAST_COMPILER_VERSION)
     {
         ret[1] = new ccc.CompilerConclusion(1);

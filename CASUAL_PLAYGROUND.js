@@ -27,7 +27,9 @@ window.onerror = function(msg, url, linenumber)
 import * as engine from './core/nle.mjs';
 import * as comp from './core/compiler.mjs';
 import * as ctt from './core/compiler_task_types.mjs';
+import * as ccc from './core/compiler_conclusions_cursors.mjs';
 const fs = require('fs');
+const path = require('path');
 var vi;
 try { vi = JSON.parse(fs.readFileSync('./version_info.json', {encoding: "utf8"})); }
 catch (err) { vi = {version_info:{version:"Unknown Version",stage:"Unknown Stage"}}; }
@@ -82,7 +84,75 @@ nw.Window.get().show();
 
 const rgb_to_style = (r,g,b) => `rgb(${r}, ${g}, ${b})`;
 
-// INSERT MOD LOADER FUNCTIONS
+const cut_string = function(string, upto)
+{
+    if (string.length <= upto) return string;
+    else return string.slice(0, upto-3) + '...';
+};
+
+const load_fonts = function(fontsfolder)
+{
+    for (let m of fs.readdirSync(fontsfolder, {encoding: "utf8"}))
+    {
+        let filepath = path.join(fontsfolder, m);
+        if (fs.lstatSync(filepath).isFile() && filepath.slice(-4) === '.ttf')
+        {
+            $("head").prepend("<style type=\"text/css\">" +
+                "@font-face {\n" +
+                "\tfont-family: \"myFont\";\n" +
+                `\tsrc: local('☺'), url('${filepath}') format('opentype');\n` +
+                "}\n" +
+                "\tp.myClass {\n" +
+                "\tfont-family: myFont !important;\n" +
+                "}\n" +
+                "</style>");
+        }
+    }
+};
+
+const load_modlist = function(modsfolder)
+{
+    return fs.readdirSync(modsfolder, {encoding: "utf8"})
+        .map(m => path.join(modsfolder, m))
+        .filter(filepath => fs.lstatSync(filepath).isDirectory());
+};
+
+const load_mod = function(modfolder, mod_origin, official)
+{
+    let mods = {};
+    for (let filename of fs.readdirSync(modfolder, {encoding: "utf8"}))
+    {
+        let filepath =  path.join(modfolder, filename);
+        if (fs.lstatSync(filepath).isFile())
+        {
+            if (filepath.slice(-4).toLowerCase() === '.mod') {
+                let f = fs.readFileSync(filepath, {encoding: "utf8"});
+                let [moddata, concl, cur] = comp.get(f);
+                if (!ccc.correct_concl(concl)) {
+                    logger.push([
+                        comp.LoggerClass.ERROR,
+                        new Date(),
+                        `Couldn't load ${filepath}`,
+                        `CasualPlayground Compiler encountered an error: ${concl.code}`,
+                        concl.full_conclusion(),
+                        cur.highlight(),
+                        cur.string(),
+                    ])
+                }
+                let modname = filename.slice(0, -4);
+                moddata.origin = mod_origin;
+                moddata.official = official;
+                let imgpath = filepath.slice(0, -4) + '.png';
+                if (fs.existsSync(imgpath) && fs.lstatSync(imgpath).isFile())
+                    moddata.texture = imgpath;
+                if (official) mods[modname] = moddata;
+                else mods[`${mod_origin}/${modname}`] = moddata;
+
+            }
+        }
+    }
+    return mods;
+}
 
 //#endregion
 
@@ -107,8 +177,27 @@ var fontsize_default = Math.floor(16*fontsize/scale);
 var fontsize_small   = Math.floor(12*fontsize/scale);
 var fontsize_smaller = Math.floor( 8*fontsize/scale);
 
-// INSERT MOD LOADER
+// INSERT FONT LOADER
 
+var corefolder = path.join('core', 'corecontent');
+var modsfolder = path.join('data', 'mods');
+
+let coremods = load_mod(corefolder, 'Casual Playground', 1);
+idlist.push(...Object.keys(coremods));
+objdata = {...objdata, ...coremods};
+
+for (let moddir of load_modlist(modsfolder))
+{
+    let modpath = path.join(modsfolder, moddir);
+    let mod = load_mod(modpath, moddir, 0);
+    idlist.push(...Object.keys(mod));
+    objdata = {...objdata, ...mod};
+}
+
+global.console.log(idlist);
+global.console.log(idlist.map((value, index) => [index, value]));
+
+var cell_fill_on_init = idlist.indexOf('grass');
 var cellbordersize = 0.125;
 
 //#endregion
@@ -118,6 +207,7 @@ var cellbordersize = 0.125;
 const EntGlobalConsole = new engine.Entity({
     create: function(target)
     {
+        target.log = [];
         target.logger_i = 0;
     },
 
@@ -126,14 +216,18 @@ const EntGlobalConsole = new engine.Entity({
         while (target.logger_i < logger.length)
         {
             let log = logger[target.logger_i];
-            let type_string = 'ERROR'; //let type_string = LoggerClass.types[log[0]];
+            let type_string = comp.LoggerClass.types[log[0]];//'ERROR';
             let time_string = '00:00:00'; //let time_string = timeformat(log[1], 1);
             let prefix = `[${type_string} ${time_string}]` + ' ';
             let prefix_l = prefix.length;
-            console.log(prefix + log[2]);
-            for (let line in log.slice(3))
+            //process.stdout.write(prefix + log[2]);
+            global.console.log(prefix + log[2]);
+            target.log.push(prefix + log[2]);
+            for (let line of log.slice(3))
             {
-                console.log(' '*prefix_l + line);
+                //process.stdout.write(' '.repeat(prefix_l) + line);
+                global.console.log(' '.repeat(prefix_l) + line);
+                target.log.push(' '.repeat(prefix_l) + line);
             }
             target.logger_i++;
         }
@@ -143,8 +237,14 @@ const EntGlobalConsole = new engine.Entity({
         engine.draw_text(surface, surface.canvas.width-10, 10,
             `${(deltatime !== 0) ? Math.round(1/deltatime) : 0} FPS`, 'fill', fontsize_default,
             'right', 'top', 'white');
+        for (let i in target.log)
+        {
+            engine.draw_text(surface, 10,
+                surface.canvas.height-100-(target.log.length*fontsize_small)+(i*fontsize_small),
+                target.log[i], 'fill', fontsize_small, 'left', 'bottom', 'white', 'monospace');
+        }
     }
-})
+});
 //#endregion
 //#region [FIELD BOARD]
 const board_step = function(target)
@@ -160,7 +260,7 @@ const board_step = function(target)
     }
     target.time_elapsed = Date.now() - start;
     */
-}
+};
 
 const board_tasks = function(target)
 {
@@ -187,7 +287,7 @@ const board_tasks = function(target)
         target.surfaces['board'] = EntFieldBoard.draw_board(target);
     }
     */
-}
+};
 
 const draw_board = function(target)
 {
@@ -213,13 +313,13 @@ const draw_board = function(target)
         }
     }
     return surface;
-}
+};
 
 const board_center_view = function(target)
 {
     target.viewx = Math.floor(target.viewscale*target.board_width/2) - (WIDTH2);
     target.viewy = Math.floor(target.viewscale*target.board_height/2) - (HEIGHT2);
-}
+};
 
 const board_zoom_in = function(target, mul)
 {
@@ -233,7 +333,7 @@ const board_zoom_in = function(target, mul)
     target.viewy = (target.viewy + (HEIGHT2)) * newvs / oldvs - (HEIGHT2);
 
     target.surfaces['board'] = draw_board(target);
-}
+};
 const board_zoom_out = function(target, mul)
 {
     let oldvs = target.viewscale;
@@ -246,7 +346,7 @@ const board_zoom_out = function(target, mul)
     target.viewy = (target.viewy + (HEIGHT2)) * newvs / oldvs - (HEIGHT2);
 
     target.surfaces['board'] = draw_board(target);
-}
+};
 const board_do_instrument = function(target)
 {
     let bordersize = target.viewscale*cellbordersize;
@@ -285,7 +385,7 @@ const board_do_instrument = function(target)
                 }
             }
     }
-}
+};
 
 const EntFieldBoard = new engine.Entity({
     create: function(target)
@@ -331,7 +431,7 @@ const EntFieldBoard = new engine.Entity({
             {
                 let celldata = comp.Cell(
                     {'X': x, 'Y': y},
-                    idlist.indexOf('grass'),
+                    cell_fill_on_init,
                     target.board,
                     gvars,
                     );
@@ -559,7 +659,7 @@ const EntFieldBoard = new engine.Entity({
                 break;
         }
     },
-})
+});
 //#endregion
 //#region [FIELD STANDARD UI]
 const EntFieldSUI = new engine.Entity();

@@ -1,3 +1,3 @@
-const [SET_CELL] = [...Array(5).keys()];
+const [SET_CELL] = Array(1).keys();
 
 export {SET_CELL};

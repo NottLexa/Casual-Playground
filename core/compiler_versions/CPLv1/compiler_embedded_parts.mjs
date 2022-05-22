@@ -19,7 +19,7 @@ Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 
 import * as ccc from '../../compiler_conclusions_cursors.mjs';
 
-const [ROUND, SQUARE, CURLY, DOUBLEQUOTEMARK, SINGLEQUOTEMARK] = [...Array(5).keys()];
+const [ROUND, SQUARE, CURLY, DOUBLEQUOTEMARK, SINGLEQUOTEMARK] = Array(5).keys();
 const QUOTEMARK = DOUBLEQUOTEMARK;
 const EOC = '([{"\'';
 var EOC_index = {};

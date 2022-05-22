@@ -42,16 +42,16 @@ const definer = function(parts)
 const definer_setvar = function(parts)
 {
     let w, r, concl, cur;
-    [w, concl, cur] = [...cvd.value_determinant(parts.slice(0, 1))];
+    [w, concl, cur] = cvd.value_determinant(parts.slice(0, 1));
     if (!ccc.correct_concl(concl)) return [new ccb.Block(ccb.UNKNOWNBLOCK), concl, cur];
-    [r, concl, cur] = [...cvd.value_determinant(parts.slice(2))];
+    [r, concl, cur] = cvd.value_determinant(parts.slice(2));
     if (!ccc.correct_concl(concl)) return [new ccb.Block(ccb.UNKNOWNBLOCK), concl, cur];
     return [new ccb.Block(ccb.SETVAR, w, r), new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 };
 
 const definer_runfunc = function(string)
 {
-    let [func, concl, cur] = [...cvd.simple_determinant(string)];
+    let [func, concl, cur] = cvd.simple_determinant(string);
     if (!ccc.correct_concl(concl)) return [new ccb.Block(ccb.UNKNOWNBLOCK), concl, cur];
     return [new ccb.Block(ccb.RUNFUNC, func), new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 }

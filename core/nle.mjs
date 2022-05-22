@@ -22,7 +22,7 @@ NLE2 (NotLexaEngine 2) for JavaScript
 Version: 1.0.0
 */
 
-const [LMB, MMB, RMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP] = [...Array(7).keys()];
+const [LMB, MMB, RMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP] = Array(7).keys();
 
 const interpolate = function(a, b, power = 1)
 {
@@ -135,11 +135,11 @@ const Room = function(entities)
     this.do_for_every = function(method_name)
     {
         let additional = Array.prototype.slice.call(arguments, 1);
-        for (let e in this.entities)
+        for (let e of this.entities)
         {
-            for (let ins in this.entities[e].instances)
+            for (let ins of e.instances)
             {
-                this.entities[e][method_name](this.entities[e].instances[ins], ...additional);
+                e[method_name](ins, ...additional);
             }
         }
     }
@@ -148,16 +148,14 @@ const Room = function(entities)
     {
         let step_methods = ['step_before', 'step', 'step_after'];
         let draw_methods = ['draw_before', 'draw', 'draw_after'];
-        for (let i in step_methods)
+        for (let m of step_methods)
         {
-            let m = step_methods[i];
             this.do_for_every(m);
         }
         if (canvas !== undefined)
         {
-            for (let i in draw_methods)
+            for (let m of draw_methods)
             {
-                let m = draw_methods[i];
                 this.do_for_every(m, canvas);
             }
         }

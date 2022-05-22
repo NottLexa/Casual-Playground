@@ -90,8 +90,7 @@ const split_args2 = function(text, start)
         else if (cep.SET_EOC.has(text[l]))
         {
             let [i0, i1, string, concl, cur] = cep.string_only_embedded(text, l, text[l]);
-            if (!ccc.correct_concl(concl))
-                return [[], concl, cur];
+            if (!ccc.correct_concl(concl)) return [end+1, [], concl, cur];
             l = i1-1;
             write += text[i0] + string + text[l];
         }

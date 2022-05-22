@@ -17,13 +17,15 @@ PURPOSE. See the GNU General Public License for more details.
 Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 */
 
-const [UNKNOWNBLOCK, SETVAR, RUNFUNC] = [...Array(3).keys()];
-const [EMPTY, FUNC, LOCALVAR, TECHVAR, GLOBALVAR, GLOBALTECHVAR, FIXEDVAR] = [...Array(7).keys()];
+const [UNKNOWNBLOCK, SETVAR, RUNFUNC] = Array(3).keys();
+const [EMPTY, FUNC, LOCALVAR, TECHVAR, GLOBALVAR, GLOBALTECHVAR, FIXEDVAR] = Array(7).keys();
 const writable = (type) => {[LOCALVAR, TECHVAR, GLOBALVAR].includes(type)};
-//const back_funcs = (value_to_name) => ['UNKNOWNBLOCK', 'SETVAR', 'RUNFUNC'][value_to_name];
+const back_funcs = (value_to_name) => ['UNKNOWNBLOCK', 'SETVAR', 'RUNFUNC'][value_to_name];
 
 const BlockSequence = function(blocks=[])
 {
+    let _ = this;
+
     this.blocks = blocks;
     this.add = function(...other){this.blocks.push(other)};
     this.unite = function(other){return BlockSequence(this.blocks.concat(other.blocks))};
@@ -33,10 +35,25 @@ const BlockSequence = function(blocks=[])
     {
         for (let b in this.blocks) this.blocks[b].exec(caller);
     }
+    this[Symbol.iterator] = function()
+    {
+        let index = 0;
+        return {
+            next: function(){
+                return index < _.blocks.length ? {
+                    value: _.blocks[index++],
+                    done: false,
+                } : {
+                    done: true,
+                }
+            }
+        };
+    };
 }
 
 const Gate = function(cond_blocks=[], else_block=null)
 {
+    let _ = this;
     this.cb = cond_blocks;
     this.fb = else_block;
     this.exec = function(caller)
@@ -54,20 +71,50 @@ const Gate = function(cond_blocks=[], else_block=null)
         }
         if (_else && this.fb !== null) this.fb.exec(caller);
     };
+    this[Symbol.iterator] = function()
+    {
+        let index = 0;
+        return {
+            next: function(){
+                return index < (_.cb.length + (_.fb !== null)) ? {
+                    value: (index++ === _.cb.length) ? _.fb : _.cb[index-1],
+                    done: false,
+                } : {
+                    done: true,
+                }
+            }
+        };
+    };
 }
 
 const While = function(cond, block)
 {
+    let _ = this;
     this.cond = cond;
     this.block = block;
     this.exec = function(caller)
     {
         while (this.cond.read(caller)) this.block.exec(caller);
     }
+    this[Symbol.iterator] = function()
+    {
+        let index = 0;
+        return {
+            next: function(){
+                switch (index++)
+                {
+                    case 0: return {value: _.cond, done: false};
+                    case 1: return {value: _.block, done: false};
+                    default: return {done: true};
+                }
+            }
+        };
+    };
 }
 
 const Block = function(type, ...data)
 {
+    let _ = this;
     this.type = type;
     this.data = data;
     this.exec = function(caller)
@@ -82,6 +129,20 @@ const Block = function(type, ...data)
                 break;
         }
     }
+    this[Symbol.iterator] = function()
+    {
+        let index = 0;
+        return {
+            next: function(){
+                switch (index++)
+                {
+                    case 0: return {value: back_funcs(_.type), done: false};
+                    case 1: return {value: _.data, done: false};
+                    default: return {done: true};
+                }
+            }
+        };
+    };
 }
 
 const Value = function(type, value=null, source=null, ...args)
