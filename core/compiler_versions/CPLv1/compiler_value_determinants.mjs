@@ -78,11 +78,11 @@ const simple_determinant = function(codepart='')
         // EOC (EMBEDDED OPENING CHARS)
         case '"': // string
         case '\'': // string
-            [l0, l1, write, concl, cur] = cep.string_only_embedded(codepart, 0, codepart[0]);
+            [l0, l1, write, concl, cur] = cep.string_only_embedded(codepart, 0, cep.EOC_index[codepart[0]]);
             if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
             return [new ccb.Value(ccb.FIXEDVAR, write), new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
         case '(': // parentesized
-            [l0, l1, write, concl, cur] = cep.string_only_embedded(codepart, 0, codepart[0]);
+            [l0, l1, write, concl, cur] = cep.string_only_embedded(codepart, 0, cep.EOC_index[codepart[0]]);
             if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
             [_, write, concl, cur] = coi.split_args2(codepart, 0);
             if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];

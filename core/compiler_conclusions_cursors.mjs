@@ -74,7 +74,7 @@ const CompilerCursor = function(codetxt = null, ...indexes)
     this.start = () => this.sl;
     this.end = () => this.el;
     this.string = () => this.txt;
-    this.highlight = (sym = 'v') => ((this.sl-this.sh)*' ')+((this.eh-this.sh+1)*sym);
+    this.highlight = (sym = 'v') => (' '.repeat((this.sl-this.sh)))+(sym.repeat((this.eh-this.sh+1)));
     this.__repr__ = () => `<CompCur[${this.sl}:${this.el}]>`;
     this.__str__ = () => `<CompilerCursor[${this.sl}:${this.el}]: "${this.txt}">`;
 }

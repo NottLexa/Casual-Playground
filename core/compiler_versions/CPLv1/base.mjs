@@ -81,7 +81,8 @@ const chapter_notexture = function(code, startl)
     return [l, ret, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 };
 
-const chapter_localization = function(code, startl){
+const chapter_localization = function(code, startl)
+{
     let _1, _2;
     let l = startl;
     let ret_localization = {};

@@ -23,10 +23,7 @@ const [ROUND, SQUARE, CURLY, DOUBLEQUOTEMARK, SINGLEQUOTEMARK] = Array(5).keys()
 const QUOTEMARK = DOUBLEQUOTEMARK;
 const EOC = '([{"\'';
 var EOC_index = {};
-for (let i in EOC)
-{
-    EOC_index[EOC.charAt(i)] = i;
-}
+Array.from(EOC).forEach((value, index)=>{EOC_index[value] = index});
 Object.freeze(EOC_index);
 //EOC_index = {EOC[x]:x for x in range(len(EOC))}
 const SET_EOC = new Set(EOC);
@@ -77,7 +74,6 @@ const string_embedded_brackets = function(text, start, sepsym)
     let indexes = [-1, -1];
     let l = start;
     let write = '';
-    let count = 0;
     let opened = false;
     let not_break = true;
     while (l < text.length)

@@ -26,6 +26,7 @@
   },
   "scripts": {
     "dist": "build --tasks win-x64,win-x86,mac-x64,linux-x64,linux-x86 --mirror https://dl.nwjs.io/ .",
-    "start": "run --x86 --mirror https://dl.nwjs.io/ ."
+    "start": "run --x86 --mirror https://dl.nwjs.io/ .",
+    "log": "run --prof --x86 --mirror https://dl.nwjs.io/ ."
   }
 }

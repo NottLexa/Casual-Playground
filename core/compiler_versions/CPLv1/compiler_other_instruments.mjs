@@ -89,7 +89,7 @@ const split_args2 = function(text, start)
         }
         else if (cep.SET_EOC.has(text[l]))
         {
-            let [i0, i1, string, concl, cur] = cep.string_only_embedded(text, l, text[l]);
+            let [i0, i1, string, concl, cur] = cep.string_only_embedded(text, l, cep.EOC_index[text[l]]);
             if (!ccc.correct_concl(concl)) return [end+1, [], concl, cur];
             l = i1-1;
             write += text[i0] + string + text[l];
@@ -132,7 +132,7 @@ const split_args3 = function(text, start = 0, end_at = null, ...splitters)
         {
             if (cep.SET_EOC.has(text[l]))
             {
-                let [l0, l1, write, concl, cur] = cep.string_embedded(text, l, text[l])
+                let [l0, l1, write, concl, cur] = cep.string_embedded(text, l, cep.EOC_index[text[l]])
                 if (!ccc.correct_concl(concl)) return [[], concl, cur];
                 ret[ret.length-1] += write;
                 l = l1;

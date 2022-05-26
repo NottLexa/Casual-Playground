@@ -62,7 +62,7 @@ const get = function(code = '')
         ret = compiler.get(code, l);
     }
     catch (err) {
-        ret = [{}, new ccc.CompilerConclusion(200), new ccc.CompilerCursor()];
+        ret = [{}, new ccc.CompilerConclusion(200), new ccc.CompilerCursor(err.message)];
     }
     if (ret[1] === new ccc.CompilerConclusion(0) && version !== LAST_COMPILER_VERSION)
     {

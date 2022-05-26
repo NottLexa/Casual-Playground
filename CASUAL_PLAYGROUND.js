@@ -240,8 +240,8 @@ const EntGlobalConsole = new engine.Entity({
         for (let i in target.log)
         {
             engine.draw_text(surface, 10,
-                surface.canvas.height-100-(target.log.length*fontsize_small)+(i*fontsize_small),
-                target.log[i], 'fill', fontsize_small, 'left', 'bottom', 'white', 'monospace');
+                surface.canvas.height-100-(target.log.length*fontsize_smaller)+(i*fontsize_smaller),
+                target.log[i], 'fill', fontsize_smaller, 'left', 'bottom', 'white', 'monospace');
         }
     }
 });
