@@ -144,8 +144,8 @@ const get = function(code = '', start = 0, end_at = null)
         notexture: [255, 255, 255],
         localization: {},
         script: {
-            create: null,
-            step: null,
+            create: undefined,
+            step: undefined,
         },
     };
     let l = start;

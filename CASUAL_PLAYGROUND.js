@@ -82,6 +82,28 @@ nw.Window.get().show();
 
 //#region [LOADING FUNCTIONS]
 
+const roundRect = function(ctx, x, y, width, height, radius, stroke = false)
+{
+    if (typeof radius === 'number') {
+        radius = {tl: radius, tr: radius, br: radius, bl: radius};
+    } else {
+        radius = {...{tl: 0, tr: 0, br: 0, bl: 0}, ...radius};
+    }
+    ctx.beginPath();
+    ctx.moveTo(x + radius.tl, y);
+    ctx.lineTo(x + width - radius.tr, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
+    ctx.lineTo(x + width, y + height - radius.br);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius.br, y + height);
+    ctx.lineTo(x + radius.bl, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
+    ctx.lineTo(x, y + radius.tl);
+    ctx.quadraticCurveTo(x, y, x + radius.tl, y);
+    ctx.closePath();
+    if (stroke) ctx.stroke();
+    else ctx.fill();
+}
+
 const rgb_to_style = (r,g,b) => `rgb(${r}, ${g}, ${b})`;
 
 const cut_string = function(string, upto)
@@ -194,6 +216,9 @@ for (let moddir of load_modlist(modsfolder))
     objdata = {...objdata, ...mod};
 }
 
+gvars[0].objdata = objdata;
+
+global.console.log(Object.keys(objdata));
 global.console.log(idlist);
 global.console.log(idlist.map((value, index) => [index, value]));
 
@@ -306,9 +331,9 @@ const draw_board = function(target)
         {
             let cx = (ix*cellsize)+bordersize;
             let cy = (iy*cellsize)+bordersize;
-            //let celldata = target.board[iy][ix].code;
-            //surface.fillStyle = rgb_to_style(...celldata.notexture);
-            surface.fillStyle = rgb_to_style(109, 183, 65);
+            let celldata = target.board[iy][ix].code;
+            surface.fillStyle = rgb_to_style(...celldata.notexture);
+            //surface.fillStyle = rgb_to_style(109, 183, 65);
             surface.fillRect(cx, cy, target.viewscale, target.viewscale);
         }
     }
@@ -376,7 +401,7 @@ const board_do_instrument = function(target)
                             if ((0 <= ix) && (ix < maxcx) && (0 <= iy) && (iy < maxcy))
                             {
                                 let cellid = current_instrument.cell;
-                                target.board[iy][ix] = comp.Cell({X:ix,Y:iy},cellid, target.board,
+                                target.board[iy][ix] = new comp.Cell({X:ix,Y:iy},cellid, target.board,
                                     gvars);
                                 target.surfaces.board = draw_board(target);
                             }
@@ -424,18 +449,18 @@ const EntFieldBoard = new engine.Entity({
         target.linecolor_outfield = [102, 102, 102];
 
         target.board = [];
-        for (let y; y<target.board_height; y++)
+        for (let y = 0; y<target.board_height; y++)
         {
             target.board.push([]);
-            for (let x; x<target.board_width; x++)
+            for (let x = 0; x<target.board_width; x++)
             {
-                let celldata = comp.Cell(
+                let celldata = new comp.Cell(
                     {'X': x, 'Y': y},
                     cell_fill_on_init,
                     target.board,
                     gvars,
                     );
-                target.board.at(-1).push(celldata);
+                target.board[target.board.length-1].push(celldata);
             }
         }
 
@@ -540,7 +565,25 @@ const EntFieldBoard = new engine.Entity({
             `hsp: ${Math.round(target.hsp)} / vsp: ${Math.round(target.vsp)}`,
             'fill', fontsize_default, 'right', 'bottom', 'white');
 
-        // INSERT TIME ELAPSED & INSTRUMENT DATA
+        let clr = target.time_elapsed <= target.timepertick ? 'white' : rgb_to_style(17*14, 17, 17);
+        engine.draw_text(surface,
+            5, -10 + surface.canvas.height - fontsize_default - 2*fontsize_small,
+            `${Math.round(target.time_elapsed*100000)/100000} s`,
+            'fill', fontsize_small, 'left', 'top', clr);
+        engine.draw_text(surface,
+            5, -10 + surface.canvas.height - fontsize_default - fontsize_small,
+            `${Math.round(target.time_elapsed/(target.board_width*target.board_height)*100000)/100000} s/cell`,
+            'fill', fontsize_small, 'left', 'top', clr);
+
+        switch (current_instrument.type)
+        {
+            case 'pencil':
+                let string = `Pencil[${current_instrument.scale}] | ${idlist[current_instrument.cell]}` +
+                    `| ${current_instrument.penciltype ? 'Round' : 'Square'}`
+                engine.draw_text(surface,
+                    surface.canvas.width - 2, surface.canvas.height - 2 - 2*(fontsize_default-2),
+                    string, 'fill', fontsize_default, 'right', 'bottom', 'white');
+        }
     },
     kb_down: function(target, key)
     {
@@ -662,13 +705,152 @@ const EntFieldBoard = new engine.Entity({
 });
 //#endregion
 //#region [FIELD STANDARD UI]
-const EntFieldSUI = new engine.Entity();
+const FieldSUI_mouse_on_cell = function(target)
+{
+    let [ds, eb, ws] = [target.display_scale, target.element_border, target.window_spacing];
+    let measure = Math.floor(target.cellmenu_width*1.5);
+    let phase_offset = Math.floor(measure*target.show_step)-measure;
+    let inoneline = Math.floor((target.cellmenu_width - ws) / (ds + eb));
+    let mousex = mx-phase_offset;
+    let mousey = my;
+    let [detectwidth, detectheight] = [ds + eb, ds + fontsize_smaller + (1.5 * eb)];
+    let ci = Math.floor((mousex-eb)/detectwidth) + (Math.floor((mousey-eb)/detectheight) * inoneline);
+    let cx = ws + eb + ((ds + eb)*(ci%inoneline));
+    let cy = ws + eb + ((ds + eb + fontsize_smaller)*Math.floor(ci/inoneline));
+    if (cx <= mousex && mousex <+ cx + detectwidth - eb)
+        if (cy <= mousey && mousey <= cy + detectheight - eb)
+            if (ci < idlist.length)
+                return ci;
+    return null;
+}
+
+const EntFieldSUI = new engine.Entity({
+    create: function (target)
+    {
+        target.keys = {ctrl: false};
+        target.show_step = 0.0;
+        target.show_menu = false;
+        target.show_all = true;
+        target.element_number = 5;
+        let en = target.element_number;
+        target.window_spacing = Math.round(8*scale/100);
+        let ws = target.window_spacing;
+        target.display_scale = Math.round(80*scale/100);
+        let ds = target.display_scale;
+        target.element_border = Math.round(target.display_scale/4);
+        let eb = target.element_border;
+        target.cellmenu_width = ws + en*(ds + eb) + eb;
+
+        target.desc_window_width = 256+128;
+        target.desc_window_surface = document.createElement('canvas').getContext('2d');
+        target.desc_window_id = -1;
+        target.desc_window_show = false;
+        target.desc_window_offset = [0,0];
+
+        target.cell_window_surface = document.createElement('canvas').getContext('2d');
+        target.cell_window_surface.canvas.width = target.cellmenu_width;
+        target.cell_window_surface.canvas.height = display.ch() - (2*ws);
+
+        let alphabg = document.createElement('canvas').getContext('2d');
+        alphabg.canvas.width = target.cell_window_surface.canvas.width;
+        alphabg.canvas.height = target.cell_window_surface.canvas.height;
+        alphabg.fillStyle = '#1a1a1a';
+        roundRect(alphabg, ws, ws, target.cellmenu_width-ws, target.cell_window_surface.canvas.height - (2*ws), 5);
+        alphabg.strokeStyle = '#7f7f7f';
+        alphabg.lineWidth = Math.floor(ws/2);
+        roundRect(alphabg, ws, ws, target.cellmenu_width-ws, target.cell_window_surface.canvas.height - (2*ws), 5, true);
+        alphabg.globalCompositeOperation = 'multiply';
+        alphabg.fillStyle = 'rgba(255, 255, 255, 200)';
+        alphabg.fillRect(0, 0, alphabg.canvas.width, alphabg.canvas.height);
+        alphabg.globalCompositeOperation = 'source-over';
+
+        target.cell_window_surface.drawImage(alphabg.canvas, 0, 0);
+
+        let inoneline = Math.floor((target.cellmenu_width - ws) / (ds + eb));
+        let ci = -1
+        for (let o of idlist)
+        {
+            let obj = objdata[o];
+            switch (obj.type)
+            {
+                case 'CELL':
+                    ci++;
+                    let cx = ws + eb + ((ds + eb) * (ci % inoneline));
+                    let cy = ws + eb + ((ds + eb + fontsize_smaller) * Math.floor(ci/inoneline));
+                    target.cell_window_surface.fillStyle = rgb_to_style(...obj.notexture);
+                    target.cell_window_surface.fillRect(cx, cy, ds, ds);
+                    let name_string = (obj.localization.hasOwnProperty(loc)
+                        ? obj.localization[loc].name
+                        : obj.name);
+                    engine.draw_text(target.cell_window_surface, cx + (ds/2), cy + ds + (eb/2),
+                        name_string, 'fill', fontsize_smaller, 'center', 'top', 'white');
+            }
+        }
+        alphabg.canvas.remove();
+    },
+    step: function (target)
+    {
+        target.show_step = engine.interpolate(target.show_step, Math.floor(target.show_menu), 3);
+
+        if (Math.round(target.show_step*100000)/100000 === 0.0) target.show_step = 0;
+        else if (Math.round(target.show_step*100000)/100000 === 1.0) target.show_step = 1;
+    },
+    draw: function (target, surface)
+    {
+        if (target.show_all)
+        {
+            let [ds, eb, ws] = [target.display_scale, target.element_border, target.window_spacing];
+            let measure = Math.floor(target.cellmenu_width*1.5);
+            let phase_offset = Math.floor(measure*target.show_step)-measure;
+            surface.drawImage(target.cell_window_surface.canvas, phase_offset, 0);
+            if (target.desc_window_show)
+                surface.drawImage(target.desc_window_surface.canvas, ...target.desc_window_offset);
+        }
+    },
+    kb_down: function (target, key)
+    {
+        switch (key.code)
+        {
+            case 'Tab':
+                if (target.keys.ctrl)
+                    target.show_all = !target.show_all;
+                else
+                    target.show_menu = !target.show_menu;
+        }
+    },
+    mouse_move: function (target)
+    {
+        /*if (target.show_all)
+        {
+            let ci = FieldSUI_mouse_on_cell(target)
+            if (ci !== null)
+            {
+
+            }
+        }*/
+    },
+    mouse_down: function (target, buttonid)
+    {
+        if (target.show_all)
+        {
+            let ci = FieldSUI_mouse_on_cell(target);
+            if (ci !== null)
+            {
+                if (buttonid === engine.LMB)
+                {
+                    current_instrument = {type: 'pencil', cell: ci, penciltype: false, scale: 1};
+                }
+            }
+        }
+    }
+});
 //#endregion
 //#endregion
 
 //#region [INSTANCES]
 var globalconsole = EntGlobalConsole.create_instance();
 var fieldboard = EntFieldBoard.create_instance();
+var fieldsui = EntFieldSUI.create_instance();
 //#endregion
 
 //#region [ROOMS]
@@ -694,8 +876,8 @@ document.addEventListener('keyup', function(event)
 });
 canvas_element.addEventListener('mousemove', function(event)
 {
-    mx = event.offsetX - display.offset_x;
-    my = event.offsetY - display.offset_y;
+    mx = (event.offsetX - display.offset_x) * display.cw() / display.sw();
+    my = (event.offsetY - display.offset_y) * display.ch() / display.sh();
     engine.current_room.do_mouse_move();
 });
 canvas_element.addEventListener('mousedown', function(event)

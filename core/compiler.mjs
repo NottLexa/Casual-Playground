@@ -91,12 +91,12 @@ const Cell = function(
     this.board = board;
     this.globals = globals;
     this.tasks = [];
-    this.code = this.globals[0]['objdata'][this.globals[0]['idlist'][this.cellid]];
-    if (this.code['script'].create !== undefined) this.code['script'].create(this);
+    this.code = this.globals[0].objdata[this.globals[0].idlist[this.cellid]];
+    if (this.code.script.create !== undefined) this.code.script.create(this);
 
     this.step = function()
     {
-        if (this.code['script'].step !== undefined) this.code['script'].step(this);
+        if (this.code.script.step !== undefined) this.code.script.step(this);
     }
 
     this.reply = function(
