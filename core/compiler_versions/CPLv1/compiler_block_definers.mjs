@@ -21,37 +21,40 @@ import * as cvd from './compiler_value_determinants.mjs';
 import * as ccb from './compiler_code_blocks.mjs';
 import * as ccc from './../../compiler_conclusions_cursors.mjs';
 
-const definer = function(parts)
+const definer = function(i, parts)
 {
+    global.console.log(`definer[${i}]`);
     if (parts.length === 1)
     {
         let part = parts[0];
         let ind = ''.indexOf('=');
         if (ind !== -1)
-            return definer_setvar([part.slice(0, ind), part.slice(ind, ind+1), part.slice(ind+1)]);
-        else if (part[0] === ':') return definer_runfunc(part);
+            return definer_setvar(i+1, [part.slice(0, ind), part.slice(ind, ind+1), part.slice(ind+1)]);
+        else if (part[0] === ':') return definer_runfunc(i+1, part);
         else return [new ccb.Block(ccb.UNKNOWNBLOCK), new ccc.CompilerConclusion(205), new ccc.CompilerCursor()];
     }
     else
     {
-        if (parts[1] === '=') return definer_setvar(parts);
+        if (parts[1] === '=') return definer_setvar(i+1, parts);
         else return [new ccb.Block(ccb.UNKNOWNBLOCK), new ccc.CompilerConclusion(205), new ccc.CompilerCursor()];
     }
 };
 
-const definer_setvar = function(parts)
+const definer_setvar = function(i, parts)
 {
+    global.console.log(`definer_setvar[${i}]`);
     let w, r, concl, cur;
-    [w, concl, cur] = cvd.value_determinant(parts.slice(0, 1));
+    [w, concl, cur] = cvd.value_determinant(i+1, parts.slice(0, 1));
     if (!ccc.correct_concl(concl)) return [new ccb.Block(ccb.UNKNOWNBLOCK), concl, cur];
-    [r, concl, cur] = cvd.value_determinant(parts.slice(2));
+    [r, concl, cur] = cvd.value_determinant(i+1, parts.slice(2));
     if (!ccc.correct_concl(concl)) return [new ccb.Block(ccb.UNKNOWNBLOCK), concl, cur];
     return [new ccb.Block(ccb.SETVAR, w, r), new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 };
 
-const definer_runfunc = function(string)
+const definer_runfunc = function(i, string)
 {
-    let [func, concl, cur] = cvd.simple_determinant(string);
+    global.console.log(`definer_runfunc[${i}]`);
+    let [func, concl, cur] = cvd.simple_determinant(i+1, string);
     if (!ccc.correct_concl(concl)) return [new ccb.Block(ccb.UNKNOWNBLOCK), concl, cur];
     return [new ccb.Block(ccb.RUNFUNC, func), new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 }

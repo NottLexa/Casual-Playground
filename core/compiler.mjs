@@ -59,7 +59,8 @@ const get = function(code = '')
     let compiler = COMPILER_VERSIONS[version-1];
     let ret;
     try {
-        ret = compiler.get(code, l);
+        console.log(code);
+        ret = compiler.get(1, code, l);
     }
     catch (err) {
         ret = [{}, new ccc.CompilerConclusion(200), new ccc.CompilerCursor(err.message)];

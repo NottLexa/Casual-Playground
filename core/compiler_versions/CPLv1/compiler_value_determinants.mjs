@@ -48,16 +48,18 @@ const arraysEqual = function(a, b) {
     return true;
 }
 
-const complex_determinant = function(codeparts)
+const complex_determinant = function(i, codeparts)
 {
+    global.console.log(`complex_determinant[${i}]`);
     let joined = codeparts.join('');
-    if (codeparts.some(value => SET_MO.has(value))) return math_resolver(codeparts);
+    if (codeparts.some(value => SET_MO.has(value))) return math_resolver(i+1, codeparts);
     else
         return [new ccb.Value(ccb.EMPTY), new ccc.CompilerConclusion(301), new ccc.CompilerCursor()];
 };
 
-const simple_determinant = function(codepart='')
+const simple_determinant = function(i, codepart='')
 {
+    global.console.log(`simple_determinant[${i}]`);
     let namable = (x) => {
         return ([...x].every(value => csc.s_nam.has(value))) && (!csc.s_nonam.has(x[0]))
     };
@@ -78,26 +80,26 @@ const simple_determinant = function(codepart='')
         // EOC (EMBEDDED OPENING CHARS)
         case '"': // string
         case '\'': // string
-            [l0, l1, write, concl, cur] = cep.string_only_embedded(codepart, 0, cep.EOC_index[codepart[0]]);
+            [l0, l1, write, concl, cur] = cep.string_only_embedded(i+1, codepart, 0, cep.EOC_index[codepart[0]]);
             if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
             return [new ccb.Value(ccb.FIXEDVAR, write), new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
         case '(': // parentesized
-            [l0, l1, write, concl, cur] = cep.string_only_embedded(codepart, 0, cep.EOC_index[codepart[0]]);
+            [l0, l1, write, concl, cur] = cep.string_only_embedded(i+1, codepart, 0, cep.ROUND);
             if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
-            [_, write, concl, cur] = coi.split_args2(codepart, 0);
+            [_, write, concl, cur] = coi.split_args2(i+1, write, 0);
             if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
-            return value_determinant(write);
+            return value_determinant(i+1, write);
         // VARS & FUNCS
         case ':': // function
-            [l0, l1, write, concl, cur] = cep.string_embedded_brackets(codepart, 0, '()');
+            [l0, l1, write, concl, cur] = cep.string_embedded_brackets(i+1, codepart, 0, '()');
             if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
-            [getargs, concl, cur] = coi.split_args3(codepart.slice(), 0, null, ',');
+            [getargs, concl, cur] = coi.split_args3(i+1, codepart.slice(l0+1, l1-1), 0, null, ',');
             if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
             let args = [];
             getargs.filter((value, index) => {return (index%2)===0}).forEach((v)=>{
-                [_, sv, concl, cur] = coi.split_args2(v, 0);
+                [_, sv, concl, cur] = coi.split_args2(i+1, v, 0);
                 if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
-                [nv, concl, cur] = value_determinant(sv);
+                [nv, concl, cur] = value_determinant(i+1, sv);
                 if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
                 args.push(nv);
             });
@@ -143,31 +145,33 @@ const simple_determinant = function(codepart='')
     return [new ccb.Value(ccb.EMPTY), new ccc.CompilerConclusion(301), new ccc.CompilerCursor()];
 };
 
-const value_determinant = function(codeparts)
+const value_determinant = function(i, codeparts)
 {
+    global.console.log(`value_determinant[${i}] ${codeparts}`);
     let splitted, concl, cur;
     if (codeparts.length === 1)
     {
-        [splitted, concl, cur] = coi.split_args3(codeparts[0], 0, null, ...SET_MO);
+        [splitted, concl, cur] = coi.split_args3(i+1, codeparts[0], 0, null, ...SET_MO);
         if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
         if (arraysEqual(splitted, codeparts))//(splitted === codeparts)
         {
-            return simple_determinant(codeparts[0]);
+            return simple_determinant(i+1, codeparts[0]);
         }
         else
         {
-            return complex_determinant(splitted);
+            return complex_determinant(i+1, splitted);
         }
     }
     else
     {
-        return complex_determinant(codeparts);
+        return complex_determinant(i+1, codeparts);
     }
 };
 
-const math_resolver = function(allparts)
+const math_resolver = function(i, allparts)
 {
-    let l, vd1, vd2, concl, cur, i, j, mop, mos;
+    global.console.log(`math_resolver[${i}]`);
+    let l, vd1, vd2, concl, cur, mop, mos;
     for (mop of MO)
     {
         for (mos of mop)
@@ -179,8 +183,8 @@ const math_resolver = function(allparts)
                 switch (mos)
                 {
                     case '-':
-                        vd1 = new ccb.Value(ccb.FIXEDVAR, 0)
-                        [vd2, concl, cur] = value_determinant(allparts.slice(l+1));
+                        vd1 = new ccb.Value(ccb.FIXEDVAR, 0);
+                        [vd2, concl, cur] = value_determinant(i+1, allparts.slice(l+1));
                         if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
                         return [new ccb.Value(ccb.FUNC, 'sub', ccf.CoreFuncs, [vd1, vd2]),
                         new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
@@ -190,9 +194,9 @@ const math_resolver = function(allparts)
             }
             else if (l > 0)
             {
-                [vd1, concl, cur] = value_determinant(allparts.slice(0, l));
+                [vd1, concl, cur] = value_determinant(i+1, allparts.slice(0, l));
                 if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
-                [vd2, concl, cur] = value_determinant(allparts.slice(l+1));
+                [vd2, concl, cur] = value_determinant(i+1, allparts.slice(l+1));
                 if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
                 return [new ccb.Value(ccb.FUNC, symtofunc[mos], ccf.CoreFuncs, [vd1, vd2]),
                 new ccc.CompilerConclusion(0), new ccc.CompilerCursor(null)];

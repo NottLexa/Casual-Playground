@@ -38,8 +38,9 @@ const LineType = {
 };
 const CodeStructures = new Set(['WHILE', 'IF', 'ELSEIF', 'ELSE']);
 
-const chapter_cell = function(code, startl)
+const chapter_cell = function(i, code, startl)
 {
+    global.console.log(`chapter_cell[${i}]`);
     let _, write, concl, cur;
     let l = startl;
     let ret = {};
@@ -47,24 +48,25 @@ const chapter_cell = function(code, startl)
     {
         l += 4;
         ret.type = 'CELL';
-        [write, concl, cur] = coi.split_args1(code, l, '\n');
+        [write, concl, cur] = coi.split_args1(i+1, code, l, '\n');
         if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
         if (write.length > 0)
         {
-            [_, _, ret.name, concl, cur] = cep.string_only_embedded(write[0], 0, cep.DOUBLEQUOTEMARK);
+            [_, _, ret.name, concl, cur] = cep.string_only_embedded(i+1, write[0], 0, cep.DOUBLEQUOTEMARK);
             if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
         }
         if (write.length > 1)
         {
-            [_, _, ret.desc, concl, cur] = cep.string_only_embedded(write[1], 0, cep.DOUBLEQUOTEMARK);
+            [_, _, ret.desc, concl, cur] = cep.string_only_embedded(i+1, write[1], 0, cep.DOUBLEQUOTEMARK);
             if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
         }
     }
     return [l, ret, new ccc.CompilerConclusion(0), new ccc.CompilerCursor(null)];
 };
 
-const chapter_notexture = function(code, startl)
+const chapter_notexture = function(i, code, startl)
 {
+    global.console.log(`chapter_notexture[${i}]`);
     let write, concl, cur;
     let l = startl;
     let ret = {};
@@ -72,7 +74,7 @@ const chapter_notexture = function(code, startl)
     {
         ret.notexture = [0, 0, 0];
         l += 9;
-        [l, write, concl, cur] = coi.split_args2(code, l);
+        [l, write, concl, cur] = coi.split_args2(i+1, code, l);
         if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
         if (write.length > 0) ret.notexture[0] = parseInt(write[0]);
         if (write.length > 1) ret.notexture[1] = parseInt(write[1]);
@@ -81,8 +83,9 @@ const chapter_notexture = function(code, startl)
     return [l, ret, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 };
 
-const chapter_localization = function(code, startl)
+const chapter_localization = function(i, code, startl)
 {
+    global.console.log(`chapter_localization[${i}]`);
     let _1, _2;
     let l = startl;
     let ret_localization = {};
@@ -92,19 +95,19 @@ const chapter_localization = function(code, startl)
         while (code[l++] !== '\n'){}
         while (code.slice(l, l+4) === '    ') {
             l += 4;
-            let [write, concl, cur] = coi.split_args1(code, l, '\n');
+            let [write, concl, cur] = coi.split_args1(i+1, code, l, '\n');
             if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
             ret_localization[write[0]] = {};
             if (write.length > 1)
             {
                 [_1, _2, ret_localization[write[0]].name, concl, cur] =
-                    cep.string_only_embedded(write[1], 0, cep.DOUBLEQUOTEMARK);
+                    cep.string_only_embedded(i+1, write[1], 0, cep.DOUBLEQUOTEMARK);
                 if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
             }
             if (write.length > 2)
             {
                 [_1, _2, ret_localization[write[0]].desc, concl, cur] =
-                    cep.string_only_embedded(write[2], 0, cep.DOUBLEQUOTEMARK);
+                    cep.string_only_embedded(i+1, write[2], 0, cep.DOUBLEQUOTEMARK);
                 if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
             }
         }
@@ -112,8 +115,9 @@ const chapter_localization = function(code, startl)
     return [l, ret_localization, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 };
 
-const chapter_script = function(code, startl, version)
+const chapter_script = function(i, code, startl, version)
 {
+    global.console.log(`chapter_script[${i}]`);
     let concl, cur;
     let l = startl;
     let ret_script = {};
@@ -125,14 +129,15 @@ const chapter_script = function(code, startl, version)
         while (!('\n '.includes(code[l]))) write += code[l++];
         let script_type = write.toLowerCase();
         while (code[l++] !== '\n'){}
-        [l, ret_script[script_type], concl, cur] = read_code(code, l, version, 1);
+        [l, ret_script[script_type], concl, cur] = read_code(i+1, code, l, version, 1);
         if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];
     }
     return [l, ret_script, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 };
 
-const get = function(code = '', start = 0, end_at = null)
+const get = function(i, code = '', start = 0, end_at = null)
 {
+    global.console.log(`get[${i}]`);
     let end;
     if (end_at === null) end = code.length;
     else end = Math.min(end_at, code.length);
@@ -152,16 +157,16 @@ const get = function(code = '', start = 0, end_at = null)
     let ret_expand, concl, cursor;
     while (l < end)
     {
-        [l, ret_expand, concl, cursor] = chapter_cell(code, l);
+        [l, ret_expand, concl, cursor] = chapter_cell(i+1, code, l);
         if (!ccc.correct_concl(concl)) return [{}, concl, cursor];
         ret = {...ret, ...ret_expand};
-        [l, ret_expand, concl, cursor] = chapter_notexture(code, l);
+        [l, ret_expand, concl, cursor] = chapter_notexture(i+1, code, l);
         if (!ccc.correct_concl(concl)) return [{}, concl, cursor];
         ret = {...ret, ...ret_expand};
-        [l, ret_expand, concl, cursor] = chapter_localization(code, l);
+        [l, ret_expand, concl, cursor] = chapter_localization(i+1, code, l);
         if (!ccc.correct_concl(concl)) return [{}, concl, cursor];
         ret.localization = {...ret.localization, ...ret_expand};
-        [l, ret_expand, concl, cursor] = chapter_script(code, l, ret.version);
+        [l, ret_expand, concl, cursor] = chapter_script(i+1, code, l, ret.version);
         if (!ccc.correct_concl(concl)) return [{}, concl, cursor];
         ret.script = {...ret.script, ...ret_expand};
         l++;
@@ -169,8 +174,9 @@ const get = function(code = '', start = 0, end_at = null)
     return [ret, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 };
 
-const read_code = function(code, startl, version, tab = 0)
+const read_code = function(i, code, startl, version, tab = 0)
 {
+    global.console.log(`read_code[${i}]`);
     let code_sequence = new ccb.BlockSequence();
     let end = code.length;
     let l = startl;
@@ -188,7 +194,7 @@ const read_code = function(code, startl, version, tab = 0)
             return [0, new ccb.BlockSequence(), new ccc.CompilerConclusion(206), new ccc.CompilerCursor(code, l)];
         else
         {
-            let [linetype, block, l1, concl, cur] = read_line(code, l-spaces, version, tab);
+            let [linetype, block, l1, concl, cur] = read_line(i+1, code, l-spaces, version, tab);
             cur = new ccc.CompilerCursor(code, l, l1, cur.sl, cur.el);
             l = l1;
             if (!ccc.correct_concl(concl)) return [0, new ccb.BlockSequence(), concl, cur];
@@ -222,20 +228,21 @@ const read_code = function(code, startl, version, tab = 0)
     return [l-spaces, code_sequence, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 };
 
-const read_line = function(code, startl, version, tab = 0)
+const read_line = function(i, code, startl, version, tab = 0)
 {
+    global.console.log(`read_line[${i}]`);
     let l = startl;
     let value, block, seq, write, concl, cur;
-    [l, write, concl, cur] = coi.split_args2(code, l);
+    [l, write, concl, cur] = coi.split_args2(i+1, code, l);
     if (!ccc.correct_concl(concl)) return [LineType.ADDNEW, new ccb.Block(ccb.UNKNOWNBLOCK), 0, concl, cur];
     else if (CodeStructures.has(write[0]))
     {
         if (write[0] !== 'ELSE')
         {
-            [value, concl, cur] = cvd.value_determinant(write.slice(1));
+            [value, concl, cur] = cvd.value_determinant(i+1, write.slice(1));
             if (!ccc.correct_concl(concl)) return [LineType.UNKNOWN, new ccb.Block(ccb.UNKNOWNBLOCK), 0, concl, cur];
         }
-        [l, seq, concl, cur] = read_code(code, l, version, tab+1);
+        [l, seq, concl, cur] = read_code(i+1, code, l, version, tab+1);
         switch (write[0])
         {
             case 'WHILE':
@@ -250,7 +257,7 @@ const read_line = function(code, startl, version, tab = 0)
     }
     else
     {
-        [block, concl, cur] = cbd.definer(write);
+        [block, concl, cur] = cbd.definer(i+1, write);
         return [LineType.ADDNEW, block, l, concl, cur];
     }
 };

@@ -20,8 +20,9 @@ Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 import * as cep from './compiler_embedded_parts.mjs';
 import * as ccc from '../../compiler_conclusions_cursors.mjs';
 
-const split_args1 = function(text, start, end_at = null)
+const split_args1 = function(i, text, start, end_at = null)
 {
+    global.console.log(`split_args1[${i}]`);
     let newlinestop = false;
     let end = end_at;
     if (end_at === null) end = text.length;
@@ -50,9 +51,9 @@ const split_args1 = function(text, start, end_at = null)
         {
             let i0, i1, string, concl, cur;
             if (text[l] === '"')
-                [i0, i1, string, concl, cur] = cep.string_embedded(text, l, cep.DOUBLEQUOTEMARK, true);
+                [i0, i1, string, concl, cur] = cep.string_embedded(i+1, text, l, cep.DOUBLEQUOTEMARK, true);
             else
-                [i0, i1, string, concl, cur] = cep.string_embedded(text, l, cep.SINGLEQUOTEMARK, true);
+                [i0, i1, string, concl, cur] = cep.string_embedded(i+1, text, l, cep.SINGLEQUOTEMARK, true);
             if (!ccc.correct_concl(concl))
                 return [[], concl, cur];
             l = i1-1;
@@ -66,8 +67,9 @@ const split_args1 = function(text, start, end_at = null)
     return [args, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 }
 
-const split_args2 = function(text, start)
+const split_args2 = function(i, text, start)
 {
+    global.console.log(`split_args2[${i}]`);
     let end = text.length;
     let args = [];
     let write = '';
@@ -89,7 +91,7 @@ const split_args2 = function(text, start)
         }
         else if (cep.SET_EOC.has(text[l]))
         {
-            let [i0, i1, string, concl, cur] = cep.string_only_embedded(text, l, cep.EOC_index[text[l]]);
+            let [i0, i1, string, concl, cur] = cep.string_only_embedded(i+1, text, l, cep.EOC_index[text[l]]);
             if (!ccc.correct_concl(concl)) return [end+1, [], concl, cur];
             l = i1-1;
             write += text[i0] + string + text[l];
@@ -103,8 +105,9 @@ const split_args2 = function(text, start)
     return [end+1, args, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 }
 
-const split_args3 = function(text, start = 0, end_at = null, ...splitters)
+const split_args3 = function(i, text, start = 0, end_at = null, ...splitters)
 {
+    global.console.log(`split_args3[${i}]`);
     let end;
     if (end_at === null) end = text.length;
     else end = end_at;
@@ -132,7 +135,7 @@ const split_args3 = function(text, start = 0, end_at = null, ...splitters)
         {
             if (cep.SET_EOC.has(text[l]))
             {
-                let [l0, l1, write, concl, cur] = cep.string_embedded(text, l, cep.EOC_index[text[l]])
+                let [l0, l1, write, concl, cur] = cep.string_embedded(i+1, text, l, cep.EOC_index[text[l]])
                 if (!ccc.correct_concl(concl)) return [[], concl, cur];
                 ret[ret.length-1] += write;
                 l = l1;
