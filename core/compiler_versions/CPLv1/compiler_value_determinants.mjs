@@ -84,14 +84,14 @@ const simple_determinant = function(codepart='')
         case '(': // parentesized
             [l0, l1, write, concl, cur] = cep.string_only_embedded(codepart, 0, cep.EOC_index[codepart[0]]);
             if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
-            [_, write, concl, cur] = coi.split_args2(codepart, 0);
+            [_, write, concl, cur] = coi.split_args2(write, 0);
             if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
             return value_determinant(write);
         // VARS & FUNCS
         case ':': // function
             [l0, l1, write, concl, cur] = cep.string_embedded_brackets(codepart, 0, '()');
             if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
-            [getargs, concl, cur] = coi.split_args3(codepart.slice(), 0, null, ',');
+            [getargs, concl, cur] = coi.split_args3(codepart.slice(l0+1, l1-1), 0, null, ',');
             if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
             let args = [];
             getargs.filter((value, index) => {return (index%2)===0}).forEach((v)=>{
@@ -179,7 +179,7 @@ const math_resolver = function(allparts)
                 switch (mos)
                 {
                     case '-':
-                        vd1 = new ccb.Value(ccb.FIXEDVAR, 0)
+                        vd1 = new ccb.Value(ccb.FIXEDVAR, 0);
                         [vd2, concl, cur] = value_determinant(allparts.slice(l+1));
                         if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
                         return [new ccb.Value(ccb.FUNC, 'sub', ccf.CoreFuncs, [vd1, vd2]),
