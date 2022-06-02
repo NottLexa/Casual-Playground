@@ -64,7 +64,6 @@ var HEIGHT2 = Math.floor(HEIGHT/2);
 var canvas_element = document.getElementById('CasualPlaygroundCanvas');
 var display = new engine.Display(canvas_element, 16*scale, 9*scale);
 var top_panel = document.getElementById('top_panel');
-//alert(JSON.stringify(nw.Window.get().y));
 display.resizeCanvas(nw.Window.get().cWindow.width, nw.Window.get().cWindow.height);
 nw.Window.get().on
 (
@@ -748,7 +747,7 @@ const EntFieldSUI = new engine.Entity({
         target.desc_window_offset = [0,0];
 
         target.cell_window_surface = document.createElement('canvas').getContext('2d');
-        target.cell_window_surface.canvas.width = target.cellmenu_width;
+        target.cell_window_surface.canvas.width = target.cellmenu_width + Math.floor(ws/2);
         target.cell_window_surface.canvas.height = display.ch() - (2*ws);
 
         let alphabg = document.createElement('canvas').getContext('2d');
@@ -759,8 +758,8 @@ const EntFieldSUI = new engine.Entity({
         alphabg.strokeStyle = '#7f7f7f';
         alphabg.lineWidth = Math.floor(ws/2);
         roundRect(alphabg, ws, ws, target.cellmenu_width-ws, target.cell_window_surface.canvas.height - (2*ws), 5, true);
-        alphabg.globalCompositeOperation = 'multiply';
-        alphabg.fillStyle = 'rgba(255, 255, 255, 200)';
+        alphabg.globalCompositeOperation = 'destination-in';
+        alphabg.fillStyle = 'rgba(0, 0, 0, 0.8)';
         alphabg.fillRect(0, 0, alphabg.canvas.width, alphabg.canvas.height);
         alphabg.globalCompositeOperation = 'source-over';
 
@@ -836,9 +835,10 @@ const EntFieldSUI = new engine.Entity({
             let ci = FieldSUI_mouse_on_cell(target);
             if (ci !== null)
             {
-                if (buttonid === engine.LMB)
+                switch (buttonid)
                 {
-                    current_instrument = {type: 'pencil', cell: ci, penciltype: false, scale: 1};
+                    case engine.LMB:
+                        current_instrument = {type: 'pencil', cell: ci, penciltype: false, scale: 1};
                 }
             }
         }
