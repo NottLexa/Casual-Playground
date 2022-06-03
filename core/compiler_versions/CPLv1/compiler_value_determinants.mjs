@@ -101,7 +101,7 @@ const simple_determinant = function(codepart='')
                 if (!ccc.correct_concl(concl)) return [new ccb.Value(ccb.EMPTY), concl, cur];
                 args.push(nv);
             });
-            return [new ccb.Value(ccb.FUNC, codepart.slice(1, l0), ccf.CoreFuncs, ...args),
+            return [new ccb.Value(ccb.FUNC, codepart.slice(1, l0), ccf.CoreFuncs, args),
             new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
         case '_': // localvar
             if (namable1)

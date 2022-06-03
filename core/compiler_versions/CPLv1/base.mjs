@@ -122,7 +122,7 @@ const chapter_script = function(code, startl, version)
         l += 6;
         while (code[l] === ' ') l++;
         let write = '';
-        while (!('\n '.includes(code[l]))) write += code[l++];
+        while (!('\n\r '.includes(code[l]))) write += code[l++];
         let script_type = write.toLowerCase();
         while (code[l++] !== '\n'){}
         [l, ret_script[script_type], concl, cur] = read_code(code, l, version, 1);
@@ -198,17 +198,20 @@ const read_code = function(code, startl, version, tab = 0)
                     code_sequence.add(block);
                     break;
                 case LineType.ADDCONDBLOCK:
-                    if (code_sequence.blocks[code_sequence.blocks.length-1].constructor.name === ccb.Gate.name)
-                        code_sequence[-1].cb.push(block);
+                    if (code_sequence.blocks[code_sequence.blocks.length-1].constructor === ccb.Gate)
+                        code_sequence.blocks[code_sequence.blocks.length-1].cb.push(block);
                     else
                         return [0, new ccb.BlockSequence(),
                             new ccc.CompilerConclusion(207), new ccc.CompilerCursor()];
                     break;
                 case LineType.ADDFALSEBLOCK:
-                    if (code_sequence.blocks[code_sequence.blocks.length-1].constructor.name === ccb.Gate.name)
-                        if (code_sequence[-1].fb === null) code_sequence[-1].fb = block;
+                    if (code_sequence.blocks[code_sequence.blocks.length-1].constructor === ccb.Gate)
+                    {
+                        if (code_sequence.blocks[code_sequence.blocks.length-1].fb === null)
+                            code_sequence.blocks[code_sequence.blocks.length-1].fb = block;
                         else return [0, new ccb.BlockSequence(),
                             new ccc.CompilerConclusion(209), new ccc.CompilerCursor()];
+                    }
                     else
                         return [0, new ccb.BlockSequence(),
                             new ccc.CompilerConclusion(208), new ccc.CompilerCursor()];

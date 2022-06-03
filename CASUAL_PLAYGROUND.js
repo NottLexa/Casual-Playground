@@ -273,44 +273,45 @@ const EntGlobalConsole = new engine.Entity({
 //#region [FIELD BOARD]
 const board_step = function(target)
 {
-    /*
     let start = Date.now();
-    for (let y = 0; i < target.board_height; y++)
+    for (let y = 0; y < target.board_height; y++)
     {
-        for (let x = 0; i < target.board_width; x++)
+        for (let x = 0; x < target.board_width; x++)
         {
             target.board[y][x].step();
         }
     }
-    target.time_elapsed = Date.now() - start;
-    */
+    target.time_elapsed = (Date.now() - start)/1000;
 };
 
 const board_tasks = function(target)
 {
-    /*
+    let taskcount = 0;
     let change_board = false;
-    for (let y = 0; i < target.board_height; y++)
+    for (let y = 0; y < target.board_height; y++)
     {
-        for (let x = 0; i < target.board_width; x++)
+        for (let x = 0; x < target.board_width; x++)
         {
-            for (let i_args in target.board[y][x].tasks)
+            for (let args of target.board[y][x].tasks)
             {
-                let args = target.board[y][x].tasks[i_args];
                 switch (args[0])
                 {
                     case ctt.SET_CELL:
+                        let [_x, _y, _cellid] = args.slice(1);
+                        target.board[_y][_x] = new comp.Cell({X: _x, Y: _y}, _cellid, target.board,
+                            gvars);
+                        change_board = true;
                         break;
                 }
+                taskcount++;
             }
             target.board[y][x].tasks = [];
         }
     }
     if (change_board)
     {
-        target.surfaces['board'] = EntFieldBoard.draw_board(target);
+        target.surfaces.board = draw_board(target);
     }
-    */
 };
 
 const draw_board = function(target)
@@ -356,7 +357,7 @@ const board_zoom_in = function(target, mul)
     target.viewx = (target.viewx + (WIDTH2)) * newvs / oldvs - (WIDTH2);
     target.viewy = (target.viewy + (HEIGHT2)) * newvs / oldvs - (HEIGHT2);
 
-    target.surfaces['board'] = draw_board(target);
+    target.surfaces.board = draw_board(target);
 };
 const board_zoom_out = function(target, mul)
 {
@@ -369,7 +370,7 @@ const board_zoom_out = function(target, mul)
     target.viewx = (target.viewx + (WIDTH2)) * newvs / oldvs - (WIDTH2);
     target.viewy = (target.viewy + (HEIGHT2)) * newvs / oldvs - (HEIGHT2);
 
-    target.surfaces['board'] = draw_board(target);
+    target.surfaces.board = draw_board(target);
 };
 const board_do_instrument = function(target)
 {
@@ -557,6 +558,7 @@ const EntFieldBoard = new engine.Entity({
             else surface.fillRect(0, liney, WIDTH, bordersize);
         }
 
+        // speed
         engine.draw_text(surface, WIDTH-2, HEIGHT-2,
             `Max speed: ${Math.pow(2, target.cameraspeed)}`,
             'fill', fontsize_default, 'right', 'bottom', 'white');
@@ -564,6 +566,13 @@ const EntFieldBoard = new engine.Entity({
             `hsp: ${Math.round(target.hsp)} / vsp: ${Math.round(target.vsp)}`,
             'fill', fontsize_default, 'right', 'bottom', 'white');
 
+        // time per tick
+        engine.draw_text(surface,
+            5, -5 + surface.canvas.height - fontsize_default,
+            `${target.timepertick}s`+(target.time_paused ? ' | Paused' : ''),
+            'fill', fontsize_default, 'left', 'top', 'white');
+
+        // time elapsed
         let clr = target.time_elapsed <= target.timepertick ? 'white' : rgb_to_style(17*14, 17, 17);
         engine.draw_text(surface,
             5, -10 + surface.canvas.height - fontsize_default - 2*fontsize_small,
@@ -574,6 +583,7 @@ const EntFieldBoard = new engine.Entity({
             `${Math.round(target.time_elapsed/(target.board_width*target.board_height)*100000)/100000} s/cell`,
             'fill', fontsize_small, 'left', 'top', clr);
 
+        // instrument
         switch (current_instrument.type)
         {
             case 'pencil':
@@ -630,11 +640,11 @@ const EntFieldBoard = new engine.Entity({
                 target.time_paused = !target.time_paused;
                 break;
             case 'KeyR':
-                target.tpt_power = max(target.tpt_min, target.tpt_power-1);
+                target.tpt_power = Math.max(target.tpt_min, target.tpt_power-1);
                 target.timepertick = target.get_tpt(target.tpt_power);
                 break;
             case 'KeyT':
-                target.tpt_power = max(target.tpt_min, target.tpt_power+1);
+                target.tpt_power = Math.max(target.tpt_min, target.tpt_power+1);
                 target.timepertick = target.get_tpt(target.tpt_power);
                 break;
         }

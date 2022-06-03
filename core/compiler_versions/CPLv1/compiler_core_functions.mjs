@@ -40,7 +40,7 @@ var CoreFuncs = {
     {
         return caller.board[y.read(caller)][x.read(caller)].cellid;
     },
-    setcell: function(caller, x, y)
+    setcell: function(caller, x, y, cellid)
     {
         caller.tasks.push(
             [ctt.SET_CELL, x.read(caller), y.read(caller), cellid.read(caller)]

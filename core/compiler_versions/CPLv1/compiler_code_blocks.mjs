@@ -27,13 +27,13 @@ const BlockSequence = function(blocks=[])
     let _ = this;
 
     this.blocks = blocks;
-    this.add = function(...other){this.blocks.push(other)};
+    this.add = function(...other){this.blocks.push(...other)};
     this.unite = function(other){return BlockSequence(this.blocks.concat(other.blocks))};
     this.get = (index)=>{this.blocks[index]};
     this.set = (index,value)=>{this.blocks[index]=value};
     this.exec = function(caller)
     {
-        for (let b in this.blocks) this.blocks[b].exec(caller);
+        for (let b of this.blocks) b.exec(caller);
     }
     this[Symbol.iterator] = function()
     {
@@ -145,7 +145,7 @@ const Block = function(type, ...data)
     };
 }
 
-const Value = function(type, value=null, source=null, ...args)
+const Value = function(type, value=null, source=null, args)
 {
     this.type = type;
     this.value = value;

@@ -40,6 +40,7 @@ const split_args1 = function(text, start, end_at = null)
         if (newlinestop && '\n\r'.includes(text[l])) break;
         if (' \n\t\r'.includes(text[l]))
         {
+            if (text[l] === '\r' && text[l+1] === '\n') l++;
             if (write !== '')
             {
                 args.push(write);
@@ -76,6 +77,7 @@ const split_args2 = function(text, start)
     {
         if ('\n\r'.includes(text[l]))
         {
+            if (text[l] === '\r' && text[l+1] === '\n') l++;
             end = l;
             break;
         }
@@ -86,16 +88,16 @@ const split_args2 = function(text, start)
                 args.push(write);
                 write = '';
             }
+            l += 1;
         }
         else if (cep.SET_EOC.has(text[l]))
         {
             let [i0, i1, string, concl, cur] = cep.string_only_embedded(text, l, cep.EOC_index[text[l]]);
             if (!ccc.correct_concl(concl)) return [end+1, [], concl, cur];
-            l = i1-1;
-            write += text[i0] + string + text[l];
+            l = i1;
+            write += text[i0] + string + text[l-1];
         }
-        else write += text[l];
-        l++;
+        else write += text[l++];
 
     }
     if (write !== '') args.push(write);
@@ -112,13 +114,12 @@ const split_args3 = function(text, start = 0, end_at = null, ...splitters)
     let spls = [...splitters].sort((a,b)=>(a-b));
     let ret = [''];
     let l = start;
-    let spl, not_break;
+    let not_break;
     while (l < end)
     {
         not_break = true;
-        for (let i in spls)
+        for (let spl of spls)
         {
-            spl = spls[i];
             if (text.slice(l, l+spl.length) === spl)
             {
                 if (ret[ret.length-1] === '') ret.pop();
