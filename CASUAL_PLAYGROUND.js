@@ -134,8 +134,7 @@ const load_fonts = function(fontsfolder)
 const load_modlist = function(modsfolder)
 {
     return fs.readdirSync(modsfolder, {encoding: "utf8"})
-        .map(m => path.join(modsfolder, m))
-        .filter(filepath => fs.lstatSync(filepath).isDirectory());
+        .filter(filepath => fs.lstatSync(path.join(modsfolder, filepath)).isDirectory());
 };
 
 const load_mod = function(modfolder, mod_origin, official)
@@ -143,7 +142,7 @@ const load_mod = function(modfolder, mod_origin, official)
     let mods = {};
     for (let filename of fs.readdirSync(modfolder, {encoding: "utf8"}))
     {
-        let filepath =  path.join(modfolder, filename);
+        let filepath = path.join(modfolder, filename);
         if (fs.lstatSync(filepath).isFile())
         {
             if (filepath.slice(-4).toLowerCase() === '.mod') {
