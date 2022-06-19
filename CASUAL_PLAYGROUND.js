@@ -64,6 +64,7 @@ var HEIGHT2 = Math.floor(HEIGHT/2);
 var canvas_element = document.getElementById('CasualPlaygroundCanvas');
 var display = new engine.Display(canvas_element, 16*scale, 9*scale);
 var top_panel = document.getElementById('top_panel');
+var text_window = document.getElementById('text_window');
 display.resizeCanvas(nw.Window.get().cWindow.width, nw.Window.get().cWindow.height);
 nw.Window.get().on
 (
@@ -81,6 +82,25 @@ nw.Window.get().show();
 
 //#region [LOADING FUNCTIONS]
 
+const get_text_width = function(txt, font)
+{
+    text_window.style.font = font;
+    text_window.innerHTML = txt;
+    global.console.log(`I AM BAD ${text_window.style.font} ${font}`);
+    return text_window.offsetWidth;
+};
+
+const arraysEqual = function(a, b)
+{
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (a.length !== b.length) return false;
+    for (var i = 0; i < a.length; ++i) {
+        if (a[i] !== b[i]) return false;
+    }
+    return true;
+};
+
 const roundRect = function(ctx, x, y, width, height, radius, stroke = false)
 {
     if (typeof radius === 'number') {
@@ -88,20 +108,25 @@ const roundRect = function(ctx, x, y, width, height, radius, stroke = false)
     } else {
         radius = {...{tl: 0, tr: 0, br: 0, bl: 0}, ...radius};
     }
+    let half = stroke ? Math.round(ctx.lineWidth/2) : 0;
     ctx.beginPath();
-    ctx.moveTo(x + radius.tl, y);
-    ctx.lineTo(x + width - radius.tr, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
-    ctx.lineTo(x + width, y + height - radius.br);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius.br, y + height);
-    ctx.lineTo(x + radius.bl, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
-    ctx.lineTo(x, y + radius.tl);
-    ctx.quadraticCurveTo(x, y, x + radius.tl, y);
+    ctx.moveTo(x + radius.tl + half, y + half);
+    ctx.lineTo(x + width - radius.tr - half, y + half);
+    ctx.quadraticCurveTo(x + width - half, y + half,
+        x + width - half, y + radius.tr + half);
+    ctx.lineTo(x + width - half, y + height - radius.br - half);
+    ctx.quadraticCurveTo(x + width - half, y + height - half,
+        x + width - radius.br - half, y + height - half);
+    ctx.lineTo(x + radius.bl + half, y + height - half);
+    ctx.quadraticCurveTo(x + half, y + height - half,
+        x + half, y + height - radius.bl - half);
+    ctx.lineTo(x + half, y + radius.tl + half);
+    ctx.quadraticCurveTo(x + half, y + half,
+        x + radius.tl + half, y + half);
     ctx.closePath();
     if (stroke) ctx.stroke();
     else ctx.fill();
-}
+};
 
 const rgb_to_style = (r,g,b) => `rgb(${r}, ${g}, ${b})`;
 
@@ -178,7 +203,7 @@ const load_mod = function(modfolder, mod_origin, official)
 
 //#region [SETTINGS]
 var loc = 'rus';
-//import * as locstrings from './core/localization.json';
+var locstrings = JSON.parse(fs.readFileSync('./core/localization.json', {encoding:"utf8"})).localization;
 var current_instrument = {'type': null};
 var gvars = [{'objdata':{},
               'idlist':[],
@@ -587,7 +612,7 @@ const EntFieldBoard = new engine.Entity({
         {
             case 'pencil':
                 let string = `Pencil[${current_instrument.scale}] | ${idlist[current_instrument.cell]}` +
-                    `| ${current_instrument.penciltype ? 'Round' : 'Square'}`
+                    ` | ${current_instrument.penciltype ? 'Round' : 'Square'}`
                 engine.draw_text(surface,
                     surface.canvas.width - 2, surface.canvas.height - 2 - 2*(fontsize_default-2),
                     string, 'fill', fontsize_default, 'right', 'bottom', 'white');
@@ -620,8 +645,8 @@ const EntFieldBoard = new engine.Entity({
             case 'Minus':
                 target.keys.minus = setkey;
                 break;
-            case 'LeftShift':
-            case 'RightShift':
+            case 'ShiftLeft':
+            case 'ShiftRight':
                 target.keys.shift = setkey;
                 break;
             case 'KeyQ':
@@ -675,8 +700,8 @@ const EntFieldBoard = new engine.Entity({
             case 'Minus':
                 target.keys.minus = setkey;
                 break;
-            case 'LeftShift':
-            case 'RightShift':
+            case 'ShiftLeft':
+            case 'ShiftRight':
                 target.keys.shift = setkey;
                 break;
         }
@@ -727,10 +752,114 @@ const FieldSUI_mouse_on_cell = function(target)
     let cy = ws + eb + ((ds + eb + fontsize_smaller)*Math.floor(ci/inoneline));
     if (cx <= mousex && mousex <+ cx + detectwidth - eb)
         if (cy <= mousey && mousey <= cy + detectheight - eb)
-            if (ci < idlist.length)
+            if (ci < idlist.length && ci >= 0)
                 return ci;
     return null;
-}
+};
+
+const FieldSUI_draw_desc_window = function(target, cellid)
+{
+    //let widths = [];
+    let cellname = idlist[cellid];
+    let [border, padding, divider] = [4, 8, 12].map(value => Math.round(value*scale/100));
+    let padding2 = padding*2;
+    let canvaswidth = target.desc_window_width - padding2;
+    let name_size = fontsize_big;
+    let origin_size = fontsize_smaller;
+    let description_size = fontsize_smaller;
+    //let space_scale = 1/3;
+
+    let celldata = objdata[cellname];
+    let localization = celldata.localization;
+    let name_string = localization.hasOwnProperty(loc) ? localization[loc].name : celldata.name;
+    let origin_string = celldata.origin;
+    let origin_color = celldata.official ? 'green' : 'white';
+    let from_string = locstrings.from.hasOwnProperty(loc) ? locstrings.from[loc] : locstrings.from.__noloc;
+    let desc_string = localization.hasOwnProperty(loc) ? localization[loc].desc : celldata.desc;
+
+    let border_color = '#4d4d4d';
+    let bg_color = 'rgba(77,77,77,0.5)';
+
+    let surface = document.createElement('canvas').getContext('2d');
+    surface.font = `${name_size}px sans-serif`;
+    global.console.log(`I AM GOOD ${surface.font}`);
+    global.console.log(surface.font);
+    let txt_size1 = get_text_width(name_string, surface.font);//surface.measureText(name_string);
+    name_size = name_size * Math.min(1, canvaswidth / txt_size1);
+
+    let linewidth = 0;
+    let y_offset = 0;
+    let lines = [''];
+    surface.font = `${description_size*100}px sans-serif`;
+    global.console.log(`I AM GOOD ${surface.font} ${description_size}`);
+    for (let letter of desc_string)
+    {
+        let letter_width = get_text_width(letter, surface.font)/100;//surface.measureText(letter).width;
+        //widths.push(letter_width);
+        global.console.log(letter_width);
+        if (linewidth + letter_width > canvaswidth)
+        {
+            linewidth = 0;
+            lines.push(['']);
+            y_offset += description_size;
+        }
+        lines[lines.length-1] += letter;
+        linewidth += letter_width;
+    }
+
+    surface.canvas.width = target.desc_window_width;
+    surface.canvas.height = name_size + origin_size + divider + padding2 +
+        y_offset + description_size + origin_size;
+    surface.globalCompositeOperation = 'destination-atop';
+    surface.fillStyle = bg_color;
+    roundRect(surface, 0, 0, surface.canvas.width, surface.canvas.height,
+        8, false);
+    surface.globalCompositeOperation = 'source-over';
+    surface.strokeStyle = border_color;
+    surface.lineWidth = border;
+    roundRect(surface, 0, 0, surface.canvas.width, surface.canvas.height,
+        8, true);
+
+    let y = padding;
+    engine.draw_text(surface, padding, y, name_string, 'fill', name_size,
+        'left', 'top', 'white');
+
+    y += name_size + Math.floor(divider/2);
+    engine.draw_line(surface, padding, y, target.desc_window_width - padding,
+        y, border_color, border);
+
+    y += Math.floor(divider/2);
+    surface.font = `${description_size}px`;
+    for (let line of lines)
+    {
+        let x = padding;
+        engine.draw_text(surface, x, y, line, 'fill', description_size,
+            'left', 'top', 'white');
+        x += get_text_width(line, surface.font);//surface.measureText(line);
+        y += description_size;
+    }
+
+    y += Math.floor(divider/2);
+    engine.draw_line(surface, padding, y, target.desc_window_width - padding,
+        y, border_color, border);
+
+    y += Math.floor(divider/2);
+    engine.draw_text(surface, target.desc_window_width - padding, y,
+        origin_string, 'fill', origin_size, 'right', 'top', origin_color);
+    engine.draw_text(surface, padding, y, from_string, 'fill', origin_size,
+        'left', 'top', origin_color);
+
+    /*let ow = 0;
+    for (let w of widths)
+    {
+        let x = ow+padding;
+        let y = padding+divider+name_size;
+        engine.draw_line(surface, x, y, x+w, y, `hsl(${(10*ow) % 360}, 100%, 50%)`);
+        ow += w;
+    }*/
+
+    return surface;
+};
 
 const EntFieldSUI = new engine.Entity({
     create: function (target)
@@ -828,14 +957,21 @@ const EntFieldSUI = new engine.Entity({
     },
     mouse_move: function (target)
     {
-        /*if (target.show_all)
+        if (target.show_all)
         {
-            let ci = FieldSUI_mouse_on_cell(target)
+            let ci = FieldSUI_mouse_on_cell(target);
             if (ci !== null)
             {
-
+                if (!arraysEqual(target.desc_window_id, [0, ci]))
+                {
+                    target.desc_window_surface = FieldSUI_draw_desc_window(target, ci);
+                    target.desc_window_id = [0, ci];
+                }
+                target.desc_window_show = true;
+                target.desc_window_offset = [mx+16, my+16];
             }
-        }*/
+            else target.desc_window_show = false;
+        }
     },
     mouse_down: function (target, buttonid)
     {

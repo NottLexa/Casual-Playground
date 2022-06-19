@@ -67,6 +67,17 @@ const draw_text = function(ctx, x, y, string = 'Sample Text', type = 'fill',
     }
 }
 
+const draw_line = function(ctx, x1, y1, x2, y2, color = 'black', linewidth = 1)
+{
+
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = linewidth;
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+}
+
 const Display = function(canvas, canvas_width, canvas_height)
 {
     this.ctx = canvas.getContext('2d');
@@ -226,4 +237,4 @@ const Instance = function (entity)
 };
 
 export {Display, current_room, change_current_room, Room, Entity, Instance, clamp, interpolate,
-    draw_text, LMB, RMB, MMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP};
+    draw_text, LMB, RMB, MMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP, draw_line};
