@@ -66,11 +66,28 @@ var display = new engine.Display(canvas_element, 16*scale, 9*scale);
 var top_panel = document.getElementById('top_panel');
 var text_window = document.getElementById('text_window');
 display.resizeCanvas(nw.Window.get().cWindow.width, nw.Window.get().cWindow.height);
+var resize_window1 = function (width, height) {display.resizeCanvas(width, height-top_panel.offsetHeight);};
+var resize_window2 = function () {
+    let [w, h] = [nw.Window.get().width, nw.Window.get().height];
+    display.resizeCanvas(w, h-top_panel.offsetHeight);
+    [w, h] = [nw.Window.get().cWindow.tabs[0].width, nw.Window.get().cWindow.tabs[0].height];
+    display.resizeCanvas(w, h-top_panel.offsetHeight);
+};
 nw.Window.get().on
 (
     'resize',
-    function (width, height) {display.resizeCanvas(width, height-top_panel.offsetHeight);}
-)
+    resize_window1
+);
+nw.Window.get().on
+(
+    'restore',
+    resize_window2
+);
+nw.Window.get().on
+(
+    'maximize',
+    resize_window2
+);
 nw.Window.get().resizeTo(Math.round(window.screen.width*3/4),
     Math.round(window.screen.height*3/4) + top_panel.offsetHeight);
 nw.Window.get().moveTo(Math.round(window.screen.width*1/8),
@@ -455,7 +472,7 @@ const EntFieldBoard = new engine.Entity({
             'down': false,
             'speedup': false,
             'speeddown': false,
-            'rmb': false,
+            'lmb': false,
             'plus': false,
             'minus': false,
             'shift': false,
@@ -526,7 +543,7 @@ const EntFieldBoard = new engine.Entity({
         target.viewx += deltatime*target.hsp;
         target.viewy += deltatime*target.vsp;
 
-        if (target.keys.rmb) board_do_instrument(target);
+        if (target.keys.lmb) board_do_instrument(target);
 
         if (!target.time_paused) target.time += deltatime;
         if (target.time > target.timepertick) board_step(target);
@@ -711,8 +728,8 @@ const EntFieldBoard = new engine.Entity({
         let setkey = true;
         switch (mb)
         {
-            case engine.RMB:
-                target.keys.rmb = setkey;
+            case engine.LMB:
+                target.keys.lmb = setkey;
                 break;
             case engine.WHEELUP:
                 if (target.keys.shift) current_instrument.scale++;
@@ -730,8 +747,8 @@ const EntFieldBoard = new engine.Entity({
         let setkey = false;
         switch (mb)
         {
-            case engine.RMB:
-                target.keys.rmb = setkey;
+            case engine.LMB:
+                target.keys.lmb = setkey;
                 break;
         }
     },
