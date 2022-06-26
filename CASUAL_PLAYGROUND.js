@@ -424,12 +424,13 @@ const board_do_instrument = function(target)
                             if ((0 <= ix) && (ix < maxcx) && (0 <= iy) && (iy < maxcy))
                             {
                                 let cellid = current_instrument.cell;
-                                target.board[iy][ix] = new comp.Cell({X:ix,Y:iy},cellid, target.board,
-                                    gvars);
-                                target.surfaces.board = draw_board(target);
+                                target.board[iy][ix].reset(cellid);
+                                /*target.board[iy][ix] = new comp.Cell({X:ix,Y:iy},cellid, target.board,
+                                    gvars);*/
                             }
                         }
                     }
+                    target.surfaces.board = draw_board(target);
                 }
             }
     }

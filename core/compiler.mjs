@@ -117,6 +117,15 @@ const Cell = function(
                 break;
         }
     }
+
+    this.reset = function(cellid = 0)
+    {
+        this.cellid = cellid;
+        this.locals = {};
+        this.tasks = [];
+        this.code = this.globals[0].objdata[this.globals[0].idlist[this.cellid]];
+        if (this.code.script.create !== undefined) this.code.script.create.exec(this);
+    }
 }
 
 export {LoggerClass, get, Cell};
