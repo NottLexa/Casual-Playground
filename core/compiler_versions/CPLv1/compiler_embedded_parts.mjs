@@ -19,9 +19,9 @@ Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 
 import * as ccc from '../../compiler_conclusions_cursors.mjs';
 
-const [ROUND, SQUARE, CURLY, DOUBLEQUOTEMARK, SINGLEQUOTEMARK] = Array(5).keys();
+const [ROUND, SQUARE, CURLY, COMMENT, DOUBLEQUOTEMARK, SINGLEQUOTEMARK] = Array(5).keys();
 const QUOTEMARK = DOUBLEQUOTEMARK;
-const EOC = '([{"\'';
+const EOC = ['(','[','{', '<<','"',"\'"];
 var EOC_index = {};
 Array.from(EOC).forEach((value, index)=>{EOC_index[value] = index});
 Object.freeze(EOC_index);
@@ -78,9 +78,10 @@ const string_embedded_brackets = function(text, start, sepsym)
     let not_break = true;
     while (l < text.length)
     {
-        if (SET_EOC.has(text[l]))
+        let found = EOC.filter(value => text.slice(l, l+value.length) === value);
+        if (found.length > 0)
         {
-            if (text[l] === sepsym[0])
+            if (found[0] === sepsym[0])
             {
                 if (!opened)
                 {
@@ -88,47 +89,56 @@ const string_embedded_brackets = function(text, start, sepsym)
                     opened = true;
                     write += text[l++];
                 }
-                else
+                else if (EOC_index[sepsym[0]] !== COMMENT)
                 {
                     let _, add, concl, cur;
-                    [_, l, add, concl, cur] = string_embedded(text, l, EOC_index[text[l]]);
+                    [_, l, add, concl, cur] = string_embedded(text, l, EOC_index[found[0]]);
                     if (!ccc.correct_concl(concl)) return [0, 0, '', concl, cur];
                     write += add;
                 }
             }
-            else
+            else if (EOC_index[sepsym[0]] !== COMMENT)
             {
                 let _, add, concl, cur;
-                [_, l, add, concl, cur] = string_embedded(text, l, EOC_index[text[l]]);
+                [_, l, add, concl, cur] = string_embedded(text, l, EOC_index[found[0]]);
                 if (!ccc.correct_concl(concl)) return [0, 0, '', concl, cur];
                 write += add;
             }
         }
-        else if (text[l] === sepsym[1])
+        else
         {
-            if (opened)
+            let sliced = text.slice(l, l+sepsym[1].length);
+            if (sliced === sepsym[1])
             {
-                indexes[1] = l;
-                write += text[l];
-                not_break = false;
-                break;
+                if (opened)
+                {
+                    indexes[1] = l;
+                    write += sliced;
+                    not_break = false;
+                    break;
+                }
+                else return [0, 0, '', new ccc.CompilerConclusion(201), new ccc.CompilerCursor(text, l)];
             }
-            else
-                return [0, 0, '', new ccc.CompilerConclusion(201), new ccc.CompilerCursor(text, l)];
+            else write += text[l++];
         }
-        else write += text[l++];
     }
     if (not_break)
         return [0, 0, '', new ccc.CompilerConclusion(201), new ccc.CompilerCursor(text, start)];
-    return [indexes[0], indexes[1]+1, write, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
+    return [indexes[0], indexes[1]+sepsym[1].length, write, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
 }
 
 const string_embedded = function(text, start, separationtype, save_escapes = false)
 {
     let sepsym;
     if (typeof separationtype === 'string') sepsym = separationtype;
-    else sepsym = ['()', '[]', '{}', '"', "'"][separationtype];
-    if (text[start] !== sepsym[0])
+    else sepsym = [
+        '()',
+        '[]',
+        '{}',
+        ['<<', '>>'],
+        '"',
+        "'"][separationtype];
+    if (text.slice(start, start+sepsym[0].length) !== sepsym[0]) // (text[start] !== sepsym[0])
         return [0, 0, '', new ccc.CompilerConclusion(304), new ccc.CompilerCursor()];
     if ('"\''.includes(sepsym[0]))
         return string_embedded_quotemark(text, start, sepsym, save_escapes);
@@ -145,4 +155,5 @@ const string_only_embedded = function(text, start, separationtype, save_escapes 
 }
 
 export {string_embedded, string_embedded_brackets, string_embedded_quotemark, string_only_embedded,
-    DOUBLEQUOTEMARK, SINGLEQUOTEMARK, QUOTEMARK, BS, CURLY, EOC, EOC_index, ROUND, SET_EOC, SQUARE};
+    DOUBLEQUOTEMARK, SINGLEQUOTEMARK, QUOTEMARK, BS, CURLY, EOC, EOC_index, ROUND, SET_EOC, SQUARE,
+    COMMENT};

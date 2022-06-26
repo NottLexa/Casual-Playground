@@ -38,6 +38,20 @@ const LineType = {
 };
 const CodeStructures = new Set(['WHILE', 'IF', 'ELSEIF', 'ELSE']);
 
+const cut_comments = function(code, start)
+{
+    let new_code = '';
+    let l0, l1, emb, concl, cur;
+    for (let i = start; i < code.length; i++)
+    {
+        [l0, l1, emb, concl, cur] = cep.string_embedded(code, i, cep.COMMENT);
+        if (ccc.correct_concl(concl)) i = l1;
+        if (i < code.length) new_code += code[i];
+        else break;
+    }
+    return new_code;
+}
+
 const chapter_cell = function(code, startl)
 {
     let _, write, concl, cur;
@@ -133,6 +147,8 @@ const chapter_script = function(code, startl, version)
 
 const get = function(code = '', start = 0, end_at = null)
 {
+    code = cut_comments(code, start);
+
     let end;
     if (end_at === null) end = code.length;
     else end = Math.min(end_at, code.length);
@@ -148,7 +164,7 @@ const get = function(code = '', start = 0, end_at = null)
             step: undefined,
         },
     };
-    let l = start;
+    let l = 0;
     let ret_expand, concl, cursor;
     while (l < end)
     {
@@ -258,4 +274,4 @@ const read_line = function(code, startl, version, tab = 0)
     }
 };
 
-export {get, read_line, read_code, chapter_script};
+export {get, read_line, read_code, chapter_script, cut_comments};

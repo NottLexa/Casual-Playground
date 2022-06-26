@@ -86,7 +86,6 @@ const get_text_width = function(txt, font)
 {
     text_window.style.font = font;
     text_window.innerHTML = txt;
-    global.console.log(`I AM BAD ${text_window.style.font} ${font}`);
     return text_window.offsetWidth;
 };
 
@@ -782,8 +781,6 @@ const FieldSUI_draw_desc_window = function(target, cellid)
 
     let surface = document.createElement('canvas').getContext('2d');
     surface.font = `${name_size}px sans-serif`;
-    global.console.log(`I AM GOOD ${surface.font}`);
-    global.console.log(surface.font);
     let txt_size1 = get_text_width(name_string, surface.font);//surface.measureText(name_string);
     name_size = name_size * Math.min(1, canvaswidth / txt_size1);
 
@@ -791,12 +788,10 @@ const FieldSUI_draw_desc_window = function(target, cellid)
     let y_offset = 0;
     let lines = [''];
     surface.font = `${description_size*100}px sans-serif`;
-    global.console.log(`I AM GOOD ${surface.font} ${description_size}`);
     for (let letter of desc_string)
     {
         let letter_width = get_text_width(letter, surface.font)/100;//surface.measureText(letter).width;
         //widths.push(letter_width);
-        global.console.log(letter_width);
         if (linewidth + letter_width > canvaswidth)
         {
             linewidth = 0;
