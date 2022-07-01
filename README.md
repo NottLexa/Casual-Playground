@@ -6,8 +6,7 @@ ____
 # Casual Playground (ENG)
 #### By Alexey "NotLexa" Kozhanov (Алексей Кожанов)
 
-_This project is a port of my own game Casual Playground
-from Python to JavaScript. Sorry if there are frequent errors there._
+[_Original version in python_](https://github.com/NottLexa/Casual-Playground-PY)
 
 ### Important information
 1. Everything in Casual Playground is licensed under
@@ -32,15 +31,13 @@ By their meaning you can understand what specific change did.
 ### Links
 
 * [GitHub](https://github.com/NottLexa/Casual-Playground)
-* [Twitter](https://twitter.com/NottLexa)
 
 ____
 
 # Casual Playground (RUS)
 #### Создано Алексеем "NotLexa" Кожановым
 
-_Данный проект является переносом моей игры Casual Playground с языка
-Python на язык JavaScript. Извините, если здесь часто видятся ошибки._
+[_Оригинальная версия на Python_](https://github.com/NottLexa/Casual-Playground-PY)
 
 ### Важная информация
 1. Всё в Casual Playground находится под лицензией
@@ -64,4 +61,3 @@ Python на язык JavaScript. Извините, если здесь част�
 ### Ссылки
 
 * [GitHub](https://github.com/NottLexa/Casual-Playground)
-* [Twitter](https://twitter.com/NottLexa)

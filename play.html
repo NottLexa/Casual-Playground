@@ -38,13 +38,30 @@
             }
 
             button.button-exit {
-                background: #f00;
+                background: rgba(0,0,0,0);
             }
             button.button-exit:hover {
-                background: #f44;
+                background: #f00;
             }
             button.button-exit:active {
-                background: #f77;
+                background: #f44;
+            }
+
+            button.button-max, button.button-max:hover, button.button-max:active, button.button-max:focus {
+                color: white;
+                border: 0;
+                width: 30px;
+                height: 30px;
+            }
+
+            button.button-max {
+                background: rgba(0,0,0,0);
+            }
+            button.button-max:hover {
+                background: #08f;
+            }
+            button.button-max:active {
+                background: #29f;
             }
 
             .drag-enable {
@@ -67,6 +84,11 @@
                 <tr>
                     <td class="table-cell drag-enable" id="window-name">
                         Casual Playground
+                    </td>
+                    <td class="table-cell drag-disable unselectable" style="width: 0; white-space: nowrap">
+                        <button id="button_max" class="button-max" tabindex="-1" onclick="nw.Window.get().maximize()">
+                            <div style="transform: translate(0); text-shadow: 0 0">&#128470;</div>
+                        </button>
                     </td>
                     <td class="table-cell drag-disable unselectable" style="width: 0; white-space: nowrap">
                         <button class="button-exit" tabindex="-1" onclick="nw.Window.get().close()">

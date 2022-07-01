@@ -65,6 +65,7 @@ var canvas_element = document.getElementById('CasualPlaygroundCanvas');
 var display = new engine.Display(canvas_element, 16*scale, 9*scale);
 var top_panel = document.getElementById('top_panel');
 var text_window = document.getElementById('text_window');
+var button_max = document.getElementById('button_max');
 display.resizeCanvas(nw.Window.get().cWindow.width, nw.Window.get().cWindow.height);
 var resize_window1 = function (width, height) {display.resizeCanvas(width, height-top_panel.offsetHeight);};
 var resize_window2 = function () {
@@ -81,12 +82,20 @@ nw.Window.get().on
 nw.Window.get().on
 (
     'restore',
-    resize_window2
+    function(){
+        resize_window2();
+        button_max.onclick = function(){nw.Window.get().maximize()};
+        button_max.children[0].style = 'text-shadow: initial; transform: translate(0)';
+    }
 );
 nw.Window.get().on
 (
     'maximize',
-    resize_window2
+    function(){
+        resize_window2();
+        button_max.onclick = function(){nw.Window.get().restore()};
+        button_max.children[0].style = 'text-shadow: -4px 4px; transform: translate(2px, -2px)';
+    }
 );
 nw.Window.get().resizeTo(Math.round(window.screen.width*3/4),
     Math.round(window.screen.height*3/4) + top_panel.offsetHeight);
@@ -940,10 +949,15 @@ const EntFieldSUI = new engine.Entity({
     },
     step: function (target)
     {
-        target.show_step = engine.interpolate(target.show_step, Math.floor(target.show_menu), 3);
+        let new_step = engine.interpolate(target.show_step, Math.floor(target.show_menu), 3);
+        if (target.show_step !== new_step)
+        {
+            target.show_step = new_step;
 
-        if (Math.round(target.show_step*100000)/100000 === 0.0) target.show_step = 0;
-        else if (Math.round(target.show_step*100000)/100000 === 1.0) target.show_step = 1;
+            if (Math.round(target.show_step * 1000) / 1000 === 0.0) target.show_step = 0;
+            else if (Math.round(target.show_step * 1000) / 1000 === 1.0) target.show_step = 1;
+            this.mouse_move(target);
+        }
     },
     draw: function (target, surface)
     {
