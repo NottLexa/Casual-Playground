@@ -214,7 +214,16 @@ const load_mod = function(modfolder, mod_origin, official)
                 moddata.official = official;
                 let imgpath = filepath.slice(0, -4) + '.png';
                 if (fs.existsSync(imgpath) && fs.lstatSync(imgpath).isFile())
-                    moddata.texture = imgpath;
+                {
+                    moddata.texture = new Image();
+                    moddata.texture_ready = false;
+                    moddata.texture.onload = function()
+                    {
+                        moddata.texture_ready = true;
+                        update_board = true;
+                    };
+                    moddata.texture.src = imgpath;
+                }
                 if (official) mods[modname] = moddata;
                 else mods[`${mod_origin}/${modname}`] = moddata;
 
@@ -272,6 +281,7 @@ global.console.log(idlist.map((value, index) => [index, value]));
 
 var cell_fill_on_init = idlist.indexOf('grass');
 var cellbordersize = 0.125;
+var update_board = false;
 
 //#endregion
 
@@ -336,7 +346,6 @@ const board_step = function(target)
 const board_tasks = function(target)
 {
     let taskcount = 0;
-    let change_board = false;
     for (let y = 0; y < target.board_height; y++)
     {
         for (let x = 0; x < target.board_width; x++)
@@ -349,17 +358,13 @@ const board_tasks = function(target)
                         let [_x, _y, _cellid] = args.slice(1);
                         target.board[_y][_x] = new comp.Cell({X: _x, Y: _y}, _cellid, target.board,
                             gvars);
-                        change_board = true;
+                        update_board = true;
                         break;
                 }
                 taskcount++;
             }
             target.board[y][x].tasks = [];
         }
-    }
-    if (change_board)
-    {
-        target.surfaces.board = draw_board(target);
     }
 };
 
@@ -381,11 +386,20 @@ const draw_board = function(target)
             let cx = (ix*cellsize)+bordersize;
             let cy = (iy*cellsize)+bordersize;
             let celldata = target.board[iy][ix].code;
-            surface.fillStyle = rgb_to_style(...celldata.notexture);
-            //surface.fillStyle = rgb_to_style(109, 183, 65);
-            surface.fillRect(cx, cy, target.viewscale, target.viewscale);
+            surface.imageSmoothingEnabled = false;
+            if (celldata.hasOwnProperty('texture') && celldata.texture_ready)
+            {
+                surface.drawImage(celldata.texture, cx, cy, target.viewscale, target.viewscale);
+            }
+            else
+            {
+                surface.fillStyle = rgb_to_style(...celldata.notexture);
+                //surface.fillStyle = rgb_to_style(109, 183, 65);
+                surface.fillRect(cx, cy, target.viewscale, target.viewscale);
+            }
         }
     }
+    update_board = false;
     return surface;
 };
 
@@ -563,6 +577,10 @@ const EntFieldBoard = new engine.Entity({
         {
             board_tasks(target);
             target.time = 0;
+        }
+        if (update_board)
+        {
+            target.surfaces.board = draw_board(target);
         }
     },
     draw: function(target, surface)
