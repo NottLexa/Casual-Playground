@@ -21,6 +21,7 @@ By their meaning you can understand what specific change did.
 |   Mark   | Meaning             |
 | :------: | ------------------- |
 |   `HF`   | Hotfix              |
+|   `F`    | Fix                 |
 |   `+`    | New feature         |
 |   `-`    | Removed             |
 |   `>`    | Edited/Renamed      |
@@ -51,6 +52,7 @@ ____
 |   Знак    | Значение               |
 | :-------: | ---------------------- |
 |   `HF`    | Хотфикс                |
+|   `F`     | Фикс                   |
 |   `+`     | Новая фича             |
 |   `-`     | Удалено                |
 |   `>`     | Изменено/Переименовано |

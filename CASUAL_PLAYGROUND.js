@@ -285,8 +285,10 @@ var update_board = false;
 
 //#endregion
 
-//#region [ENTITIES]
-//#region [GLOBAL CONSOLE]
+//#region [ROOMS]
+
+//#region [GLOBAL]
+//#region [CONSOLE]
 const EntGlobalConsole = new engine.Entity({
     create: function(target)
     {
@@ -328,8 +330,14 @@ const EntGlobalConsole = new engine.Entity({
         }
     }
 });
+
+var globalconsole = EntGlobalConsole.create_instance();
 //#endregion
-//#region [FIELD BOARD]
+//#endregion
+
+//#region [FIELD]
+//#region [ENTITIES]
+//#region [BOARD]
 const board_step = function(target)
 {
     let start = Date.now();
@@ -781,7 +789,7 @@ const EntFieldBoard = new engine.Entity({
     },
 });
 //#endregion
-//#region [FIELD STANDARD UI]
+//#region [STANDARD UI]
 const FieldSUI_mouse_on_cell = function(target)
 {
     let [ds, eb, ws] = [target.display_scale, target.element_border, target.window_spacing];
@@ -967,7 +975,7 @@ const EntFieldSUI = new engine.Entity({
     },
     step: function (target)
     {
-        let new_step = engine.interpolate(target.show_step, Math.floor(target.show_menu), 3);
+        let new_step = engine.linear_interpolation(target.show_step, Math.floor(target.show_menu), 3);
         if (target.show_step !== new_step)
         {
             target.show_step = new_step;
@@ -1036,20 +1044,298 @@ const EntFieldSUI = new engine.Entity({
 });
 //#endregion
 //#endregion
-
 //#region [INSTANCES]
-var globalconsole = EntGlobalConsole.create_instance();
 var fieldboard = EntFieldBoard.create_instance();
 var fieldsui = EntFieldSUI.create_instance();
 //#endregion
+//#endregion
 
-//#region [ROOMS]
+//#region [MAINMENU]
+//#region [ENTITIES]
+//#region [INTRO]
+const EntMMIntro = new engine.Entity({
+    create: function(target)
+    {
+        /*target.icon2 = new Image();
+        target.icon2.src = 'https://www.gnu.org/graphics/gplv3-or-later-sm.png';*/
+        target.time = 0;
+    },
+    step: function(target)
+    {
+        target.time += deltatime;
+    },
+    draw_after: function(target, surface)
+    {
+        /*
+        engine.draw_line(surface, 0, surface.canvas.height/4, surface.canvas.width, surface.canvas.height/4, 'blue', 2);
+        engine.draw_line(surface, 0, surface.canvas.height*3/4, surface.canvas.width, surface.canvas.height*3/4, 'blue', 2);
+        engine.draw_line(surface, surface.canvas.width/4, 0, surface.canvas.width/4, surface.canvas.height, 'blue', 2);
+        engine.draw_line(surface, surface.canvas.width*3/4, 0, surface.canvas.width*3/4, surface.canvas.height, 'blue', 2);
+        engine.draw_line(surface, 0, surface.canvas.height/2, surface.canvas.width, surface.canvas.height/2, 'red', 2);
+        engine.draw_line(surface, surface.canvas.width/2, 0, surface.canvas.width/2, surface.canvas.height, 'red', 2);
+        */
+        let moment_func = (start, end) => engine.range2range(engine.clamp(target.time, start, end), start, end, 0, 1);
+
+        let moment2 = 1-moment_func(4, 4.5);
+        moment2 = Math.cos((1-moment2)/2*Math.PI);
+        moment2 = Math.pow(moment2, 2/3);
+        let moment3 = 1-moment_func(4.5, 5);
+        moment3 = Math.cos(moment3/2*Math.PI);
+        moment3 = 1-Math.pow(moment3, 2/3);
+        //moment3 = Math.sin(moment3/2*Math.PI);
+        surface.beginPath();
+        surface.moveTo(0, 0);
+        surface.lineTo(surface.canvas.width*moment3, 0);
+        surface.lineTo(surface.canvas.width*moment3, surface.canvas.height*moment2);
+        surface.lineTo(surface.canvas.width*moment2, surface.canvas.height*moment3);
+        surface.lineTo(0, surface.canvas.height*moment3);
+        surface.fillStyle = 'black';
+        surface.fill();
+
+        let moment1 = moment_func(0, 2)*(1-moment_func(4, 5));
+        engine.draw_text(surface, surface.canvas.width/2, surface.canvas.height/2,
+            'Casual Playground', 'fill', 100, 'center', 'center', `rgba(255, 255, 255, ${moment1})`,
+            '"Montserrat", serif');
+        engine.draw_text(surface, surface.canvas.width/2, surface.canvas.height/2 + 60,
+            'by NotLexa', 'fill', 40, 'center', 'top', `rgba(255, 255, 255, ${moment1})`,
+            '"Montserrat", serif');
+
+        let draw_copyright = function (txt, y)
+        {
+            engine.draw_text(surface, surface.canvas.width/2, surface.canvas.height - y,
+                txt, 'fill', 12, 'center', 'bottom',
+                `rgba(255, 255, 255, ${moment1})`, '"Montserrat", serif');
+        };
+
+        let copyright_offset = 5;
+
+        draw_copyright("Casual Playground / " +
+            'Copyright © 2022 Alexey Kozhanov', copyright_offset+42);
+        draw_copyright('This program is free software: you can redistribute it and/or modify ' +
+            'it under the terms of the GNU General Public License as published by ' +
+            'the Free Software Foundation, either version 3 of the License, or ' +
+            '(at your option) any later version.', copyright_offset+28);
+        draw_copyright('This program is distributed in the hope that it will be useful, ' +
+            'but WITHOUT ANY WARRANTY; without even the implied warranty of ' +
+            'MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the ' +
+            'GNU General Public License for more details.', copyright_offset+14);
+        draw_copyright('You should have received a copy of the GNU General Public License along with this program.' +
+            'If not, see <https://www.gnu.org/licenses/>.', copyright_offset);
+        /*surface.drawImage(target.icon2,
+            surface.canvas.width-target.icon2.width-4,
+            surface.canvas.height-target.icon2.height-copyright_offset-(14*4));*/
+    },
+});
+//#endregion
+//#region [BACKGROUND]
+const EntMMBG_board = function(x, y, width, height, matrix)
+{
+    let bordersize = 8;
+    let cellsize = 32;
+    let fullsize = cellsize+bordersize;
+    let ox = engine.wrap(x, 0, fullsize);
+    let oy = engine.wrap(y, 0, fullsize);
+    let surface = document.createElement('canvas').getContext('2d');
+    surface.canvas.width = width;
+    surface.canvas.height = height;
+    surface.fillStyle = rgb_to_style(...fieldboard.linecolor_infield);
+    surface.fillRect(0, 0, surface.canvas.width, surface.canvas.height);
+    let ix = engine.wrap(Math.floor(-x/fullsize), 0, matrix[0].length);
+    for (let mx = ox-fullsize; mx < width; mx += fullsize)
+    {
+        let iy = engine.wrap(Math.floor(-y/fullsize), 0, matrix.length);
+        for (let my = oy-fullsize; my < height; my += fullsize)
+        {
+            surface.fillStyle = rgb_to_style(...matrix[iy][ix]);
+            surface.fillRect(mx+bordersize, my+bordersize, cellsize, cellsize);
+            iy = engine.wrap(iy+1, 0, matrix.length);
+        }
+        ix = engine.wrap(ix+1, 0, matrix[0].length);
+    }
+    return surface;
+}
+
+const EntMMBG = new engine.Entity({
+    create: function(target)
+    {
+        target.ox = 0;
+        target.oy = 0;
+        target.angle = Math.random()*360;
+        target.speed = 64;
+        target.colors = idlist.map(value => objdata[value].notexture);
+        target.matrix = Array(100).fill().map(()=>
+            Array(100).fill().map(()=>
+                target.colors[Math.floor(Math.random()*target.colors.length)]
+            )
+        );
+    },
+    step: function(target)
+    {
+        let bordersize = 8;
+        let cellsize = 32;
+        let fullsize = cellsize+bordersize;
+        target.ox = engine.wrap(target.ox+engine.lengthdir_x(target.speed*deltatime, target.angle), 0, display.cw());
+        target.oy = engine.wrap(target.oy+engine.lengthdir_y(target.speed*deltatime, target.angle), 0, display.ch());
+    },
+    draw: function(target, surface)
+    {
+        surface.drawImage(
+            EntMMBG_board(target.ox, target.oy,
+                surface.canvas.width, surface.canvas.height,
+                target.matrix, 0, 0).canvas,
+            0, 0);
+    },
+});
+//#endregion
+//#region [CONTROLLER]
+const EntMMController = new engine.Entity({
+    create: function(target)
+    {
+        target.time = 0;
+        target.play_button = EntMMButton.create_instance();
+        target.play_button.box_width = 256+32;
+        target.play_button.box_height = 80;
+        target.play_button.text = locstrings.play_button.hasOwnProperty(loc)
+            ? locstrings.play_button[loc]
+            : locstrings.play_button.__noloc;
+        target.play_button.const_x = (display.cw() - target.play_button.box_width)/2 - target.play_button.triangle_width;
+        target.play_button.const_y = (display.ch() - target.play_button.box_height)/2;
+        target.play_button.offset_x = -display.cw()/2 - target.play_button.box_width
+            - target.play_button.triangle_width;
+        target.play_button.trigger = ()=>{engine.change_current_room(room_field)};
+    },
+    step: function(target)
+    {
+        target.time += deltatime;
+        if (target.time > 5)
+        {
+            target.play_button.offset_animate = true;
+        }
+    },
+});
+//#endregion
+//#region [BUTTON]
+const EntMMButton = new engine.Entity({
+    create: function(target)
+    {
+        target.pressed = false;
+        target.text = '???';
+        target.trigger = ()=>{};
+        target.box_width = 256;
+        target.box_height = 40;
+        target.triangle_width = 20;
+        target.const_x = 0;
+        target.const_y = 0;
+        target.offset_animate = false;
+        target.offset_x = 0;
+        target.offset_y = 0;
+        target.mouse_on = false;
+    },
+    step: function(target)
+    {
+        let move = false;
+
+        let interpolate = function(what_to)
+        {
+            let new_offset = engine.linear_interpolation(what_to, 0, 3);
+            if (new_offset !== what_to)
+            {
+                what_to = new_offset;
+                if (Math.round(what_to*1000)/1000 === 0.0) what_to = 0;
+                move = true;
+            }
+            return what_to;
+        };
+
+        if (target.offset_animate)
+        {
+            target.offset_x = interpolate(target.offset_x);
+            target.offset_y = interpolate(target.offset_y);
+        }
+    },
+    draw: function(target, surface)
+    {
+        let bx = target.const_x + target.offset_x;
+        let by = target.const_y + target.offset_y;
+        let bw = target.box_width;
+        let bh = target.box_height;
+        let tw = target.triangle_width;
+        let draw_box = function(surface, style, stroke = false)
+        {
+            surface.beginPath();
+            surface.moveTo(bx+tw, by);
+            surface.lineTo(bx+tw+bw+tw, by);
+            surface.lineTo(bx+tw+bw, by+bh);
+            surface.lineTo(bx, by+bh);
+            surface.lineTo(bx+tw, by);
+            if (stroke)
+            {
+                surface.lineWidth = 3;
+                surface.strokeStyle = style;
+                surface.stroke();
+            }
+            else
+            {
+                surface.fillStyle = style;
+                surface.fill();
+            }
+        };
+
+        draw_box(surface, 'rgba(0,0,0,0.7)');
+        draw_box(surface, target.mouse_on ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)', true);
+
+        engine.draw_text(surface, bx+tw+bw/2, by+bh/2, target.text, 'fill', bh-4, 'center', 'center', 'white',
+            '"Montserrat", serif');
+
+    },
+    mouse_move: function(target)
+    {
+        let bx = target.const_x + target.offset_x;
+        let by = target.const_y + target.offset_y;
+        let bw = target.box_width;
+        let bh = target.box_height;
+        let tw = target.triangle_width;
+        let in_rect = (
+            (bx+tw <= mx && mx <= bx+tw+bw)
+            && (by <= my && my <= by+bh)
+        );
+        let in_tri1 = (
+            (bx <= mx && mx <= bx+tw)
+            && (by <= my && my <= by+tw)
+            && (((mx-bx)/tw)+((my-by)/bh) >= 1)
+        );
+        let in_tri2 = (
+            (bx+tw+bh <= mx && mx <= bx+tw+bh+tw)
+            && (by <= my && my <= by+tw)
+            && (((mx-bx-tw-bh)/tw)+((my-by)/bh) <= 1)
+        );
+        target.mouse_on = (in_rect || in_tri1 || in_tri2);
+    },
+    mouse_down: function(target, buttonid)
+    {
+        if (target.mouse_on && buttonid === engine.LMB) target.pressed = true;
+    },
+    mouse_up: function(target, buttonid)
+    {
+        if (target.mouse_on && target.pressed) target.trigger();
+        target.pressed = false;
+    },
+});
+//#endregion
+//#endregion
+//#region [INSTANCES]
+var mainmenu_intro = EntMMIntro.create_instance();
+var mainmenu_bg = EntMMBG.create_instance();
+var mainmenu_controller = EntMMController.create_instance();
+//#endregion
+//#endregion
+
 var room_field = new engine.Room([EntGlobalConsole, EntFieldBoard, EntFieldSUI]);
-
-engine.change_current_room(room_field);
+var room_mainmenu = new engine.Room([EntGlobalConsole, EntMMIntro, EntMMController, EntMMBG, EntMMButton]);
 //#endregion
 
 //#region [RUN]
+engine.change_current_room(room_mainmenu);
 var running = true;
 var prevtime = 0.0;
 var deltatime = 0.0;

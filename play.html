@@ -64,6 +64,23 @@
                 background: #29f;
             }
 
+            button.button-min, button.button-min:hover, button.button-min:active, button.button-min:focus {
+                color: white;
+                border: 0;
+                width: 30px;
+                height: 30px;
+            }
+
+            button.button-min {
+                background: rgba(0,0,0,0);
+            }
+            button.button-min:hover {
+                background: #f80;
+            }
+            button.button-min:active {
+                background: #f92;
+            }
+
             .drag-enable {
                 -webkit-app-region: drag;
             }
@@ -84,6 +101,11 @@
                 <tr>
                     <td class="table-cell drag-enable" id="window-name">
                         Casual Playground
+                    </td>
+                    <td class="table-cell drag-disable unselectable" style="width: 0; white-space: nowrap">
+                        <button class="button-min" tabindex="-1" onclick="nw.Window.get().minimize()">
+                            &#128469;
+                        </button>
                     </td>
                     <td class="table-cell drag-disable unselectable" style="width: 0; white-space: nowrap">
                         <button id="button_max" class="button-max" tabindex="-1" onclick="nw.Window.get().maximize()">

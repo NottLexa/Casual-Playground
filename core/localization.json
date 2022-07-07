@@ -11,10 +11,17 @@
     },
     "author":
     {
-    "__usage": "'author' string in cell description window, capitalized",
-    "__noloc": "Author",
-    "eng": "Author",
-    "rus": "Автор"
+      "__usage": "'author' string in cell description window, capitalized",
+      "__noloc": "Author",
+      "eng": "Author",
+      "rus": "Автор"
+    },
+    "play_button":
+    {
+      "__usage": "play button in main menu",
+      "__noloc": "Play",
+      "eng": "Play",
+      "rus": "Играть"
     }
   }
 }

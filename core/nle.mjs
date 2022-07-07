@@ -24,46 +24,69 @@ Version: 1.0.0
 
 const [LMB, MMB, RMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP] = Array(7).keys();
 
-const interpolate = function(a, b, power = 1)
+const lengthdir_x = function(length, dir)
+{
+    return Math.cos(dir*Math.PI/180)*length;
+}
+const lengthdir_y = function(length, dir)
+{
+    return -Math.sin(dir*Math.PI/180)*length;
+}
+
+const linear_interpolation = function(a, b, power = 1)
 {
     let div = Math.pow(2, Math.max(power, 1));
-    return (a*(div-1)/div)+(b*1/div);
-}
+    let reduct = Math.pow(10, Math.max(power, 1));
+    let ret = (a*(div-1)/div)+(b*1/div);
+    return ret;
+};
+
+const range2range = function(value, low1, upp1, low2, upp2)
+{
+    return ((value-low1)/(upp1-low1))*(upp2-low2) + low2;
+};
 
 const clamp = function(value, mn, mx)
 {
     return Math.max(mn, Math.min(mx, value));
-}
+};
+
+const wrap = function(value, mn, mx)
+{
+    let a = ((value-mn)%(mx-mn));
+    if (a < 0) a += mx-mn;
+    return a+mn;
+};
 
 const draw_text = function(ctx, x, y, string = 'Sample Text', type = 'fill',
                            size  = 16, hor_align = 'left', vert_align = 'top',
                            color = 'black', font_settings = 'serif')
 {
-    let offset_y;
+    ctx.font = `${size}px ` + font_settings;
+
     switch (vert_align)
     {
         case 'top':
-            offset_y = size;
+            ctx.textBaseline = 'top';
             break;
         case 'center':
-            offset_y = Math.round(size);
+            ctx.textBaseline = 'middle';
             break;
         case 'bottom':
         default:
-            offset_y = 0;
+            ctx.textBaseline = 'bottom';
             break;
     }
-    ctx.font = `${size}px ` + font_settings;
     ctx.textAlign = hor_align;
     if (type === 'fill')
     {
         ctx.fillStyle = color;
-        ctx.fillText(string, x, y+offset_y);
+        ctx.fillText(string, x, y);
     }
     else
     {
         ctx.strokeStyle = color;
-        ctx.strokeText(string, x, y+offset_y);
+        ctx.strokeText(string, x, y);
     }
 }
 
@@ -236,5 +259,6 @@ const Instance = function (entity)
     this.entity = entity;
 };
 
-export {Display, current_room, change_current_room, Room, Entity, Instance, clamp, interpolate,
-    draw_text, LMB, RMB, MMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP, draw_line};
+export {Display, current_room, change_current_room, Room, Entity, Instance, clamp, linear_interpolation,
+    draw_text, LMB, RMB, MMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP, draw_line, range2range, wrap,
+    lengthdir_x, lengthdir_y};
