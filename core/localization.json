@@ -6,22 +6,31 @@
     {
       "__usage": "'from' string in cell description window, capitalized",
       "__noloc": "From",
-      "eng": "From",
       "rus": "Из"
     },
     "author":
     {
       "__usage": "'author' string in cell description window, capitalized",
       "__noloc": "Author",
-      "eng": "Author",
       "rus": "Автор"
     },
     "play_button":
     {
-      "__usage": "play button in main menu",
+      "__usage": "play button in main menu, capitalized",
       "__noloc": "Play",
-      "eng": "Play",
       "rus": "Играть"
+    },
+    "exit_button":
+    {
+      "__usage": "exit button in main menu, capitalized",
+      "__noloc": "Exit",
+      "rus": "Выйти"
+    },
+    "controls":
+    {
+      "__usage": "controls in main menu; separated by | symbol with no spaces, capitalized only in first phrase",
+      "__noloc": "Controls|movement|velocity change|tick duration|pause time|center camera|spawn menu|paint",
+      "rus": "Управление|движение|изменение скорости|длительность тика|пауза времени|центрировать камеру|меню спавна|рисовать"
     }
   }
 }

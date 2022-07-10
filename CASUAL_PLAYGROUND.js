@@ -115,6 +115,13 @@ const get_text_width = function(txt, font)
     return text_window.offsetWidth;
 };
 
+const get_locstring = function(locstring)
+{
+    return locstrings[locstring].hasOwnProperty(loc)
+        ? locstrings[locstring][loc]
+        : locstrings[locstring].__noloc;
+}
+
 const arraysEqual = function(a, b)
 {
     if (a === b) return true;
@@ -260,6 +267,8 @@ var fontsize_smaller = Math.floor( 8*fontsize/scale);
 
 var corefolder = path.join('core', 'corecontent');
 var modsfolder = path.join('data', 'mods');
+if (!fs.existsSync(corefolder)) fs.mkdirSync(corefolder);
+if (!fs.existsSync(modsfolder)) fs.mkdirSync(modsfolder);
 
 let coremods = load_mod(corefolder, 'Casual Playground', 1);
 idlist.push(...Object.keys(coremods));
@@ -712,7 +721,7 @@ const EntFieldBoard = new engine.Entity({
                 target.hsp = 0;
                 target.vsp = 0;
                 break;
-            case 'KeyF':
+            case 'Space':
                 target.time_paused = !target.time_paused;
                 break;
             case 'KeyR':
@@ -826,7 +835,7 @@ const FieldSUI_draw_desc_window = function(target, cellid)
     let name_string = localization.hasOwnProperty(loc) ? localization[loc].name : celldata.name;
     let origin_string = celldata.origin;
     let origin_color = celldata.official ? 'green' : 'white';
-    let from_string = locstrings.from.hasOwnProperty(loc) ? locstrings.from[loc] : locstrings.from.__noloc;
+    let from_string = get_locstring('from');
     let desc_string = localization.hasOwnProperty(loc) ? localization[loc].desc : celldata.desc;
 
     let border_color = '#4d4d4d';
@@ -1168,22 +1177,37 @@ const EntMMBG = new engine.Entity({
                 target.colors[Math.floor(Math.random()*target.colors.length)]
             )
         );
+        target.controls_strings = get_locstring('controls').split('|');
+        target.controls_keys = [null, 'WASD', 'QE', 'RT', 'Space', 'C', 'Tab', 'LMB'];
     },
     step: function(target)
     {
         let bordersize = 8;
         let cellsize = 32;
         let fullsize = cellsize+bordersize;
-        target.ox = engine.wrap(target.ox+engine.lengthdir_x(target.speed*deltatime, target.angle), 0, display.cw());
-        target.oy = engine.wrap(target.oy+engine.lengthdir_y(target.speed*deltatime, target.angle), 0, display.ch());
+        target.ox = engine.wrap(target.ox+engine.lengthdir_x(target.speed*deltatime, target.angle),
+            0, fullsize*target.matrix[0].length);
+        target.oy = engine.wrap(target.oy+engine.lengthdir_y(target.speed*deltatime, target.angle),
+            0, fullsize*target.matrix.length);
     },
-    draw: function(target, surface)
+    draw_before: function(target, surface)
     {
         surface.drawImage(
             EntMMBG_board(target.ox, target.oy,
                 surface.canvas.width, surface.canvas.height,
                 target.matrix, 0, 0).canvas,
             0, 0);
+        surface.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        surface.fillRect(0, 0, surface.canvas.width, surface.canvas.height);
+        for (let i = 0; i < target.controls_strings.length; i++)
+        {
+            let txt = target.controls_strings[target.controls_strings.length - 1 - i];
+            engine.draw_text(surface, surface.canvas.width-16, surface.canvas.height-16-(34*i),
+                (i !== target.controls_strings.length-1)
+                    ? `${target.controls_keys[target.controls_keys.length - 1 - i]} - ${txt}`
+                    : txt,
+                'fill', 32, 'right', 'bottom', 'white', '"Montserrat", serif')
+        }
     },
 });
 //#endregion
@@ -1192,17 +1216,26 @@ const EntMMController = new engine.Entity({
     create: function(target)
     {
         target.time = 0;
+
         target.play_button = EntMMButton.create_instance();
         target.play_button.box_width = 256+32;
         target.play_button.box_height = 80;
-        target.play_button.text = locstrings.play_button.hasOwnProperty(loc)
-            ? locstrings.play_button[loc]
-            : locstrings.play_button.__noloc;
+        target.play_button.text = get_locstring('play_button');
         target.play_button.const_x = (display.cw() - target.play_button.box_width)/2 - target.play_button.triangle_width;
-        target.play_button.const_y = (display.ch() - target.play_button.box_height)/2;
+        target.play_button.const_y = (display.ch() - target.play_button.box_height)/2 - 60;
         target.play_button.offset_x = -display.cw()/2 - target.play_button.box_width
             - target.play_button.triangle_width;
         target.play_button.trigger = ()=>{engine.change_current_room(room_field)};
+
+        target.exit_button = EntMMButton.create_instance();
+        target.exit_button.box_width = 256;
+        target.exit_button.box_height = 80;
+        target.exit_button.text = get_locstring('exit_button');
+        target.exit_button.const_x = (display.cw() - target.exit_button.box_width)/2 - target.exit_button.triangle_width;
+        target.exit_button.const_y = (display.ch() - target.exit_button.box_height)/2 + 60;
+        target.exit_button.offset_x = -display.cw()/2 - target.exit_button.box_width
+            - target.exit_button.triangle_width;
+        target.exit_button.trigger = ()=>{nw.Window.get().close()};
     },
     step: function(target)
     {
@@ -1210,6 +1243,7 @@ const EntMMController = new engine.Entity({
         if (target.time > 5)
         {
             target.play_button.offset_animate = true;
+            target.exit_button.offset_animate = true;
         }
     },
 });
