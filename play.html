@@ -96,23 +96,23 @@
         </style>
     </head>
     <body style="margin: 0; padding: 0; overflow: hidden;">
-        <div style="border: 1px solid black; font-family: 'Montserrat',serif">
+        <div class="unselectable" style="border: 1px solid black; font-family: 'Montserrat',serif">
             <table class="table-custom" style="width: 100%; text-align: center" id="top_panel">
                 <tr>
                     <td class="table-cell drag-enable" id="window-name">
                         Casual Playground
                     </td>
-                    <td class="table-cell drag-disable unselectable" style="width: 0; white-space: nowrap">
+                    <td class="table-cell drag-disable" style="width: 0; white-space: nowrap">
                         <button class="button-min" tabindex="-1" onclick="nw.Window.get().minimize()">
                             &#128469;
                         </button>
                     </td>
-                    <td class="table-cell drag-disable unselectable" style="width: 0; white-space: nowrap">
+                    <td class="table-cell drag-disable" style="width: 0; white-space: nowrap">
                         <button id="button_max" class="button-max" tabindex="-1" onclick="nw.Window.get().maximize()">
                             <div style="transform: translate(0); text-shadow: 0 0">&#128470;</div>
                         </button>
                     </td>
-                    <td class="table-cell drag-disable unselectable" style="width: 0; white-space: nowrap">
+                    <td class="table-cell drag-disable" style="width: 0; white-space: nowrap">
                         <button class="button-exit" tabindex="-1" onclick="nw.Window.get().close()">
                             X
                         </button>

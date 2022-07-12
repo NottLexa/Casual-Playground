@@ -147,7 +147,7 @@ const Display = function(canvas, canvas_width, canvas_height)
     this.clear = function ()
     {
         this.ctx.fillStyle = 'black';
-        this.ctx.fillRect(0,0, this.sw(), this.sw())
+        this.ctx.fillRect(0,0, this.sw(), this.sh())
         this.buffer.fillStyle = 'black';
         this.buffer.fillRect(0, 0, this.cw(), this.ch());
     };

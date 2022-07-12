@@ -168,26 +168,6 @@ const cut_string = function(string, upto)
     else return string.slice(0, upto-3) + '...';
 };
 
-const load_fonts = function(fontsfolder)
-{
-    for (let m of fs.readdirSync(fontsfolder, {encoding: "utf8"}))
-    {
-        let filepath = path.join(fontsfolder, m);
-        if (fs.lstatSync(filepath).isFile() && filepath.slice(-4) === '.ttf')
-        {
-            $("head").prepend("<style type=\"text/css\">" +
-                "@font-face {\n" +
-                "\tfont-family: \"myFont\";\n" +
-                `\tsrc: local('☺'), url('${filepath}') format('opentype');\n` +
-                "}\n" +
-                "\tp.myClass {\n" +
-                "\tfont-family: myFont !important;\n" +
-                "}\n" +
-                "</style>");
-        }
-    }
-};
-
 const load_modlist = function(modsfolder)
 {
     return fs.readdirSync(modsfolder, {encoding: "utf8"})
@@ -249,8 +229,8 @@ var current_instrument = {'type': null};
 var gvars = [{'objdata':{},
               'idlist':[],
               'logger':[],
-              'board_width':10,
-              'board_height':10},
+              'board_width':32,
+              'board_height':32},
              {}];
 var idlist = gvars[0].idlist;
 var objdata = gvars[0].objdata;
@@ -274,13 +254,13 @@ let coremods = load_mod(corefolder, 'Casual Playground', 1);
 idlist.push(...Object.keys(coremods));
 objdata = {...objdata, ...coremods};
 
-for (let moddir of load_modlist(modsfolder))
+/*for (let moddir of load_modlist(modsfolder))
 {
     let modpath = path.join(modsfolder, moddir);
     let mod = load_mod(modpath, moddir, 0);
     idlist.push(...Object.keys(mod));
     objdata = {...objdata, ...mod};
-}
+}*/
 
 gvars[0].objdata = objdata;
 
@@ -496,11 +476,8 @@ const board_do_instrument = function(target)
 const EntFieldBoard = new engine.Entity({
     create: function(target)
     {
-        target.board_width = 32;
-        target.board_height = 32;
-
-        gvars[0].board_width = target.board_width;
-        gvars[0].board_height = target.board_height;
+        target.board_width = gvars[0].board_width;
+        target.board_height = gvars[0].board_height;
 
         target.viewscale = 16;
         board_center_view(target);
@@ -1134,6 +1111,10 @@ const EntMMIntro = new engine.Entity({
             surface.canvas.width-target.icon2.width-4,
             surface.canvas.height-target.icon2.height-copyright_offset-(14*4));*/
     },
+    kb_down: function(target, key)
+    {
+        if (key.code === 'Space') target.time = Math.max(4, target.time);
+    },
 });
 //#endregion
 //#region [BACKGROUND]
@@ -1216,35 +1197,50 @@ const EntMMController = new engine.Entity({
     create: function(target)
     {
         target.time = 0;
+        target.time_paused = false;
 
-        target.play_button = EntMMButton.create_instance();
-        target.play_button.box_width = 256+32;
-        target.play_button.box_height = 80;
-        target.play_button.text = get_locstring('play_button');
-        target.play_button.const_x = (display.cw() - target.play_button.box_width)/2 - target.play_button.triangle_width;
-        target.play_button.const_y = (display.ch() - target.play_button.box_height)/2 - 60;
-        target.play_button.offset_x = -display.cw()/2 - target.play_button.box_width
-            - target.play_button.triangle_width;
-        target.play_button.trigger = ()=>{engine.change_current_room(room_field)};
+        let create_button = function(width, height, text, x_offset, y_offset, trigger)
+        {
+            let bttn = EntMMButton.create_instance();
+            bttn.box_width = width;
+            bttn.box_height = height;
+            bttn.text = get_locstring(text);
+            bttn.const_x = (display.cw() - bttn.box_width)/2 - bttn.triangle_width + x_offset;
+            bttn.const_y = (display.ch() - bttn.box_height)/2 + y_offset;
+            bttn.offset_x = -display.cw()/2 - bttn.box_width - bttn.triangle_width;
+            bttn.trigger = trigger;
+            return bttn;
+        }
 
-        target.exit_button = EntMMButton.create_instance();
-        target.exit_button.box_width = 256;
-        target.exit_button.box_height = 80;
-        target.exit_button.text = get_locstring('exit_button');
-        target.exit_button.const_x = (display.cw() - target.exit_button.box_width)/2 - target.exit_button.triangle_width;
-        target.exit_button.const_y = (display.ch() - target.exit_button.box_height)/2 + 60;
-        target.exit_button.offset_x = -display.cw()/2 - target.exit_button.box_width
-            - target.exit_button.triangle_width;
-        target.exit_button.trigger = ()=>{nw.Window.get().close()};
+        target.play_button = create_button(256+32, 80, 'play_button', 0, -60,
+            ()=>
+            {
+                mainmenu_startmenu.show = true;
+                target.play_button.offset_animate = false;
+                target.exit_button.offset_animate = false;
+                target.play_button.offset_x = -display.cw()/2 - target.play_button.box_width
+                    - target.play_button.triangle_width;
+                target.exit_button.offset_x = -display.cw()/2 - target.exit_button.box_width
+                    - target.exit_button.triangle_width;
+                target.time = 4;
+                target.time_paused = true;
+            });
+
+        target.exit_button = create_button(256, 80, 'exit_button', 0, 60,
+            ()=>{nw.Window.get().close()});
     },
     step: function(target)
     {
-        target.time += deltatime;
+        if (!target.time_paused) target.time += deltatime;
         if (target.time > 5)
         {
             target.play_button.offset_animate = true;
             target.exit_button.offset_animate = true;
         }
+    },
+    kb_down: function(target, key)
+    {
+        if (key.code === 'Space') target.time = Math.max(4, target.time);
     },
 });
 //#endregion
@@ -1356,16 +1352,180 @@ const EntMMButton = new engine.Entity({
     },
 });
 //#endregion
+//#region [STARTMENU]
+const EntMMStartMenu = new engine.Entity({
+    create: function(target)
+    {
+        target.modlist = load_modlist(modsfolder).map(value => ({name: value, enabled: false}));
+        target.line_height = 30;
+        target.line_separation = 2;
+        target.window_width = 512+128;
+        target.window_height = 512+256+64+32;
+        target.mod_width = Math.round(target.window_width*0.9);
+        target.mod_height = Math.round(target.window_height*0.4);
+        target.show_step = 0;
+        target.show = false;
+        target.scroll = 0;
+        target.old_scroll = 0;
+        target.new_scroll = 0;
+        target.scroll_step = 0;
+        target.max_scroll_step = 0.25;
+        target.button_width = target.mod_width;
+        target.button_height = 64+16;
+    },
+    step: function(target)
+    {
+        target.scroll_step = engine.clamp(target.scroll_step+deltatime, 0, target.max_scroll_step);
+        let step = engine.range2range(target.scroll_step, 0, target.max_scroll_step, 0, 1);
+        step = Math.sin(Math.PI*step/2);
+        target.scroll = target.old_scroll + (target.new_scroll-target.old_scroll)*step;
+
+        let move = false;
+        let interpolate = function(what_to, to)
+        {
+            let new_offset = engine.linear_interpolation(what_to, to, 3);
+            if (new_offset !== what_to)
+            {
+                what_to = new_offset;
+                if (Math.round(what_to*1000)/1000 === to) what_to = to;
+                move = true;
+            }
+            return what_to;
+        };
+
+        target.show_step = interpolate(target.show_step, Math.floor(target.show));
+        if (move) this.mouse_move(target);
+    },
+    draw: function(target, surface)
+    {
+        let ww = target.window_width;
+        let wh = target.window_height;
+        let border = '#333'; // border color
+        let bg = '#666'; // bg color
+        let bg_darker = '#555'; // bg darker color
+        let bg_lighter = '#777'; // bg lighter color
+        let textcolor = 'white'; // mod text color
+        let mw = target.mod_width; // mods window width
+        let mh = target.mod_height; // mods window height
+        let mpadding = (ww-mw)/2; // mods window padding
+        let lh = target.line_height; // mod line height
+        let ls = target.line_separation; // mod separation line width
+        let box_color = 'white'; // box color
+        let box = lh-8;
+        let bw = target.button_width;
+        let bh = target.button_height;
+
+        let surf1 = document.createElement('canvas').getContext('2d');
+        surf1.canvas.width = ww;
+        surf1.canvas.height = wh;
+        surf1.fillStyle = bg;
+        surf1.lineWidth = 2;
+        surf1.strokeStyle = border;
+        roundRect(surf1, surf1.lineWidth, surf1.lineWidth,
+            ww-(2*surf1.lineWidth), wh-(2*surf1.lineWidth), surf1.lineWidth*2, false);
+        roundRect(surf1, 0, 0, ww, wh, surf1.lineWidth*2, true);
+
+        let surf2 = document.createElement('canvas').getContext('2d');
+        surf2.canvas.width = mw;
+        surf2.canvas.height = mh;
+        surf2.fillStyle = bg_darker;
+        surf2.fillRect(0, 0, mw, mh);
+        let oneline = lh+ls;
+        let mi = Math.floor(target.scroll/oneline)-1; // mod index
+        for (let oy = -target.scroll % oneline; oy < mh; oy += oneline)
+        {
+            if (++mi >= target.modlist.length) break;
+            surf2.fillStyle = bg_lighter;
+            surf2.fillRect(0, oy, mw, lh);
+            surf2.lineWidth = 2;
+            if (target.modlist[mi].enabled)
+            {
+                surf2.fillStyle = box_color;
+                surf2.fillRect((lh-box)/2, oy+(lh-box)/2, box, box);
+            }
+            else
+            {
+                surf2.strokeStyle = box_color;
+                surf2.strokeRect((lh-box)/2 + surf2.lineWidth/2, oy+(lh-box)/2 + surf2.lineWidth/2,
+                    box - surf2.lineWidth, box - surf2.lineWidth);
+            }
+            engine.draw_text(surf2, lh, oy+2+lh/2, target.modlist[mi].name, 'fill', lh-4, 'left', 'center', textcolor,
+                '"Montserrat", serif');
+        }
+
+        surf1.lineWidth = 2;
+        surf1.strokeStyle = border;
+        surf1.strokeRect(mpadding-2, mpadding-2, mw+4, mh+4);
+        surf1.drawImage(surf2.canvas, mpadding, mpadding);
+        surf2.canvas.remove();
+
+        surf1.fillStyle = 'green';
+        roundRect(surf1, (ww-bw)/2, wh-mpadding-bh, bw, bh, 16);
+        let tw = get_text_width(get_locstring('start_button_in_start_menu'), `${bh-4}px "Montserrat", serif`);
+        engine.draw_text(surf1, ww/2, wh-mpadding-2, get_locstring('start_button_in_play_menu'), 'fill',
+            (bh-4)*(Math.min(1, bw/tw)*0.95), 'center', 'bottom', 'white', '"Montserrat", serif');
+
+        /*surf.globalCompositeOperation = 'destination-in';
+        surf.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        surf.fillRect(0, 0, ww, wh);
+        surf.globalCompositeOperation = 'source-over';*/
+        surface.drawImage(surf1.canvas, -surface.canvas.width/2 - ww/2 + (surface.canvas.width*target.show_step),
+            (surface.canvas.height-wh)/2);
+
+        surf1.canvas.remove();
+    },
+    mouse_down: function(target, mb)
+    {
+        let oneline = (target.line_height + target.line_separation);
+        switch (mb)
+        {
+            case engine.WHEELDOWN:
+            case engine.WHEELUP:
+            {
+                let limit = (oneline*target.modlist.length < target.mod_height) ? 0 : target.mod_height;
+                target.new_scroll = Math.max(0, engine.clamp(target.new_scroll+scroll_delta, 0,
+                    target.modlist.length*(target.line_height+target.line_separation) - limit));
+                target.old_scroll = target.scroll;
+                target.scroll_step = 0;
+                break;
+            }
+            case engine.LMB:
+            {
+                let padding = (target.window_width-target.mod_width)/2;
+                let mouse_x = mx - (display.cw()-target.window_width)/2 - padding - 4;
+                let mouse_y = my - (display.ch()-target.window_height)/2 - padding - 4;
+                let iy = Math.floor(mouse_y/oneline) + Math.floor(target.scroll/oneline);
+                let oy = mouse_y % oneline;
+                if (0 <= mouse_x && mouse_x <= target.line_height-4 && 0 <= oy && oy <= target.line_height-4)
+                {
+                    target.modlist[iy].enabled = !target.modlist[iy].enabled;
+                }
+
+                mouse_x = mx - (display.cw()-target.button_width)/2;
+                mouse_y = my - (display.ch()-target.window_height)/2 - target.window_height + padding
+                    + target.button_height;
+                global.console.log([mouse_x, mouse_y]);
+                if (0 <= mouse_x && mouse_x <= target.button_width && 0 <= mouse_y && mouse_y <= target.button_height)
+                {
+                    engine.change_current_room(room_field);
+                }
+            }
+        }
+    },
+});
+//#endregion
 //#endregion
 //#region [INSTANCES]
 var mainmenu_intro = EntMMIntro.create_instance();
 var mainmenu_bg = EntMMBG.create_instance();
 var mainmenu_controller = EntMMController.create_instance();
+var mainmenu_startmenu = EntMMStartMenu.create_instance();
 //#endregion
 //#endregion
 
 var room_field = new engine.Room([EntGlobalConsole, EntFieldBoard, EntFieldSUI]);
-var room_mainmenu = new engine.Room([EntGlobalConsole, EntMMIntro, EntMMController, EntMMBG, EntMMButton]);
+var room_mainmenu = new engine.Room([EntGlobalConsole, EntMMIntro, EntMMController, EntMMBG, EntMMButton,
+    EntMMStartMenu]);
 //#endregion
 
 //#region [RUN]
@@ -1376,6 +1536,7 @@ var deltatime = 0.0;
 
 var mx = 0;
 var my = 0;
+var scroll_delta = 0;
 document.addEventListener('keydown', function(event)
 {
     engine.current_room.do_kb_down(event);
@@ -1400,6 +1561,7 @@ canvas_element.addEventListener('mouseup', function(event)
 });
 canvas_element.addEventListener('wheel', function(event)
 {
+    scroll_delta = event.deltaY;
     if (event.deltaY > 0) engine.current_room.do_mouse_down(engine.WHEELDOWN);
     else engine.current_room.do_mouse_down(engine.WHEELUP);
 });
