@@ -230,20 +230,22 @@ const Entity = function(events)
 {
     this.instances = [];
 
-    this.create = events?.create ?? function(){};
-    this.step_before = events?.step_before ?? function(){};
-    this.step = events?.step ?? function(){};
-    this.step_after = events?.step_after ?? function(){};
-    this.draw_before = events?.draw_before ?? function(){};
-    this.draw = events?.draw ?? function(){};
-    this.draw_after = events?.draw_after ?? function(){};
-    this.mouse_move = events?.mouse_move ?? function(){};
-    this.mouse_down = events?.mouse_down ?? function(){};
-    this.mouse_up = events?.mouse_up ?? function(){};
-    this.kb_down = events?.kb_down ?? function(){};
-    this.kb_up = events?.kb_up ?? function(){};
-    this.room_start = events?.room_start ?? function(){};
-    this.room_end = events?.room_end ?? function(){};
+    this.create = function(){};
+    this.step_before = function(){};
+    this.step = function(){};
+    this.step_after = function(){};
+    this.draw_before = function(){};
+    this.draw = function(){};
+    this.draw_after = function(){};
+    this.mouse_move = function(){};
+    this.mouse_down = function(){};
+    this.mouse_up = function(){};
+    this.kb_down = function(){};
+    this.kb_up = function(){};
+    this.room_start = function(){};
+    this.room_end = function(){};
+
+    for (let e in events) this[e] = events[e];
 
     this.create_instance = function()
     {

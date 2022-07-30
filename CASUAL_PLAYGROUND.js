@@ -182,7 +182,7 @@ const load_mod = function(modfolder, mod_origin, official)
         let filepath = path.join(modfolder, filename);
         if (fs.lstatSync(filepath).isFile())
         {
-            if (filepath.slice(-4).toLowerCase() === '.mod') {
+            if (filepath.slice(-4).toLowerCase() === '.cpl') {
                 let f = fs.readFileSync(filepath, {encoding: "utf8"});
                 let [moddata, concl, cur] = comp.get(f);
                 if (!ccc.correct_concl(concl)) {
@@ -230,7 +230,9 @@ var gvars = [{'objdata':{},
               'idlist':[],
               'logger':[],
               'board_width':32,
-              'board_height':32},
+              'board_height':32,
+              'linecolor_infield': [26, 26, 26],
+              'linecolor_outfield': [102, 102, 102]},
              {}];
 var idlist = gvars[0].idlist;
 var objdata = gvars[0].objdata;
@@ -284,7 +286,6 @@ const EntGlobalConsole = new engine.Entity({
         target.log = [];
         target.logger_i = 0;
     },
-
     step: function (target)
     {
         while (target.logger_i < logger.length)
@@ -327,161 +328,9 @@ var globalconsole = EntGlobalConsole.create_instance();
 //#region [FIELD]
 //#region [ENTITIES]
 //#region [BOARD]
-const board_step = function(target)
-{
-    let start = Date.now();
-    for (let y = 0; y < target.board_height; y++)
-    {
-        for (let x = 0; x < target.board_width; x++)
-        {
-            target.board[y][x].step();
-        }
-    }
-    target.time_elapsed = (Date.now() - start)/1000;
-};
-
-const board_tasks = function(target)
-{
-    let taskcount = 0;
-    for (let y = 0; y < target.board_height; y++)
-    {
-        for (let x = 0; x < target.board_width; x++)
-        {
-            for (let args of target.board[y][x].tasks)
-            {
-                switch (args[0])
-                {
-                    case ctt.SET_CELL:
-                        let [_x, _y, _cellid] = args.slice(1);
-                        target.board[_y][_x] = new comp.Cell({X: _x, Y: _y}, _cellid, target.board,
-                            gvars);
-                        update_board = true;
-                        break;
-                }
-                taskcount++;
-            }
-            target.board[y][x].tasks = [];
-        }
-    }
-};
-
-const draw_board = function(target)
-{
-    let bw = target.board_width;
-    let bh = target.board_height;
-    let bordersize = target.viewscale*cellbordersize;
-    let cellsize = target.viewscale+bordersize;
-    let surface = document.createElement('canvas').getContext('2d');
-    surface.canvas.width = (cellsize*bw)+bordersize
-    surface.canvas.height = (cellsize*bh)+bordersize;
-    surface.fillStyle = rgb_to_style(...target.linecolor_infield);
-    surface.fillRect(0, 0, surface.canvas.width, surface.canvas.height);
-    for (let ix = 0; ix < bw; ix++)
-    {
-        for (let iy = 0; iy < bh; iy++)
-        {
-            let cx = (ix*cellsize)+bordersize;
-            let cy = (iy*cellsize)+bordersize;
-            let celldata = target.board[iy][ix].code;
-            surface.imageSmoothingEnabled = false;
-            if (celldata.hasOwnProperty('texture') && celldata.texture_ready)
-            {
-                surface.drawImage(celldata.texture, cx, cy, target.viewscale, target.viewscale);
-            }
-            else
-            {
-                surface.fillStyle = rgb_to_style(...celldata.notexture);
-                //surface.fillStyle = rgb_to_style(109, 183, 65);
-                surface.fillRect(cx, cy, target.viewscale, target.viewscale);
-            }
-        }
-    }
-    update_board = false;
-    return surface;
-};
-
-const board_center_view = function(target)
-{
-    target.viewx = Math.floor(target.viewscale*target.board_width/2) - (WIDTH2);
-    target.viewy = Math.floor(target.viewscale*target.board_height/2) - (HEIGHT2);
-};
-
-const board_zoom_in = function(target, mul)
-{
-    let oldvs = target.viewscale;
-    target.viewscale = engine.clamp(
-        target.viewscale + engine.clamp(Math.floor(0.2 * mul * target.viewscale), 1, 64),
-        2, 64);
-    let newvs = target.viewscale;
-
-    target.viewx = (target.viewx + (WIDTH2)) * newvs / oldvs - (WIDTH2);
-    target.viewy = (target.viewy + (HEIGHT2)) * newvs / oldvs - (HEIGHT2);
-
-    target.surfaces.board = draw_board(target);
-};
-const board_zoom_out = function(target, mul)
-{
-    let oldvs = target.viewscale;
-    target.viewscale = engine.clamp(
-        target.viewscale - engine.clamp(Math.floor(0.2 * mul * target.viewscale), 1, 64),
-        2, 64);
-    let newvs = target.viewscale;
-
-    target.viewx = (target.viewx + (WIDTH2)) * newvs / oldvs - (WIDTH2);
-    target.viewy = (target.viewy + (HEIGHT2)) * newvs / oldvs - (HEIGHT2);
-
-    target.surfaces.board = draw_board(target);
-};
-const board_do_instrument = function(target)
-{
-    let bordersize = target.viewscale*cellbordersize;
-    let cellsize = bordersize + target.viewscale;
-    let rx = mx + target.viewx - bordersize;
-    let ry = my + target.viewy - bordersize;
-    let cx = Math.floor(rx/cellsize);
-    let cy = Math.floor(ry/cellsize);
-    let maxcx = target.board_width;
-    let maxcy = target.board_height;
-    switch (current_instrument.type)
-    {
-        case 'pencil':
-            scale = current_instrument.scale-1
-            if (current_instrument.penciltype === true) // round
-            {
-
-            }
-            else // square
-            {
-                if (((rx % cellsize) < target.viewscale) && ((ry % cellsize) < target.viewscale))
-                {
-                    for (let ix = cx-scale; ix < cx+scale+1; ix++)
-                    {
-                        for (let iy = cy-scale; iy < cy+scale+1; iy++)
-                        {
-                            if ((0 <= ix) && (ix < maxcx) && (0 <= iy) && (iy < maxcy))
-                            {
-                                let cellid = current_instrument.cell;
-                                target.board[iy][ix].reset(cellid);
-                                /*target.board[iy][ix] = new comp.Cell({X:ix,Y:iy},cellid, target.board,
-                                    gvars);*/
-                            }
-                        }
-                    }
-                    target.surfaces.board = draw_board(target);
-                }
-            }
-    }
-};
-
 const EntFieldBoard = new engine.Entity({
     create: function(target)
     {
-        target.board_width = gvars[0].board_width;
-        target.board_height = gvars[0].board_height;
-
-        target.viewscale = 16;
-        board_center_view(target);
-
         target.keys = {
             'up': false,
             'left': false,
@@ -494,17 +343,32 @@ const EntFieldBoard = new engine.Entity({
             'minus': false,
             'shift': false,
         };
-
-        target.cameraspeed = Math.round(Math.log2(Math.pow(2, 9)*scale/100));
+        // target.cameraspeed = Math.round(Math.log2(Math.pow(2, 9)*scale/100));
         target.mincamspeed = Math.round(Math.log2(Math.pow(2, 6)*scale/100));
         target.maxcamspeed = Math.round(Math.log2(Math.pow(2, 14)*scale/100));
-        target.hsp = 0;
-        target.vsp = 0;
+        // target.hsp = 0;
+        // target.vsp = 0;
         target.acceleration = 8;
         target.zoomspeed = 1;
 
-        target.linecolor_infield = [26, 26, 26];
-        target.linecolor_outfield = [102, 102, 102];
+        target.get_tpt = (n) => ((n%9 !== 0)
+            ? ((10**(Math.floor(n/9)))*(n%9))
+            : 10**((Math.floor(n/9))-1)*9) / 1000;
+        target.tpt_min = 1;
+        target.tpt_max = 60;
+
+        // See other initiations in room_start
+    },
+    room_start: function(target)
+    {
+        target.board_width = gvars[0].board_width;
+        target.board_height = gvars[0].board_height;
+
+        target.viewscale = 16;
+        this.board_center_view(target);
+        target.cameraspeed = Math.round(Math.log2(Math.pow(2, 9)*scale/100));
+        target.hsp = 0;
+        target.vsp = 0;
 
         target.board = [];
         for (let y = 0; y<target.board_height; y++)
@@ -517,28 +381,25 @@ const EntFieldBoard = new engine.Entity({
                     cell_fill_on_init,
                     target.board,
                     gvars,
-                    );
+                );
                 target.board[target.board.length-1].push(celldata);
             }
         }
 
-        target.surfaces = {board: draw_board(target)}
+        target.linecolor_infield = gvars[0].linecolor_infield;
+        target.linecolor_outfield = gvars[0].linecolor_outfield;
+        target.surfaces = {board: this.draw_board(target)};
 
         target.time = 0.0;
         target.tpt_power = 28;
-        target.get_tpt = (n) => ((n%9 !== 0)
-            ? ((10**(Math.floor(n/9)))*(n%9))
-            : 10**((Math.floor(n/9))-1)*9) / 1000;
-        target.tpt_min = 1;
-        target.tpt_max = 60;
         target.timepertick = 1.0;
         target.time_paused = false;
         target.time_elapsed = 0.0;
     },
     step: function(target)
     {
-        if (target.keys.plus) board_zoom_in(target, target.zoomspeed*deltatime);
-        if (target.keys.minus) board_zoom_out(target, target.zoomspeed*deltatime);
+        if (target.keys.plus) this.board_zoom_in(target, target.zoomspeed*deltatime);
+        if (target.keys.minus) this.board_zoom_out(target, target.zoomspeed*deltatime);
 
         let limitspeed = 2**target.cameraspeed;
         let acc = limitspeed*target.acceleration;
@@ -560,21 +421,21 @@ const EntFieldBoard = new engine.Entity({
         target.viewx += deltatime*target.hsp;
         target.viewy += deltatime*target.vsp;
 
-        if (target.keys.lmb) board_do_instrument(target);
+        if (target.keys.lmb) this.board_do_instrument(target);
 
         if (!target.time_paused) target.time += deltatime;
-        if (target.time > target.timepertick) board_step(target);
+        if (target.time > target.timepertick) this.board_step(target);
     },
     step_after: function(target)
     {
         if (target.time > target.timepertick)
         {
-            board_tasks(target);
+            this.board_tasks(target);
             target.time = 0;
         }
         if (update_board)
         {
-            target.surfaces.board = draw_board(target);
+            target.surfaces.board = this.draw_board(target);
         }
     },
     draw: function(target, surface)
@@ -694,7 +555,7 @@ const EntFieldBoard = new engine.Entity({
                 target.cameraspeed = engine.clamp(target.cameraspeed+1, target.mincamspeed, target.maxcamspeed);
                 break;
             case 'KeyC':
-                board_center_view(target);
+                this.board_center_view(target);
                 target.hsp = 0;
                 target.vsp = 0;
                 break;
@@ -754,12 +615,12 @@ const EntFieldBoard = new engine.Entity({
                 break;
             case engine.WHEELUP:
                 if (target.keys.shift) current_instrument.scale++;
-                else board_zoom_in(target, 1);
+                else this.board_zoom_in(target, 1);
                 break;
             case engine.WHEELDOWN:
                 if (target.keys.shift)
                     current_instrument.scale = Math.max(current_instrument.scale-1, 1);
-                else board_zoom_out(target, 1);
+                else this.board_zoom_out(target, 1);
                 break;
         }
     },
@@ -773,128 +634,150 @@ const EntFieldBoard = new engine.Entity({
                 break;
         }
     },
+    board_step: function (target)
+    {
+        let start = Date.now();
+        for (let y = 0; y < target.board_height; y++)
+        {
+            for (let x = 0; x < target.board_width; x++)
+            {
+                target.board[y][x].step();
+            }
+        }
+        target.time_elapsed = (Date.now() - start)/1000;
+    },
+    board_tasks: function (target)
+    {
+        let taskcount = 0;
+        for (let y = 0; y < target.board_height; y++)
+        {
+            for (let x = 0; x < target.board_width; x++)
+            {
+                for (let args of target.board[y][x].tasks)
+                {
+                    switch (args[0])
+                    {
+                        case ctt.SET_CELL:
+                            let [_x, _y, _cellid] = args.slice(1);
+                            target.board[_y][_x] = new comp.Cell({X: _x, Y: _y}, _cellid, target.board,
+                                gvars);
+                            update_board = true;
+                            break;
+                    }
+                    taskcount++;
+                }
+                target.board[y][x].tasks = [];
+            }
+        }
+    },
+    draw_board: function (target)
+    {
+        let bw = target.board_width;
+        let bh = target.board_height;
+        let bordersize = target.viewscale*cellbordersize;
+        let cellsize = target.viewscale+bordersize;
+        let surface = document.createElement('canvas').getContext('2d');
+        surface.canvas.width = (cellsize*bw)+bordersize
+        surface.canvas.height = (cellsize*bh)+bordersize;
+        surface.fillStyle = rgb_to_style(...target.linecolor_infield);
+        surface.fillRect(0, 0, surface.canvas.width, surface.canvas.height);
+        for (let ix = 0; ix < bw; ix++)
+        {
+            for (let iy = 0; iy < bh; iy++)
+            {
+                let cx = (ix*cellsize)+bordersize;
+                let cy = (iy*cellsize)+bordersize;
+                let celldata = target.board[iy][ix].code;
+                surface.imageSmoothingEnabled = false;
+                if (celldata.hasOwnProperty('texture') && celldata.texture_ready)
+                {
+                    surface.drawImage(celldata.texture, cx, cy, target.viewscale, target.viewscale);
+                }
+                else
+                {
+                    surface.fillStyle = rgb_to_style(...celldata.notexture);
+                    //surface.fillStyle = rgb_to_style(109, 183, 65);
+                    surface.fillRect(cx, cy, target.viewscale, target.viewscale);
+                }
+            }
+        }
+        update_board = false;
+        return surface;
+    },
+    board_center_view: function (target)
+    {
+        target.viewx = Math.floor(target.viewscale*target.board_width/2) - (WIDTH2);
+        target.viewy = Math.floor(target.viewscale*target.board_height/2) - (HEIGHT2);
+    },
+    board_zoom_in: function (target, mul)
+    {
+        let oldvs = target.viewscale;
+        target.viewscale = engine.clamp(
+            target.viewscale + engine.clamp(Math.floor(0.2 * mul * target.viewscale), 1, 64),
+            2, 64);
+        let newvs = target.viewscale;
+
+        target.viewx = (target.viewx + (WIDTH2)) * newvs / oldvs - (WIDTH2);
+        target.viewy = (target.viewy + (HEIGHT2)) * newvs / oldvs - (HEIGHT2);
+
+        target.surfaces.board = this.draw_board(target);
+    },
+    board_zoom_out: function (target, mul)
+    {
+        let oldvs = target.viewscale;
+        target.viewscale = engine.clamp(
+            target.viewscale - engine.clamp(Math.floor(0.2 * mul * target.viewscale), 1, 64),
+            2, 64);
+        let newvs = target.viewscale;
+
+        target.viewx = (target.viewx + (WIDTH2)) * newvs / oldvs - (WIDTH2);
+        target.viewy = (target.viewy + (HEIGHT2)) * newvs / oldvs - (HEIGHT2);
+
+        target.surfaces.board = this.draw_board(target);
+    },
+    board_do_instrument: function (target)
+    {
+        let bordersize = target.viewscale*cellbordersize;
+        let cellsize = bordersize + target.viewscale;
+        let rx = mx + target.viewx - bordersize;
+        let ry = my + target.viewy - bordersize;
+        let cx = Math.floor(rx/cellsize);
+        let cy = Math.floor(ry/cellsize);
+        let maxcx = target.board_width;
+        let maxcy = target.board_height;
+        switch (current_instrument.type)
+        {
+            case 'pencil':
+                scale = current_instrument.scale-1
+                if (current_instrument.penciltype === true) // round
+                {
+
+                }
+                else // square
+                {
+                    if (((rx % cellsize) < target.viewscale) && ((ry % cellsize) < target.viewscale))
+                    {
+                        for (let ix = cx-scale; ix < cx+scale+1; ix++)
+                        {
+                            for (let iy = cy-scale; iy < cy+scale+1; iy++)
+                            {
+                                if ((0 <= ix) && (ix < maxcx) && (0 <= iy) && (iy < maxcy))
+                                {
+                                    let cellid = current_instrument.cell;
+                                    target.board[iy][ix].reset(cellid);
+                                    /*target.board[iy][ix] = new comp.Cell({X:ix,Y:iy},cellid, target.board,
+                                        gvars);*/
+                                }
+                            }
+                        }
+                        target.surfaces.board = this.draw_board(target);
+                    }
+                }
+        }
+    },
 });
 //#endregion
 //#region [STANDARD UI]
-const FieldSUI_mouse_on_cell = function(target)
-{
-    let [ds, eb, ws] = [target.display_scale, target.element_border, target.window_spacing];
-    let measure = Math.floor(target.cellmenu_width*1.5);
-    let phase_offset = Math.floor(measure*target.show_step)-measure;
-    let inoneline = Math.floor((target.cellmenu_width - ws) / (ds + eb));
-    let mousex = mx-phase_offset;
-    let mousey = my;
-    let [detectwidth, detectheight] = [ds + eb, ds + fontsize_smaller + (1.5 * eb)];
-    let ci = Math.floor((mousex-eb)/detectwidth) + (Math.floor((mousey-eb)/detectheight) * inoneline);
-    let cx = ws + eb + ((ds + eb)*(ci%inoneline));
-    let cy = ws + eb + ((ds + eb + fontsize_smaller)*Math.floor(ci/inoneline));
-    if (cx <= mousex && mousex <+ cx + detectwidth - eb)
-        if (cy <= mousey && mousey <= cy + detectheight - eb)
-            if (ci < idlist.length && ci >= 0)
-                return ci;
-    return null;
-};
-
-const FieldSUI_draw_desc_window = function(target, cellid)
-{
-    //let widths = [];
-    let cellname = idlist[cellid];
-    let [border, padding, divider] = [4, 8, 12].map(value => Math.round(value*scale/100));
-    let padding2 = padding*2;
-    let canvaswidth = target.desc_window_width - padding2;
-    let name_size = fontsize_big;
-    let origin_size = fontsize_smaller;
-    let description_size = fontsize_smaller;
-    //let space_scale = 1/3;
-
-    let celldata = objdata[cellname];
-    let localization = celldata.localization;
-    let name_string = localization.hasOwnProperty(loc) ? localization[loc].name : celldata.name;
-    let origin_string = celldata.origin;
-    let origin_color = celldata.official ? 'green' : 'white';
-    let from_string = get_locstring('from');
-    let desc_string = localization.hasOwnProperty(loc) ? localization[loc].desc : celldata.desc;
-
-    let border_color = '#4d4d4d';
-    let bg_color = 'rgba(77,77,77,0.5)';
-
-    let surface = document.createElement('canvas').getContext('2d');
-    surface.font = `${name_size}px sans-serif`;
-    let txt_size1 = get_text_width(name_string, surface.font);//surface.measureText(name_string);
-    name_size = name_size * Math.min(1, canvaswidth / txt_size1);
-
-    let linewidth = 0;
-    let y_offset = 0;
-    let lines = [''];
-    surface.font = `${description_size*100}px sans-serif`;
-    for (let letter of desc_string)
-    {
-        let letter_width = get_text_width(letter, surface.font)/100;//surface.measureText(letter).width;
-        //widths.push(letter_width);
-        if (linewidth + letter_width > canvaswidth)
-        {
-            linewidth = 0;
-            lines.push(['']);
-            y_offset += description_size;
-        }
-        lines[lines.length-1] += letter;
-        linewidth += letter_width;
-    }
-
-    surface.canvas.width = target.desc_window_width;
-    surface.canvas.height = name_size + origin_size + divider + padding2 +
-        y_offset + description_size + origin_size;
-    surface.globalCompositeOperation = 'destination-atop';
-    surface.fillStyle = bg_color;
-    roundRect(surface, 0, 0, surface.canvas.width, surface.canvas.height,
-        8, false);
-    surface.globalCompositeOperation = 'source-over';
-    surface.strokeStyle = border_color;
-    surface.lineWidth = border;
-    roundRect(surface, 0, 0, surface.canvas.width, surface.canvas.height,
-        8, true);
-
-    let y = padding;
-    engine.draw_text(surface, padding, y, name_string, 'fill', name_size,
-        'left', 'top', 'white');
-
-    y += name_size + Math.floor(divider/2);
-    engine.draw_line(surface, padding, y, target.desc_window_width - padding,
-        y, border_color, border);
-
-    y += Math.floor(divider/2);
-    surface.font = `${description_size}px`;
-    for (let line of lines)
-    {
-        let x = padding;
-        engine.draw_text(surface, x, y, line, 'fill', description_size,
-            'left', 'top', 'white');
-        x += get_text_width(line, surface.font);//surface.measureText(line);
-        y += description_size;
-    }
-
-    y += Math.floor(divider/2);
-    engine.draw_line(surface, padding, y, target.desc_window_width - padding,
-        y, border_color, border);
-
-    y += Math.floor(divider/2);
-    engine.draw_text(surface, target.desc_window_width - padding, y,
-        origin_string, 'fill', origin_size, 'right', 'top', origin_color);
-    engine.draw_text(surface, padding, y, from_string, 'fill', origin_size,
-        'left', 'top', origin_color);
-
-    /*let ow = 0;
-    for (let w of widths)
-    {
-        let x = ow+padding;
-        let y = padding+divider+name_size;
-        engine.draw_line(surface, x, y, x+w, y, `hsl(${(10*ow) % 360}, 100%, 50%)`);
-        ow += w;
-    }*/
-
-    return surface;
-};
-
 const EntFieldSUI = new engine.Entity({
     create: function (target)
     {
@@ -998,12 +881,12 @@ const EntFieldSUI = new engine.Entity({
     {
         if (target.show_all)
         {
-            let ci = FieldSUI_mouse_on_cell(target);
+            let ci = this.mouse_on_cell(target);
             if (ci !== null)
             {
                 if (!arraysEqual(target.desc_window_id, [0, ci]))
                 {
-                    target.desc_window_surface = FieldSUI_draw_desc_window(target, ci);
+                    target.desc_window_surface = this.draw_desc_window(target, ci);
                     target.desc_window_id = [0, ci];
                 }
                 target.desc_window_show = true;
@@ -1016,7 +899,7 @@ const EntFieldSUI = new engine.Entity({
     {
         if (target.show_all)
         {
-            let ci = FieldSUI_mouse_on_cell(target);
+            let ci = this.mouse_on_cell(target);
             if (ci !== null)
             {
                 switch (buttonid)
@@ -1026,7 +909,124 @@ const EntFieldSUI = new engine.Entity({
                 }
             }
         }
-    }
+    },
+    mouse_on_cell: function (target)
+    {
+        let [ds, eb, ws] = [target.display_scale, target.element_border, target.window_spacing];
+        let measure = Math.floor(target.cellmenu_width*1.5);
+        let phase_offset = Math.floor(measure*target.show_step)-measure;
+        let inoneline = Math.floor((target.cellmenu_width - ws) / (ds + eb));
+        let mousex = mx-phase_offset;
+        let mousey = my;
+        let [detectwidth, detectheight] = [ds + eb, ds + fontsize_smaller + (1.5 * eb)];
+        let ci = Math.floor((mousex-eb)/detectwidth) + (Math.floor((mousey-eb)/detectheight) * inoneline);
+        let cx = ws + eb + ((ds + eb)*(ci%inoneline));
+        let cy = ws + eb + ((ds + eb + fontsize_smaller)*Math.floor(ci/inoneline));
+        if (cx <= mousex && mousex <+ cx + detectwidth - eb)
+            if (cy <= mousey && mousey <= cy + detectheight - eb)
+                if (ci < idlist.length && ci >= 0)
+                    return ci;
+        return null;
+    },
+    draw_desc_window: function (target, cellid)
+    {
+        //let widths = [];
+        let cellname = idlist[cellid];
+        let [border, padding, divider] = [4, 8, 12].map(value => Math.round(value*scale/100));
+        let padding2 = padding*2;
+        let canvaswidth = target.desc_window_width - padding2;
+        let name_size = fontsize_big;
+        let origin_size = fontsize_smaller;
+        let description_size = fontsize_smaller;
+        //let space_scale = 1/3;
+
+        let celldata = objdata[cellname];
+        let localization = celldata.localization;
+        let name_string = localization.hasOwnProperty(loc) ? localization[loc].name : celldata.name;
+        let origin_string = celldata.origin;
+        let origin_color = celldata.official ? 'green' : 'white';
+        let from_string = get_locstring('descwin/from');
+        let desc_string = localization.hasOwnProperty(loc) ? localization[loc].desc : celldata.desc;
+
+        let border_color = '#4d4d4d';
+        let bg_color = 'rgba(77,77,77,0.5)';
+
+        let surface = document.createElement('canvas').getContext('2d');
+        surface.font = `${name_size}px sans-serif`;
+        let txt_size1 = get_text_width(name_string, surface.font);//surface.measureText(name_string);
+        name_size = name_size * Math.min(1, canvaswidth / txt_size1);
+
+        let linewidth = 0;
+        let y_offset = 0;
+        let lines = [''];
+        surface.font = `${description_size*100}px sans-serif`;
+        for (let letter of desc_string)
+        {
+            let letter_width = get_text_width(letter, surface.font)/100;//surface.measureText(letter).width;
+            //widths.push(letter_width);
+            if (linewidth + letter_width > canvaswidth)
+            {
+                linewidth = 0;
+                lines.push(['']);
+                y_offset += description_size;
+            }
+            lines[lines.length-1] += letter;
+            linewidth += letter_width;
+        }
+
+        surface.canvas.width = target.desc_window_width;
+        surface.canvas.height = name_size + origin_size + divider + padding2 +
+            y_offset + description_size + origin_size;
+        surface.globalCompositeOperation = 'destination-atop';
+        surface.fillStyle = bg_color;
+        roundRect(surface, 0, 0, surface.canvas.width, surface.canvas.height,
+            8, false);
+        surface.globalCompositeOperation = 'source-over';
+        surface.strokeStyle = border_color;
+        surface.lineWidth = border;
+        roundRect(surface, 0, 0, surface.canvas.width, surface.canvas.height,
+            8, true);
+
+        let y = padding;
+        engine.draw_text(surface, padding, y, name_string, 'fill', name_size,
+            'left', 'top', 'white');
+
+        y += name_size + Math.floor(divider/2);
+        engine.draw_line(surface, padding, y, target.desc_window_width - padding,
+            y, border_color, border);
+
+        y += Math.floor(divider/2);
+        surface.font = `${description_size}px`;
+        for (let line of lines)
+        {
+            let x = padding;
+            engine.draw_text(surface, x, y, line, 'fill', description_size,
+                'left', 'top', 'white');
+            x += get_text_width(line, surface.font);//surface.measureText(line);
+            y += description_size;
+        }
+
+        y += Math.floor(divider/2);
+        engine.draw_line(surface, padding, y, target.desc_window_width - padding,
+            y, border_color, border);
+
+        y += Math.floor(divider/2);
+        engine.draw_text(surface, target.desc_window_width - padding, y,
+            origin_string, 'fill', origin_size, 'right', 'top', origin_color);
+        engine.draw_text(surface, padding, y, from_string, 'fill', origin_size,
+            'left', 'top', origin_color);
+
+        /*let ow = 0;
+        for (let w of widths)
+        {
+            let x = ow+padding;
+            let y = padding+divider+name_size;
+            engine.draw_line(surface, x, y, x+w, y, `hsl(${(10*ow) % 360}, 100%, 50%)`);
+            ow += w;
+        }*/
+
+        return surface;
+    },
 });
 //#endregion
 //#endregion
@@ -1128,7 +1128,7 @@ const EntMMBG_board = function(x, y, width, height, matrix)
     let surface = document.createElement('canvas').getContext('2d');
     surface.canvas.width = width;
     surface.canvas.height = height;
-    surface.fillStyle = rgb_to_style(...fieldboard.linecolor_infield);
+    surface.fillStyle = rgb_to_style(...gvars[0].linecolor_infield);
     surface.fillRect(0, 0, surface.canvas.width, surface.canvas.height);
     let ix = engine.wrap(Math.floor(-x/fullsize), 0, matrix[0].length);
     for (let mx = ox-fullsize; mx < width; mx += fullsize)
@@ -1158,7 +1158,7 @@ const EntMMBG = new engine.Entity({
                 target.colors[Math.floor(Math.random()*target.colors.length)]
             )
         );
-        target.controls_strings = get_locstring('controls').split('|');
+        target.controls_strings = get_locstring('mm/controls').split('|');
         target.controls_keys = [null, 'WASD', 'QE', 'RT', 'Space', 'C', 'Tab', 'LMB'];
     },
     step: function(target)
@@ -1212,7 +1212,7 @@ const EntMMController = new engine.Entity({
             return bttn;
         }
 
-        target.play_button = create_button(256+32, 80, 'play_button', 0, -60,
+        target.play_button = create_button(256+32, 80, 'mm/play_button', 0, -60,
             ()=>
             {
                 mainmenu_startmenu.show = true;
@@ -1226,7 +1226,7 @@ const EntMMController = new engine.Entity({
                 target.time_paused = true;
             });
 
-        target.exit_button = create_button(256, 80, 'exit_button', 0, 60,
+        target.exit_button = create_button(256, 80, 'mm/exit_button', 0, 60,
             ()=>{nw.Window.get().close()});
     },
     step: function(target)
@@ -1361,24 +1361,74 @@ const EntMMStartMenu = new engine.Entity({
         target.line_separation = 2;
         target.window_width = 512+128;
         target.window_height = 512+256+64+32;
-        target.mod_width = Math.round(target.window_width*0.9);
-        target.mod_height = Math.round(target.window_height*0.4);
+        target.subwindow_padding = Math.round(target.window_width*0.05);
+        target.subwindow_width = target.window_width-(2*target.subwindow_padding);
+        target.mods_height = Math.round((target.window_height-(4*target.subwindow_padding))*3/6);
+        target.settings_height = Math.round((target.window_height-(4*target.subwindow_padding))*2/6);
+        target.button_height = Math.round((target.window_height-(4*target.subwindow_padding))/6);
         target.show_step = 0;
         target.show = false;
-        target.scroll = 0;
-        target.old_scroll = 0;
-        target.new_scroll = 0;
-        target.scroll_step = 0;
-        target.max_scroll_step = 0.25;
-        target.button_width = target.mod_width;
-        target.button_height = 64+16;
+        target.scroll = [0, 0];
+        target.old_scroll = [0, 0];
+        target.new_scroll = [0, 0];
+        target.scroll_step = [0, 0];
+        target.max_scroll_step = [0.25, 0.25];
+        target.inline_padding = 4;
+        target.settings = [
+            {
+                name: 'board_width', type: 'integer-scale', value: 32, min: 1, max: 999, step: 1, number_count: 3,
+                display_name: get_locstring('start_menu/settings/board_width'),
+            },
+            {
+                name: 'board_height', type: 'integer-scale', value: 32, min: 1, max: 999, step: 1, number_count: 3,
+                display_name: get_locstring('start_menu/settings/board_height'),
+            },
+        ];
+        target.settings_consts = {
+            integer_scale: {
+                triangle_height: target.line_height - (2*target.inline_padding),
+                triangle_width: target.line_height/2 - target.inline_padding,
+                spacing: target.inline_padding/2,
+            },
+        };
+
+        let create_button = function(width, height, text, x_offset, y_offset, trigger)
+        {
+            let bttn = EntMMButton.create_instance();
+            bttn.box_width = width;
+            bttn.box_height = height;
+            bttn.text = get_locstring(text);
+            bttn.const_x = (display.cw() - bttn.box_width)/2 - bttn.triangle_width + x_offset;
+            bttn.const_y = (display.ch() - target.window_height)/2 + y_offset;
+            bttn.trigger = trigger;
+            return bttn;
+        }
+
+        target.start_button = create_button(target.window_width-128, target.button_height, 'start_menu/start_button',
+            0, 3*target.subwindow_padding + target.mods_height + target.settings_height, ()=>
+            {
+                gvars[0].board_width = target.settings.filter(x => x.name === 'board_width')[0].value;
+                gvars[0].board_height = target.settings.filter(x => x.name === 'board_height')[0].value;
+
+                for (let mod of target.modlist.filter(x => x.enabled))
+                {
+                    let loaded_mod = load_mod(path.join('data', 'mods', mod.name), mod.name, false);
+                    idlist.push(...Object.keys(loaded_mod));
+                    for (let k in loaded_mod) objdata[k] = loaded_mod[k];
+                }
+
+                engine.change_current_room(room_field);
+            });
     },
     step: function(target)
     {
-        target.scroll_step = engine.clamp(target.scroll_step+deltatime, 0, target.max_scroll_step);
-        let step = engine.range2range(target.scroll_step, 0, target.max_scroll_step, 0, 1);
-        step = Math.sin(Math.PI*step/2);
-        target.scroll = target.old_scroll + (target.new_scroll-target.old_scroll)*step;
+        for (let i = 0; i < target.scroll.length; i++)
+        {
+            target.scroll_step[i] = engine.clamp(target.scroll_step[i] + deltatime, 0, target.max_scroll_step[i]);
+            let step = engine.range2range(target.scroll_step[i], 0, target.max_scroll_step[i], 0, 1);
+            step = Math.sin(Math.PI * step / 2);
+            target.scroll[i] = target.old_scroll[i] + (target.new_scroll[i] - target.old_scroll[i]) * step;
+        }
 
         let move = false;
         let interpolate = function(what_to, to)
@@ -1405,15 +1455,14 @@ const EntMMStartMenu = new engine.Entity({
         let bg_darker = '#555'; // bg darker color
         let bg_lighter = '#777'; // bg lighter color
         let textcolor = 'white'; // mod text color
-        let mw = target.mod_width; // mods window width
-        let mh = target.mod_height; // mods window height
-        let mpadding = (ww-mw)/2; // mods window padding
+        let sww = target.subwindow_width; // subwindow width
+        let mh = target.mods_height; // mods window height
+        let sh = target.settings_height; // settings window height
+        let padding = target.subwindow_padding; // subwindow padding
         let lh = target.line_height; // mod line height
-        let ls = target.line_separation; // mod separation line width
-        let box_color = 'white'; // box color
-        let box = lh-8;
-        let bw = target.button_width;
-        let bh = target.button_height;
+
+        target.start_button.const_x = -surface.canvas.width/2 - target.start_button.box_width/2
+            - target.start_button.triangle_width + (surface.canvas.width*target.show_step);
 
         let surf1 = document.createElement('canvas').getContext('2d');
         surf1.canvas.width = ww;
@@ -1425,45 +1474,19 @@ const EntMMStartMenu = new engine.Entity({
             ww-(2*surf1.lineWidth), wh-(2*surf1.lineWidth), surf1.lineWidth*2, false);
         roundRect(surf1, 0, 0, ww, wh, surf1.lineWidth*2, true);
 
-        let surf2 = document.createElement('canvas').getContext('2d');
-        surf2.canvas.width = mw;
-        surf2.canvas.height = mh;
-        surf2.fillStyle = bg_darker;
-        surf2.fillRect(0, 0, mw, mh);
-        let oneline = lh+ls;
-        let mi = Math.floor(target.scroll/oneline)-1; // mod index
-        for (let oy = -target.scroll % oneline; oy < mh; oy += oneline)
-        {
-            if (++mi >= target.modlist.length) break;
-            surf2.fillStyle = bg_lighter;
-            surf2.fillRect(0, oy, mw, lh);
-            surf2.lineWidth = 2;
-            if (target.modlist[mi].enabled)
-            {
-                surf2.fillStyle = box_color;
-                surf2.fillRect((lh-box)/2, oy+(lh-box)/2, box, box);
-            }
-            else
-            {
-                surf2.strokeStyle = box_color;
-                surf2.strokeRect((lh-box)/2 + surf2.lineWidth/2, oy+(lh-box)/2 + surf2.lineWidth/2,
-                    box - surf2.lineWidth, box - surf2.lineWidth);
-            }
-            engine.draw_text(surf2, lh, oy+2+lh/2, target.modlist[mi].name, 'fill', lh-4, 'left', 'center', textcolor,
-                '"Montserrat", serif');
-        }
-
+        let surf2 = this.draw_mod_list(target);
         surf1.lineWidth = 2;
         surf1.strokeStyle = border;
-        surf1.strokeRect(mpadding-2, mpadding-2, mw+4, mh+4);
-        surf1.drawImage(surf2.canvas, mpadding, mpadding);
+        surf1.strokeRect(padding-2, padding-2, sww+4, mh+4);
+        surf1.drawImage(surf2.canvas, padding, padding);
         surf2.canvas.remove();
 
-        surf1.fillStyle = 'green';
-        roundRect(surf1, (ww-bw)/2, wh-mpadding-bh, bw, bh, 16);
-        let tw = get_text_width(get_locstring('start_button_in_start_menu'), `${bh-4}px "Montserrat", serif`);
-        engine.draw_text(surf1, ww/2, wh-mpadding-2, get_locstring('start_button_in_play_menu'), 'fill',
-            (bh-4)*(Math.min(1, bw/tw)*0.95), 'center', 'bottom', 'white', '"Montserrat", serif');
+        let surf3 = this.draw_board_settings(target);
+        surf1.lineWidth = 2;
+        surf1.strokeStyle = border;
+        surf1.strokeRect(padding-2, mh+(2*padding)-2, sww+4, sh+4);
+        surf1.drawImage(surf3.canvas, padding, padding*2 + mh);
+        surf3.canvas.remove();
 
         /*surf.globalCompositeOperation = 'destination-in';
         surf.fillStyle = 'rgba(255, 255, 255, 0.95)';
@@ -1482,36 +1505,211 @@ const EntMMStartMenu = new engine.Entity({
             case engine.WHEELDOWN:
             case engine.WHEELUP:
             {
-                let limit = (oneline*target.modlist.length < target.mod_height) ? 0 : target.mod_height;
-                target.new_scroll = Math.max(0, engine.clamp(target.new_scroll+scroll_delta, 0,
-                    target.modlist.length*(target.line_height+target.line_separation) - limit));
-                target.old_scroll = target.scroll;
-                target.scroll_step = 0;
+                let padding = target.subwindow_padding;
+                let subwindow_xoffset = (display.cw()-target.window_width)/2 + padding;
+                let modswindow_yoffset = (display.ch()-target.window_height)/2 + padding;
+                let move = function(xoffset, yoffset, wwidth, wheight, ind, linesnum)
+                {
+                    let mouse_x = mx - xoffset;
+                    let mouse_y = my - yoffset;
+                    if (0 <= mouse_x && mouse_x <= wwidth && 0 <= mouse_y && mouse_y <= wheight)
+                    {
+                        let limit = (oneline * linesnum < wheight) ? 0 : wheight;
+                        target.new_scroll[ind] = Math.max(0, engine.clamp(target.new_scroll[ind] + scroll_delta, 0,
+                            linesnum * oneline - limit));
+                        target.old_scroll[ind] = target.scroll[ind];
+                        target.scroll_step[ind] = 0;
+                    }
+                }
+
+                // Mod list
+                move(subwindow_xoffset, modswindow_yoffset, target.subwindow_width, target.mods_height,
+                    0, target.modlist.length);
+
+                // Setting list
+                move(subwindow_xoffset, modswindow_yoffset + padding + target.mods_height, target.subwindow_width,
+                    target.settings_height, 1, target.settings.length);
                 break;
             }
             case engine.LMB:
             {
-                let padding = (target.window_width-target.mod_width)/2;
+                let padding = target.subwindow_padding;
+                let ip = target.inline_padding;
+
+                let click = function(xoffset, yoffset, wwidth, wheight, ind, func)
+                {
+                    let mouse_x = mx - xoffset;
+                    let mouse_y = my - yoffset;
+                    let iy = Math.floor(mouse_y/oneline) + Math.floor(target.scroll[ind]/oneline);
+                    let oy = mouse_y % oneline;
+                    if (0 <= mouse_x && mouse_x <= wwidth && 0 <= mouse_y && mouse_y <= wheight)
+                        func(iy, mouse_x, oy);
+                };
+
+                // Mod list
+                click(
+                    (display.cw()-target.window_width)/2 + padding, (display.ch()-target.window_height)/2 + padding,
+                    target.subwindow_width, target.mods_height, 0, (lineindex, ox, oy)=>
+                    {
+                        if (ip <= ox && ox <= target.line_height-(2*ip) && ip <= oy && oy <= target.line_height-(2*ip))
+                            target.modlist[lineindex].enabled = !target.modlist[lineindex].enabled;
+                    }
+                );
+
+                // Settings
+                click(
+                    (display.cw()-target.window_width)/2 + padding, (display.ch()-target.window_height)/2
+                    + (2*padding) + target.mods_height, target.subwindow_width, target.settings_height, 0,
+                    (lineindex, ox, oy)=>
+                    {
+                        if (lineindex < target.settings.length)
+                        {
+                            let sww = target.subwindow_width;
+                            let triw = target.settings_consts.integer_scale.triangle_width;
+                            let trih = target.settings_consts.integer_scale.triangle_height;
+                            let box = target.line_height - (2 * ip);
+                            switch (target.settings[lineindex].type) {
+                                case "integer-scale":
+                                    let tx = sww - ip - triw;
+                                    let num_width = get_text_width('0'.repeat(target.settings[lineindex].number_count),
+                                        `${box}px "DejaVu Sans Mono"`);
+
+                                    if (tx <= ox && ox < tx + triw && ip <= oy && oy < ip + trih)
+                                        target.settings[lineindex].value =
+                                            engine.clamp(target.settings[lineindex].value + 1,
+                                            target.settings[lineindex].min, target.settings[lineindex].max);
+
+                                    tx -= 2 * ip + num_width;
+                                    if (tx - triw <= ox && ox < tx && ip <= oy && oy < ip + trih)
+                                        target.settings[lineindex].value =
+                                            engine.clamp(target.settings[lineindex].value - 1,
+                                            target.settings[lineindex].min, target.settings[lineindex].max);
+                                    break;
+                            }
+                        }
+                    }
+                );
+
+                /*// Mod list
                 let mouse_x = mx - (display.cw()-target.window_width)/2 - padding - 4;
                 let mouse_y = my - (display.ch()-target.window_height)/2 - padding - 4;
-                let iy = Math.floor(mouse_y/oneline) + Math.floor(target.scroll/oneline);
+                let iy = Math.floor(mouse_y/oneline) + Math.floor(target.scroll[0]/oneline);
                 let oy = mouse_y % oneline;
+                if (0 <= mouse_x && mouse_x <= target.subwindow_width && 0 <= mouse_y && mouse_y <= target.mods_height)
                 if (0 <= mouse_x && mouse_x <= target.line_height-4 && 0 <= oy && oy <= target.line_height-4)
-                {
-                    target.modlist[iy].enabled = !target.modlist[iy].enabled;
-                }
+                    target.modlist[iy].enabled = !target.modlist[iy].enabled;*/
 
-                mouse_x = mx - (display.cw()-target.button_width)/2;
-                mouse_y = my - (display.ch()-target.window_height)/2 - target.window_height + padding
-                    + target.button_height;
-                global.console.log([mouse_x, mouse_y]);
-                if (0 <= mouse_x && mouse_x <= target.button_width && 0 <= mouse_y && mouse_y <= target.button_height)
-                {
-                    engine.change_current_room(room_field);
-                }
+                break;
             }
         }
     },
+    draw_mod_list: function (target)
+    {
+        let bg_darker = '#555'; // bg darker color
+        let bg_lighter = '#777'; // bg lighter color
+        let textcolor = 'white'; // mod text color
+        let sww = target.subwindow_width; // mods window width
+        let swh = target.mods_height; // mods window height
+        let lh = target.line_height; // mod line height
+        let ls = target.line_separation; // mod separation line width
+        let box_color = 'white'; // box color
+        let ip = target.inline_padding;
+        let box = lh-(2*ip);
+
+        let surf = document.createElement('canvas').getContext('2d');
+        surf.canvas.width = sww;
+        surf.canvas.height = swh;
+        surf.fillStyle = bg_darker;
+        surf.fillRect(0, 0, sww, swh);
+        let oneline = lh+ls;
+        let mi = Math.floor(target.scroll[0]/oneline)-1; // mod index
+        for (let oy = -target.scroll[0] % oneline; oy < swh; oy += oneline)
+        {
+            if (++mi >= target.modlist.length) break;
+            surf.fillStyle = bg_lighter;
+            surf.fillRect(0, oy, sww, lh);
+            surf.lineWidth = 2;
+            if (target.modlist[mi].enabled)
+            {
+                surf.fillStyle = box_color;
+                surf.fillRect(ip, ip, box, box);
+            }
+            else
+            {
+                surf.strokeStyle = box_color;
+                surf.strokeRect(ip + surf.lineWidth/2, oy + ip + surf.lineWidth/2,
+                    box - surf.lineWidth, box - surf.lineWidth);
+            }
+            engine.draw_text(surf, lh, oy+lh/2, target.modlist[mi].name, 'fill', box, 'left',
+                'center', textcolor, '"Montserrat", serif');
+        }
+        return surf;
+    },
+    draw_board_settings: function (target)
+    {
+        let bg_darker = '#555'; // bg darker color
+        let bg_lighter = '#777'; // bg lighter color
+        let textcolor = 'white'; // mod text color
+        let sww = target.subwindow_width; // mods window width
+        let swh = target.settings_height; // mods window height
+        let lh = target.line_height; // mod line height
+        let ls = target.line_separation; // mod separation line width
+        let box_color = 'white'; // box color
+        let ip = target.inline_padding;
+        let triw = target.settings_consts.integer_scale.triangle_width;
+        let trih = target.settings_consts.integer_scale.triangle_height;
+        let box = lh-(2*ip);
+
+        let surf = document.createElement('canvas').getContext('2d');
+        surf.canvas.width = sww;
+        surf.canvas.height = swh;
+        surf.fillStyle = bg_darker;
+        surf.fillRect(0, 0, sww, swh);
+        let oneline = lh+ls;
+        let si = Math.floor(target.scroll[1]/oneline)-1; // mod index
+        for (let oy = -target.scroll[1] % oneline; oy < swh; oy += oneline)
+        {
+            if (++si >= target.settings.length) break;
+            surf.fillStyle = bg_lighter;
+            surf.fillRect(0, oy, sww, lh);
+            surf.lineWidth = 2;
+            engine.draw_text(surf, ip, oy+lh/2, target.settings[si].display_name, 'fill', box, 'left', 'center',
+                textcolor, '"Montserrat", serif');
+
+            switch (target.settings[si].type)
+            {
+                case "integer-scale":
+                    let tx = sww-ip-triw;
+                    let ty = oy+ip;
+                    let num_width = get_text_width('0'.repeat(target.settings[si].number_count),
+                        `${box}px "DejaVu Sans Mono"`);
+                    surf.beginPath();
+                    surf.moveTo(tx, ty);
+                    surf.lineTo(tx+triw, ty+trih/2);
+                    surf.lineTo(tx, ty+trih);
+                    surf.fillStyle = 'white';
+                    surf.fill();
+
+                    let number = target.settings[si].value.toString();
+                    number = '0'.repeat(target.settings[si].number_count-number.length) + number;
+
+                    tx -= ip;
+                    engine.draw_text(surf, tx, ty-ip+(lh/2), number, 'fill', box, 'right', 'center', 'white',
+                        `"DejaVu Sans Mono"`);
+
+                    tx -= num_width + ip + triw;
+                    surf.beginPath();
+                    surf.moveTo(tx+triw, ty);
+                    surf.lineTo(tx, ty+trih/2);
+                    surf.lineTo(tx+triw, ty+trih);
+                    surf.fillStyle = 'white';
+                    surf.fill();
+                    break;
+            }
+        }
+
+        return surf;
+    }
 });
 //#endregion
 //#endregion
@@ -1524,8 +1722,8 @@ var mainmenu_startmenu = EntMMStartMenu.create_instance();
 //#endregion
 
 var room_field = new engine.Room([EntGlobalConsole, EntFieldBoard, EntFieldSUI]);
-var room_mainmenu = new engine.Room([EntGlobalConsole, EntMMIntro, EntMMController, EntMMBG, EntMMButton,
-    EntMMStartMenu]);
+var room_mainmenu = new engine.Room([EntGlobalConsole, EntMMIntro, EntMMController, EntMMBG,
+    EntMMStartMenu, EntMMButton]);
 //#endregion
 
 //#region [RUN]
@@ -1547,8 +1745,8 @@ document.addEventListener('keyup', function(event)
 });
 canvas_element.addEventListener('mousemove', function(event)
 {
-    mx = (event.offsetX - display.offset_x) * display.cw() / display.sw();
-    my = (event.offsetY - display.offset_y) * display.ch() / display.sh();
+    mx = (event.offsetX-display.offset_x) * display.cw() / (display.sw()-(2*display.offset_x));
+    my = (event.offsetY-display.offset_y) * display.ch() / (display.sh()-(2*display.offset_y));
     engine.current_room.do_mouse_move();
 });
 canvas_element.addEventListener('mousedown', function(event)
