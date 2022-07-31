@@ -162,10 +162,20 @@ const roundRect = function(ctx, x, y, width, height, radius, stroke = false)
 
 const rgb_to_style = (r,g,b) => `rgb(${r}, ${g}, ${b})`;
 
-const cut_string = function(string, upto)
+const cut_string = function(string, font, upto)
 {
-    if (string.length <= upto) return string;
-    else return string.slice(0, upto-3) + '...';
+    if (get_text_width(string, font) <= upto) return string;
+
+    let [left, right] = [0, string.length];
+    let mid = 0;
+    while (right-left !== 1)
+    {
+        mid = Math.floor((left+right)/2);
+        let txt_slice = string.slice(0, Math.max(0, mid-3))+'...';
+        if (get_text_width(txt_slice, font) > upto) right = mid;
+        else left = mid;
+    }
+    return string.slice(0, Math.max(0, mid-3))+'...';
 };
 
 const load_modlist = function(modsfolder)
@@ -485,9 +495,9 @@ const EntFieldBoard = new engine.Entity({
         engine.draw_text(surface, WIDTH-2, HEIGHT-2,
             `Max speed: ${Math.pow(2, target.cameraspeed)}`,
             'fill', fontsize_default, 'right', 'bottom', 'white');
-        engine.draw_text(surface, WIDTH-2, HEIGHT-fontsize_default,
+        /*engine.draw_text(surface, WIDTH-2, HEIGHT-fontsize_default,
             `hsp: ${Math.round(target.hsp)} / vsp: ${Math.round(target.vsp)}`,
-            'fill', fontsize_default, 'right', 'bottom', 'white');
+            'fill', fontsize_default, 'right', 'bottom', 'white');*/
 
         // time per tick
         engine.draw_text(surface,
@@ -779,7 +789,7 @@ const EntFieldBoard = new engine.Entity({
 //#endregion
 //#region [STANDARD UI]
 const EntFieldSUI = new engine.Entity({
-    create: function (target)
+    create: function(target)
     {
         target.keys = {ctrl: false};
         target.show_step = 0.0;
@@ -804,45 +814,12 @@ const EntFieldSUI = new engine.Entity({
         target.cell_window_surface = document.createElement('canvas').getContext('2d');
         target.cell_window_surface.canvas.width = target.cellmenu_width + Math.floor(ws/2);
         target.cell_window_surface.canvas.height = display.ch() - (2*ws);
-
-        let alphabg = document.createElement('canvas').getContext('2d');
-        alphabg.canvas.width = target.cell_window_surface.canvas.width;
-        alphabg.canvas.height = target.cell_window_surface.canvas.height;
-        alphabg.fillStyle = '#1a1a1a';
-        roundRect(alphabg, ws, ws, target.cellmenu_width-ws, target.cell_window_surface.canvas.height - (2*ws), 5);
-        alphabg.strokeStyle = '#7f7f7f';
-        alphabg.lineWidth = Math.floor(ws/2);
-        roundRect(alphabg, ws, ws, target.cellmenu_width-ws, target.cell_window_surface.canvas.height - (2*ws), 5, true);
-        alphabg.globalCompositeOperation = 'destination-in';
-        alphabg.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        alphabg.fillRect(0, 0, alphabg.canvas.width, alphabg.canvas.height);
-        alphabg.globalCompositeOperation = 'source-over';
-
-        target.cell_window_surface.drawImage(alphabg.canvas, 0, 0);
-
-        let inoneline = Math.floor((target.cellmenu_width - ws) / (ds + eb));
-        let ci = -1
-        for (let o of idlist)
-        {
-            let obj = objdata[o];
-            switch (obj.type)
-            {
-                case 'CELL':
-                    ci++;
-                    let cx = ws + eb + ((ds + eb) * (ci % inoneline));
-                    let cy = ws + eb + ((ds + eb + fontsize_smaller) * Math.floor(ci/inoneline));
-                    target.cell_window_surface.fillStyle = rgb_to_style(...obj.notexture);
-                    target.cell_window_surface.fillRect(cx, cy, ds, ds);
-                    let name_string = (obj.localization.hasOwnProperty(loc)
-                        ? obj.localization[loc].name
-                        : obj.name);
-                    engine.draw_text(target.cell_window_surface, cx + (ds/2), cy + ds + (eb/2),
-                        name_string, 'fill', fontsize_smaller, 'center', 'top', 'white');
-            }
-        }
-        alphabg.canvas.remove();
     },
-    step: function (target)
+    room_start: function(target)
+    {
+        this.draw_main_window(target);
+    },
+    step: function(target)
     {
         let new_step = engine.linear_interpolation(target.show_step, Math.floor(target.show_menu), 3);
         if (target.show_step !== new_step)
@@ -854,7 +831,7 @@ const EntFieldSUI = new engine.Entity({
             this.mouse_move(target);
         }
     },
-    draw: function (target, surface)
+    draw: function(target, surface)
     {
         if (target.show_all)
         {
@@ -866,7 +843,7 @@ const EntFieldSUI = new engine.Entity({
                 surface.drawImage(target.desc_window_surface.canvas, ...target.desc_window_offset);
         }
     },
-    kb_down: function (target, key)
+    kb_down: function(target, key)
     {
         switch (key.code)
         {
@@ -877,7 +854,7 @@ const EntFieldSUI = new engine.Entity({
                     target.show_menu = !target.show_menu;
         }
     },
-    mouse_move: function (target)
+    mouse_move: function(target)
     {
         if (target.show_all)
         {
@@ -895,7 +872,7 @@ const EntFieldSUI = new engine.Entity({
             else target.desc_window_show = false;
         }
     },
-    mouse_down: function (target, buttonid)
+    mouse_down: function(target, buttonid)
     {
         if (target.show_all)
         {
@@ -910,7 +887,7 @@ const EntFieldSUI = new engine.Entity({
             }
         }
     },
-    mouse_on_cell: function (target)
+    mouse_on_cell: function(target)
     {
         let [ds, eb, ws] = [target.display_scale, target.element_border, target.window_spacing];
         let measure = Math.floor(target.cellmenu_width*1.5);
@@ -928,7 +905,7 @@ const EntFieldSUI = new engine.Entity({
                     return ci;
         return null;
     },
-    draw_desc_window: function (target, cellid)
+    draw_desc_window: function(target, cellid)
     {
         //let widths = [];
         let cellname = idlist[cellid];
@@ -1026,6 +1003,53 @@ const EntFieldSUI = new engine.Entity({
         }*/
 
         return surface;
+    },
+    draw_main_window: function(target)
+    {
+        let ws = target.window_spacing;
+        let ds = target.display_scale;
+        let eb = target.element_border;
+
+        target.cell_window_surface.clearRect(0, 0,
+            target.cell_window_surface.canvas.width, target.cell_window_surface.canvas.height);
+
+        let alphabg = document.createElement('canvas').getContext('2d');
+        alphabg.canvas.width = target.cell_window_surface.canvas.width;
+        alphabg.canvas.height = target.cell_window_surface.canvas.height;
+        alphabg.fillStyle = '#1a1a1a';
+        roundRect(alphabg, ws, ws, target.cellmenu_width-ws, target.cell_window_surface.canvas.height - (2*ws), 5);
+        alphabg.strokeStyle = '#7f7f7f';
+        alphabg.lineWidth = Math.floor(ws/2);
+        roundRect(alphabg, ws, ws, target.cellmenu_width-ws, target.cell_window_surface.canvas.height - (2*ws), 5, true);
+        alphabg.globalCompositeOperation = 'destination-in';
+        alphabg.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        alphabg.fillRect(0, 0, alphabg.canvas.width, alphabg.canvas.height);
+        alphabg.globalCompositeOperation = 'source-over';
+
+        target.cell_window_surface.drawImage(alphabg.canvas, 0, 0);
+
+        let inoneline = Math.floor((target.cellmenu_width - ws) / (ds + eb));
+        let ci = -1
+        for (let o of idlist)
+        {
+            let obj = objdata[o];
+            switch (obj.type)
+            {
+                case 'CELL':
+                    ci++;
+                    let cx = ws + eb + ((ds + eb) * (ci % inoneline));
+                    let cy = ws + eb + ((ds + eb + fontsize_smaller) * Math.floor(ci/inoneline));
+                    target.cell_window_surface.fillStyle = rgb_to_style(...obj.notexture);
+                    target.cell_window_surface.fillRect(cx, cy, ds, ds);
+                    let name_string = (obj.localization.hasOwnProperty(loc)
+                        ? obj.localization[loc].name
+                        : obj.name);
+                    engine.draw_text(target.cell_window_surface, cx + (ds/2), cy + ds + (eb/2),
+                        cut_string(name_string, `${fontsize_smaller}px "Montserrat"`, ds), 'fill',
+                        fontsize_smaller, 'center', 'top', 'white', '"Montserrat"');
+            }
+        }
+        alphabg.canvas.remove();
     },
 });
 //#endregion

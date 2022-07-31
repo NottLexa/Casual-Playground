@@ -111,10 +111,22 @@ const simple_determinant = function(codepart='')
             }
             break;
         case '#': // cellid_by_name
-            if (namable1)
+            let splt = name1.split('@');
+            if (splt.every(value => namable(value)))
             {
-                return [new ccb.Value(ccb.FUNC, 'cellid_by_name', ccf.CoreFuncs, [new ccb.Value(ccb.FIXEDVAR, name1)]),
-                    new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
+                switch (splt.length)
+                {
+                    case 1:
+                        return [new ccb.Value(ccb.FUNC, 'cellid_by_name', ccf.CoreFuncs,
+                            [new ccb.Value(ccb.FIXEDVAR, splt[0])]), new ccc.CompilerConclusion(0),
+                            new ccc.CompilerCursor()];
+                    case 2:
+                        return [new ccb.Value(ccb.FUNC, 'cellid_by_name', ccf.CoreFuncs,
+                            [new ccb.Value(ccb.FIXEDVAR, splt[0], splt[1])]), new ccc.CompilerConclusion(0),
+                            new ccc.CompilerCursor()];
+                    default:
+                        return [new ccb.Value(ccb.EMPTY), new ccc.CompilerConclusion(301), new ccc.CompilerCursor()];
+                }
             }
             break;
     }

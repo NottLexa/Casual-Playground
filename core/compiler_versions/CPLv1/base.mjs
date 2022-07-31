@@ -104,7 +104,8 @@ const chapter_localization = function(code, startl)
     {
         l += 12;
         while (code[l++] !== '\n'){}
-        while (code.slice(l, l+4) === '    ') {
+        while (code.slice(l, l+4) === '    ')
+        {
             l += 4;
             let [write, concl, cur] = coi.split_args1(code, l, '\n');
             if (!ccc.correct_concl(concl)) return [0, {}, concl, cur];

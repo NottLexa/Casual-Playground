@@ -92,7 +92,8 @@ var CoreFuncs = {
     },
     cellid_by_name: function(caller, a)
     {
-        return caller.globals[0].idlist.indexOf(a.read(caller));
+        if (a.source !== null) return caller.globals[0].idlist.indexOf(a.source+'/'+a.read(caller));
+        else return caller.globals[0].idlist.indexOf(a.read(caller));
     },
     min: function(caller, a, b)
     {

@@ -114,6 +114,7 @@ var compconcl_ids = [
         7: 'Syntax error: unexpected ELSEIF statement (maybe you put something between IF and ELSEIF?)',
         8: 'Syntax error: unexpected ELSE statement (maybe you put something between IF and ELSE?)',
         9: 'Syntax error: unexpected ELSE statement (maybe you put ELSE twice?)',
+       10: 'Syntax error: specified mod was not found',
     }),
     // 3-- / Value error
     Object.values({
