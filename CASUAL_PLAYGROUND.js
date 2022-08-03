@@ -321,12 +321,12 @@ const EntGlobalConsole = new engine.Entity({
     {
         engine.draw_text(surface, surface.canvas.width-10, 10,
             `${(deltatime !== 0) ? Math.round(1/deltatime) : 0} FPS`, 'fill', fontsize_default,
-            'right', 'top', 'white');
+            'right', 'top', 'white', '"DejaVu Sans Mono"');
         for (let i in target.log)
         {
             engine.draw_text(surface, 10,
                 surface.canvas.height-100-(target.log.length*fontsize_smaller)+(i*fontsize_smaller),
-                target.log[i], 'fill', fontsize_smaller, 'left', 'bottom', 'white', 'monospace');
+                target.log[i], 'fill', fontsize_smaller, 'left', 'bottom', 'white', '"DejaVu Sans Mono"');
         }
     }
 });
@@ -492,9 +492,8 @@ const EntFieldBoard = new engine.Entity({
         }
 
         // speed
-        engine.draw_text(surface, WIDTH-2, HEIGHT-2,
-            `Max speed: ${Math.pow(2, target.cameraspeed)}`,
-            'fill', fontsize_default, 'right', 'bottom', 'white');
+        engine.draw_text(surface, WIDTH-2, HEIGHT-2, `Max speed: ${Math.pow(2, target.cameraspeed)}`,
+            'fill', fontsize_default, 'right', 'bottom', 'white', '"Source Sans Pro"');
         /*engine.draw_text(surface, WIDTH-2, HEIGHT-fontsize_default,
             `hsp: ${Math.round(target.hsp)} / vsp: ${Math.round(target.vsp)}`,
             'fill', fontsize_default, 'right', 'bottom', 'white');*/
@@ -503,18 +502,18 @@ const EntFieldBoard = new engine.Entity({
         engine.draw_text(surface,
             5, -5 + surface.canvas.height - fontsize_default,
             `${target.timepertick}s`+(target.time_paused ? ' | Paused' : ''),
-            'fill', fontsize_default, 'left', 'top', 'white');
+            'fill', fontsize_default, 'left', 'top', 'white', '"Source Sans Pro"');
 
         // time elapsed
         let clr = target.time_elapsed <= target.timepertick ? 'white' : rgb_to_style(17*14, 17, 17);
         engine.draw_text(surface,
             5, -10 + surface.canvas.height - fontsize_default - 2*fontsize_small,
             `${Math.round(target.time_elapsed*100000)/100000} s`,
-            'fill', fontsize_small, 'left', 'top', clr);
+            'fill', fontsize_small, 'left', 'top', clr, '"DejaVu Sans Mono"');
         engine.draw_text(surface,
             5, -10 + surface.canvas.height - fontsize_default - fontsize_small,
             `${Math.round(target.time_elapsed/(target.board_width*target.board_height)*100000)/100000} s/cell`,
-            'fill', fontsize_small, 'left', 'top', clr);
+            'fill', fontsize_small, 'left', 'top', clr, '"DejaVu Sans Mono"');
 
         // instrument
         switch (current_instrument.type)
@@ -524,7 +523,7 @@ const EntFieldBoard = new engine.Entity({
                     ` | ${current_instrument.penciltype ? 'Round' : 'Square'}`
                 engine.draw_text(surface,
                     surface.canvas.width - 2, surface.canvas.height - 2 - 2*(fontsize_default-2),
-                    string, 'fill', fontsize_default, 'right', 'bottom', 'white');
+                    string, 'fill', fontsize_default, 'right', 'bottom', 'white', '"Source Sans Pro"');
         }
     },
     kb_down: function(target, key)
@@ -966,7 +965,7 @@ const EntFieldSUI = new engine.Entity({
 
         let y = padding;
         engine.draw_text(surface, padding, y, name_string, 'fill', name_size,
-            'left', 'top', 'white');
+            'left', 'top', 'white', '"Source Sans Pro"');
 
         y += name_size + Math.floor(divider/2);
         engine.draw_line(surface, padding, y, target.desc_window_width - padding,
@@ -978,7 +977,7 @@ const EntFieldSUI = new engine.Entity({
         {
             let x = padding;
             engine.draw_text(surface, x, y, line, 'fill', description_size,
-                'left', 'top', 'white');
+                'left', 'top', 'white', '"Source Sans Pro"');
             x += get_text_width(line, surface.font);//surface.measureText(line);
             y += description_size;
         }
@@ -988,10 +987,10 @@ const EntFieldSUI = new engine.Entity({
             y, border_color, border);
 
         y += Math.floor(divider/2);
-        engine.draw_text(surface, target.desc_window_width - padding, y,
-            origin_string, 'fill', origin_size, 'right', 'top', origin_color);
-        engine.draw_text(surface, padding, y, from_string, 'fill', origin_size,
-            'left', 'top', origin_color);
+        engine.draw_text(surface, target.desc_window_width - padding, y,  origin_string, 'fill', origin_size,
+            'right', 'top', origin_color, '"Source Sans Pro"');
+        engine.draw_text(surface, padding, y, from_string, 'fill', origin_size, 'left', 'top', origin_color,
+            '"Source Sans Pro"');
 
         /*let ow = 0;
         for (let w of widths)
@@ -1044,11 +1043,13 @@ const EntFieldSUI = new engine.Entity({
                     let name_string = (obj.localization.hasOwnProperty(loc)
                         ? obj.localization[loc].name
                         : obj.name);
+
                     engine.draw_text(target.cell_window_surface, cx + (ds/2), cy + ds + (eb/2),
-                        cut_string(name_string, `${fontsize_smaller}px "Montserrat"`, ds), 'fill',
-                        fontsize_smaller, 'center', 'top', 'white', '"Montserrat"');
+                        cut_string(name_string, `${fontsize_smaller}px "Source Sans Pro"`, ds), 'fill',
+                        fontsize_smaller, 'center', 'top', 'white', '"Source Sans Pro"');
             }
         }
+
         alphabg.canvas.remove();
     },
 });
@@ -1134,6 +1135,13 @@ const EntMMIntro = new engine.Entity({
         /*surface.drawImage(target.icon2,
             surface.canvas.width-target.icon2.width-4,
             surface.canvas.height-target.icon2.height-copyright_offset-(14*4));*/
+
+        if (4 <= target.time && target.time < 5)
+        {
+            engine.draw_text(surface, 0, 0, 'abc', 'fill', 16, 'left', 'top', 'rgba(0,0,0,0)', '"DejaVu Sans Mono"');
+            engine.draw_text(surface, 0, 0, 'abc', 'fill', 16, 'left', 'top', 'rgba(0,0,0,0)', '"Montserrat"');
+            engine.draw_text(surface, 0, 0, 'abc', 'fill', 16, 'left', 'top', 'rgba(0,0,0,0)', '"Source Sans Pro"');
+        }
     },
     kb_down: function(target, key)
     {
