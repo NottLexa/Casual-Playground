@@ -28,6 +28,19 @@ const Globals = {
     REPLY_DEFAULT: 0,
 };
 
+const DEFAULT = {
+    version: 1,
+    type: 'CELL',
+    name: 'Cell',
+    desc: 'No description given.',
+    notexture: [255, 255, 255],
+    localization: {},
+    script: {
+        create: undefined,
+        step: undefined,
+    },
+};
+
 const LoggerClass = {
     types: ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
     DEBUG: 0,
@@ -68,7 +81,7 @@ const get = function(code = '')
     {
         ret[1] = new ccc.CompilerConclusion(1);
     }
-    return ret;
+    return [{...DEFAULT, ...ret[0]}, ret[1], ret[2]];
 }
 
 const Cell = function(

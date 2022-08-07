@@ -650,7 +650,21 @@ const EntFieldBoard = new engine.Entity({
         {
             for (let x = 0; x < target.board_width; x++)
             {
-                target.board[y][x].step();
+                try {target.board[y][x].step();}
+                catch (err)
+                {
+                    let concl = new ccc.CompilerConclusion(400);
+                    let cur = new ccc.CompilerCursor();
+                    logger.push([
+                        comp.LoggerClass.ERROR,
+                        new Date(),
+                        `Runtime error for cell (${x}, ${y}) with CellID ${idlist[target.board[y][x].cellid]}`,
+                        `CasualPlayground Compiler encountered an error: ${concl.code}`,
+                        concl.full_conclusion(),
+                        cur.highlight(),
+                        cur.string(),
+                    ])
+                }
             }
         }
         target.time_elapsed = (Date.now() - start)/1000;
