@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" style="margin: 0; padding: 0">
+    <head>
+        <meta charset="UTF-8">
+        <title>Casual Playground</title>
+        <style type="text/css">
+            @font-face {
+                font-family: 'DejaVu Sans Mono';
+                src: url('data/fonts/default.ttf') format('truetype');
+                font-weight: normal;
+                font-style: normal;
+            }
+            @font-face {
+                font-family: 'Montserrat';
+                src: url('data/fonts/montserrat.ttf') format('truetype');
+                font-weight: normal;
+                font-style: normal;
+            }
+            @font-face {
+                font-family: 'Source Sans Pro';
+                src: url('data/fonts/SourceSansPro.ttf') format('truetype');
+                font-weight: normal;
+                font-style: normal;
+            }
+
+            table.table-custom {
+                background: rgb(0,0,0);
+                background: radial-gradient(circle, rgba(0,0,0,1) 0%, rgb(43, 18, 124) 100%);
+                color: #fff;
+                border-bottom: 1px solid black;
+                border-collapse: collapse;
+            }
+            td.table-cell {
+                /*border: 2px solid black;*/
+                margin: 0;
+                padding: 0;
+            }
+
+            button.button-exit, button.button-exit:hover, button.button-exit:active, button.button-exit:focus {
+                color: white;
+                border: 0;
+                width: 30px;
+                height: 30px;
+            }
+
+            button.button-exit {
+                background: rgba(0,0,0,0);
+            }
+            button.button-exit:hover {
+                background: #f00;
+            }
+            button.button-exit:active {
+                background: #f44;
+            }
+
+            button.button-max, button.button-max:hover, button.button-max:active, button.button-max:focus {
+                color: white;
+                border: 0;
+                width: 30px;
+                height: 30px;
+            }
+
+            button.button-max {
+                background: rgba(0,0,0,0);
+            }
+            button.button-max:hover {
+                background: #08f;
+            }
+            button.button-max:active {
+                background: #29f;
+            }
+
+            button.button-min, button.button-min:hover, button.button-min:active, button.button-min:focus {
+                color: white;
+                border: 0;
+                width: 30px;
+                height: 30px;
+            }
+
+            button.button-min {
+                background: rgba(0,0,0,0);
+            }
+            button.button-min:hover {
+                background: #f80;
+            }
+            button.button-min:active {
+                background: #f92;
+            }
+
+            .drag-enable {
+                -webkit-app-region: drag;
+            }
+            .drag-disable {
+                -webkit-app-region: no-drag;
+            }
+
+            .unselectable {
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+        </style>
+    </head>
+    <body style="margin: 0; padding: 0; overflow: hidden;">
+        <div class="unselectable" style="border: 1px solid black; font-family: 'Montserrat',serif">
+            <table class="table-custom" style="width: 100%; text-align: center" id="top_panel">
+                <tr>
+                    <td class="table-cell drag-enable" id="window-name">
+                        Casual Playground
+                    </td>
+                    <td class="table-cell drag-disable" style="width: 0; white-space: nowrap">
+                        <button class="button-min" tabindex="-1" onclick="nw.Window.get().minimize()">
+                            &#128469;
+                        </button>
+                    </td>
+                    <td class="table-cell drag-disable" style="width: 0; white-space: nowrap">
+                        <button id="button_max" class="button-max" tabindex="-1" onclick="nw.Window.get().maximize()">
+                            <div style="transform: translate(0); text-shadow: 0 0">&#128470;</div>
+                        </button>
+                    </td>
+                    <td class="table-cell drag-disable" style="width: 0; white-space: nowrap">
+                        <button class="button-exit" tabindex="-1" onclick="nw.Window.get().close()">
+                            X
+                        </button>
+                    </td>
+                </tr>
+            </table>
+            <canvas class="drag-disable" id="CasualPlaygroundCanvas"></canvas>
+        </div>
+        <div id="text_window" style="visibility: hidden; margin: 0; border: 0; padding: 0; display: inline-block"></div>
+        <script type="module" src="CASUAL_PLAYGROUND.js"></script>
+    </body>
+</html>
