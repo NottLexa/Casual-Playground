@@ -1,0 +1,31 @@
+VERSION 1
+
+CELL "Wire" "A wire cell from WireWorld."
+
+NOTEXTURE 239 185 73
+
+LOCALIZATION
+    rus "Провод" "Клетка провода из WireWorld."
+
+INCLUDE MOD
+    MYSELF AS @wireworld UNLINKED
+
+SCRIPT CREATE
+    _mincx = :max(-1, -__X)
+    _mincy = :max(-1, -__Y)
+    _maxcx = :min(1, BOARDWIDTH-__X-1)
+    _maxcy = :min(1, BOARDHEIGHT-__Y-1)
+
+SCRIPT STEP
+    _counter = 0
+    _cx = _mincx
+    WHILE (_cx <= _maxcx)
+        _cy = _mincy
+        WHILE (_cy <= _maxcy)
+            IF :not(:and(_cx == 0, _cy == 0))
+                IF (:getcell(__X+_cx, __Y+_cy) == #head@wireworld)
+                    _counter = _counter + 1
+            _cy = _cy + 1
+        _cx = _cx + 1
+    IF :or(_counter == 1, _counter == 2)
+        :setcell(__X, __Y, #head@wireworld)

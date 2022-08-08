@@ -1,0 +1,14 @@
+VERSION 1
+
+CELL "Electron tail" "An electron tail cell from WireWorld."
+
+NOTEXTURE 239 73 73
+
+LOCALIZATION
+    rus "Хвост сигнала" "Клетка хвоста сигнала из WireWorld."
+
+INCLUDE MOD
+    MYSELF @wireworld
+
+SCRIPT STEP
+    :setcell(__X, __Y, #wire@wireworld)
