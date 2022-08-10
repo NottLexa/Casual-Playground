@@ -1,0 +1,8 @@
+VERSION 1
+
+CELL "Empty" "An empty cell from WireWorld."
+
+NOTEXTURE 17 17 17
+
+LOCALIZATION
+    rus "Пусто" "Пустая клетка из WireWorld."

@@ -15,7 +15,7 @@
     "COPYING",
     "core/"
   ],
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "run_nwjs.js",
   "chromium-args": "--disable-devtools --enable-logging=stderr",
   "devDependencies": {
