@@ -233,7 +233,9 @@ const load_mod = function(modfolder, mod_origin, official)
 //#endregion
 
 //#region [SETTINGS]
-var loc = 'rus';
+let user_settings = JSON.parse(fs.readFileSync('./settings.json', {encoding:"utf8"}));
+
+var loc = user_settings.localization;
 var locstrings = JSON.parse(fs.readFileSync('./core/localization.json', {encoding:"utf8"})).localization;
 var current_instrument = {'type': null};
 var gvars = [{'objdata':{},
@@ -934,7 +936,7 @@ const EntFieldSUI = new engine.Entity({
         let localization = celldata.localization;
         let name_string = localization.hasOwnProperty(loc) ? localization[loc].name : celldata.name;
         let origin_string = celldata.origin;
-        let origin_color = celldata.official ? 'green' : 'white';
+        let origin_color = celldata.official ? 'lime' : 'white';
         let from_string = get_locstring('descwin/from');
         let desc_string = localization.hasOwnProperty(loc) ? localization[loc].desc : celldata.desc;
 
@@ -1159,8 +1161,12 @@ const EntMMIntro = new engine.Entity({
     },
     kb_down: function(target, key)
     {
-        if (key.code === 'Space') target.time = Math.max(4, target.time);
+        target.time = Math.max(4, target.time);
     },
+    mouse_down: function(target, key)
+    {
+        target.time = Math.max(4, target.time);
+    }
 });
 //#endregion
 //#region [BACKGROUND]
