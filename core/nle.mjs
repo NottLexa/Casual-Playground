@@ -153,13 +153,15 @@ const Display = function(canvas, canvas_width, canvas_height)
     };
 };
 
-var current_room = {do_step: function(){}, do_start: function(){}, do_end: function(){}, do_kb_down: function(){},
+var default_room = {do_step: function(){}, do_start: function(){}, do_end: function(){}, do_kb_down: function(){},
     do_kb_up: function(){}, do_mouse_down: function(){}, do_mouse_up: function(){}, do_mouse_move: function(){}};
+var current_room = default_room;
 const change_current_room = function(new_room)
 {
-    current_room.do_end();
+    let old_room = current_room;
+    current_room.do_end(new_room);
     current_room = new_room;
-    current_room.do_start();
+    current_room.do_start(old_room);
 }
 
 const Room = function(entities)
@@ -195,13 +197,13 @@ const Room = function(entities)
         }
     };
 
-    this.do_start = function()
+    this.do_start = function(previous_room)
     {
-        this.do_for_every('room_start');
+        this.do_for_every('room_start', previous_room);
     };
-    this.do_end = function()
+    this.do_end = function(next_room)
     {
-        this.do_for_every('room_end');
+        this.do_for_every('room_end', next_room);
     };
 
     this.do_kb_down = function(event)
@@ -263,4 +265,4 @@ const Instance = function (entity)
 
 export {Display, current_room, change_current_room, Room, Entity, Instance, clamp, linear_interpolation,
     draw_text, LMB, RMB, MMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP, draw_line, range2range, wrap,
-    lengthdir_x, lengthdir_y};
+    lengthdir_x, lengthdir_y, default_room};

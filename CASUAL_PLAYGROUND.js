@@ -32,7 +32,7 @@ const fs = require('fs');
 const path = require('path');
 var vi;
 try { vi = JSON.parse(fs.readFileSync('./version_info.json', {encoding: "utf8"})); }
-catch (err) { vi = {version_info:{version:"Unknown Version",stage:"Unknown Stage"}}; }
+catch (err) { vi = {version_info:{version:"Unknown Version",stage:"Unknown Stage",build:0}}; }
 
 //#endregion
 
@@ -40,6 +40,7 @@ catch (err) { vi = {version_info:{version:"Unknown Version",stage:"Unknown Stage
 //#region [ИНИЦИАЛИЗАЦИЯ]
 let version = vi.version_info.version;
 let dvlp_stage = vi.version_info.stage;
+let dvlp_build = ''+vi.version_info.build;
 
 global.console.log(
     ' _____                       _    ______ _                                             _ \n' +
@@ -51,8 +52,9 @@ global.console.log(
     '                                                  __/ | __/ |                            \n' +
     '                                                 |___/ |___/                             \n' +
     'by:                                                                            version:  \n' +
-    '  Alexey Kozhanov' + (' '.repeat(72-version.length)) + version                        + '\n' +
-    (' '.repeat(89-dvlp_stage.length))                    + dvlp_stage                     + '\n')
+    '  Alexey Kozhanov' +
+    (' '.repeat(72-version.length-4-dvlp_build.length)) + `${version} [#${dvlp_build}]`    + '\n' +
+    (' '.repeat(89-dvlp_stage.length))                  + dvlp_stage                       + '\n')
 
 document.getElementById('window-name').innerText = `Casual Playground - ${dvlp_stage} ${version}`;
 
@@ -115,11 +117,23 @@ const get_text_width = function(txt, font)
     return text_window.offsetWidth;
 };
 
-const get_locstring = function(locstring)
+const get_locstring = function(locstring_id)
 {
-    return locstrings[locstring].hasOwnProperty(loc)
-        ? locstrings[locstring][loc]
-        : locstrings[locstring].__noloc;
+    let nodes = locstring_id.split('/');
+    let pth = locstrings;
+    for (let i=0; i<nodes.length; i++)
+    {
+        let dir = nodes[i];
+        if (pth.hasOwnProperty(dir))
+        {
+            if (i === nodes.length-1)
+                return pth[dir].hasOwnProperty(loc)
+                    ? pth[dir][loc]
+                    : pth[dir].__noloc;
+            else pth = pth[dir];
+        }
+        else return '';
+    }
 }
 
 const arraysEqual = function(a, b)
@@ -267,15 +281,6 @@ if (!fs.existsSync(modsfolder)) fs.mkdirSync(modsfolder);
 let coremods = load_mod(corefolder, 'Casual Playground', 1);
 idlist.push(...Object.keys(coremods));
 objdata = {...objdata, ...coremods};
-
-/*for (let moddir of load_modlist(modsfolder))
-{
-    let modpath = path.join(modsfolder, moddir);
-    let mod = load_mod(modpath, moddir, 0);
-    idlist.push(...Object.keys(mod));
-    objdata = {...objdata, ...mod};
-}*/
-
 gvars[0].objdata = objdata;
 
 global.console.log(Object.keys(objdata));
@@ -580,6 +585,9 @@ const EntFieldBoard = new engine.Entity({
             case 'KeyT':
                 target.tpt_power = Math.max(target.tpt_min, target.tpt_power+1);
                 target.timepertick = target.get_tpt(target.tpt_power);
+                break;
+            case 'Escape':
+                engine.change_current_room(room_mainmenu);
                 break;
         }
     },
@@ -1210,8 +1218,9 @@ const EntMMBG = new engine.Entity({
                 target.colors[Math.floor(Math.random()*target.colors.length)]
             )
         );
-        target.controls_strings = get_locstring('mm/controls').split('|');
-        target.controls_keys = [null, 'WASD', 'QE', 'RT', 'Space', 'C', 'Tab', 'LMB'];
+        target.controls_strings = [get_locstring('mm/controls/heading'),
+            ...[...Array(7).keys()].map(val => get_locstring('mm/controls/'+(val+1)))];
+        target.controls_keys = [null, 'WASD', 'QE', 'RT', 'Space', 'C', 'Tab', 'LMB', 'Esc'];
     },
     step: function(target)
     {
@@ -1248,9 +1257,8 @@ const EntMMBG = new engine.Entity({
 const EntMMController = new engine.Entity({
     create: function(target)
     {
-        target.time = 0;
-        target.time_paused = false;
-
+        // target.time = 0;
+        // target.time_paused = false;
         let create_button = function(width, height, text, x_offset, y_offset, trigger)
         {
             let bttn = EntMMButton.create_instance();
@@ -1292,7 +1300,16 @@ const EntMMController = new engine.Entity({
     },
     kb_down: function(target, key)
     {
-        if (key.code === 'Space') target.time = Math.max(4, target.time);
+        target.time = Math.max(4, target.time);
+    },
+    mouse_down: function(target, key)
+    {
+        target.time = Math.max(4, target.time);
+    },
+    room_start: function(target, prev_room)
+    {
+        target.time = prev_room === room_field ? 5 : 0;
+        target.time_paused = false;
     },
 });
 //#endregion
@@ -1418,12 +1435,12 @@ const EntMMStartMenu = new engine.Entity({
         target.mods_height = Math.round((target.window_height-(4*target.subwindow_padding))*3/6);
         target.settings_height = Math.round((target.window_height-(4*target.subwindow_padding))*2/6);
         target.button_height = Math.round((target.window_height-(4*target.subwindow_padding))/6);
-        target.show_step = 0;
-        target.show = false;
-        target.scroll = [0, 0];
-        target.old_scroll = [0, 0];
-        target.new_scroll = [0, 0];
-        target.scroll_step = [0, 0];
+        // target.show_step = 0;
+        // target.show = false;
+        // target.scroll = [0, 0];
+        // target.old_scroll = [0, 0];
+        // target.new_scroll = [0, 0];
+        // target.scroll_step = [0, 0];
         target.max_scroll_step = [0.25, 0.25];
         target.inline_padding = 4;
         target.settings = [
@@ -1461,6 +1478,15 @@ const EntMMStartMenu = new engine.Entity({
             {
                 gvars[0].board_width = target.settings.filter(x => x.name === 'board_width')[0].value;
                 gvars[0].board_height = target.settings.filter(x => x.name === 'board_height')[0].value;
+
+                gvars[0].objdata = {};
+                objdata = gvars[0].objdata;
+                gvars[0].idlist = [];
+                idlist = gvars[0].idlist;
+
+                let loaded_mod = load_mod(path.join('core', 'corecontent'), 'Casual Playground', true);
+                idlist.push(...Object.keys(loaded_mod));
+                for (let k in loaded_mod) objdata[k] = loaded_mod[k];
 
                 for (let mod of target.modlist.filter(x => x.enabled))
                 {
@@ -1761,6 +1787,15 @@ const EntMMStartMenu = new engine.Entity({
         }
 
         return surf;
+    },
+    room_start: function (target)
+    {
+        target.show_step = 0;
+        target.show = false;
+        target.scroll = [0, 0];
+        target.old_scroll = [0, 0];
+        target.new_scroll = [0, 0];
+        target.scroll_step = [0, 0];
     }
 });
 //#endregion
