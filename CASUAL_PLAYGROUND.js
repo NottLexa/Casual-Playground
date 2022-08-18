@@ -101,8 +101,8 @@ nw.Window.get().on
 );
 nw.Window.get().resizeTo(Math.round(window.screen.width*3/4),
     Math.round(window.screen.height*3/4) + top_panel.offsetHeight);
-nw.Window.get().moveTo(Math.round(window.screen.width*1/8),
-    Math.round(window.screen.height*1/8) - Math.round(top_panel.offsetHeight/2));
+nw.Window.get().moveTo(Math.round(window.screen.width/8),
+    Math.round(window.screen.height/8) - Math.round(top_panel.offsetHeight/2));
 
 nw.Window.get().show();
 //#endregion
@@ -348,18 +348,6 @@ var globalconsole = EntGlobalConsole.create_instance();
 const EntFieldBoard = new engine.Entity({
     create: function(target)
     {
-        target.keys = {
-            'up': false,
-            'left': false,
-            'right': false,
-            'down': false,
-            'speedup': false,
-            'speeddown': false,
-            'lmb': false,
-            'plus': false,
-            'minus': false,
-            'shift': false,
-        };
         // target.cameraspeed = Math.round(Math.log2(Math.pow(2, 9)*scale/100));
         target.mincamspeed = Math.round(Math.log2(Math.pow(2, 6)*scale/100));
         target.maxcamspeed = Math.round(Math.log2(Math.pow(2, 14)*scale/100));
@@ -415,14 +403,19 @@ const EntFieldBoard = new engine.Entity({
     },
     step: function(target)
     {
-        if (target.keys.plus) this.board_zoom_in(target, target.zoomspeed*deltatime);
-        if (target.keys.minus) this.board_zoom_out(target, target.zoomspeed*deltatime);
+        if (!globalkeys.Shift && globalkeys.Equal) this.board_zoom_in(target, target.zoomspeed*deltatime);
+        if (!globalkeys.Shift && globalkeys.Minus) this.board_zoom_out(target, target.zoomspeed*deltatime);
 
         let limitspeed = 2**target.cameraspeed;
         let acc = limitspeed*target.acceleration;
 
-        let hmov = target.keys.right - target.keys.left;
-        let vmov = target.keys.down - target.keys.up;
+        let right = ~~(globalkeys.ArrowRight||globalkeys.KeyD);
+        let left = ~~(globalkeys.ArrowLeft||globalkeys.KeyA);
+        let down = ~~(globalkeys.ArrowDown||globalkeys.KeyS);
+        let up = ~~(globalkeys.ArrowUp||globalkeys.KeyW);
+
+        let hmov = right - left;
+        let vmov = down - up;
 
         if (hmov !== 0)
             target.hsp = engine.clamp(target.hsp + deltatime*acc*hmov, -limitspeed, limitspeed);
@@ -438,7 +431,7 @@ const EntFieldBoard = new engine.Entity({
         target.viewx += deltatime*target.hsp;
         target.viewy += deltatime*target.vsp;
 
-        if (target.keys.lmb) this.board_do_instrument(target);
+        if (globalkeys.LMB && !fieldsui.show) this.board_do_instrument(target);
 
         if (!target.time_paused) target.time += deltatime;
         if (target.time > target.timepertick) this.board_step(target);
@@ -463,11 +456,13 @@ const EntFieldBoard = new engine.Entity({
         let oy = -target.viewy%cellsize;
         let lx = Math.ceil(WIDTH/cellsize);
         let ly = Math.ceil(HEIGHT/cellsize);
-        let realx, realy;
+        let realx = -target.viewx - (target.viewx > 0);
+        let realy = -target.viewy - (target.viewy > 0);
+        /*let realx, realy;
         if (target.viewx > 0) { realx = -target.viewx-1; }
         else { realx = -target.viewx; }
         if (target.viewy > 0) { realy = -target.viewy-1; }
-        else { realy = -target.viewy; }
+        else { realy = -target.viewy; }*/
         surface.drawImage(target.surfaces.board.canvas, realx, realy);
 
         let linex, liney, startx, starty, endx, endy;
@@ -538,32 +533,6 @@ const EntFieldBoard = new engine.Entity({
         let setkey = true;
         switch (key.code)
         {
-            case 'ArrowUp':
-            case 'KeyW':
-                target.keys.up = setkey;
-                break;
-            case 'ArrowLeft':
-            case 'KeyA':
-                target.keys.left = setkey;
-                break;
-            case 'ArrowDown':
-            case 'KeyS':
-                target.keys.down = setkey;
-                break;
-            case 'ArrowRight':
-            case 'KeyD':
-                target.keys.right = setkey;
-                break;
-            case 'Equal':
-                target.keys.plus = setkey;
-                break;
-            case 'Minus':
-                target.keys.minus = setkey;
-                break;
-            case 'ShiftLeft':
-            case 'ShiftRight':
-                target.keys.shift = setkey;
-                break;
             case 'KeyQ':
                 target.cameraspeed = engine.clamp(target.cameraspeed-1, target.mincamspeed, target.maxcamspeed);
                 break;
@@ -589,69 +558,34 @@ const EntFieldBoard = new engine.Entity({
             case 'Escape':
                 engine.change_current_room(room_mainmenu);
                 break;
-        }
-    },
-    kb_up: function(target, key)
-    {
-        let setkey = false;
-        switch (key.code)
-        {
-            case 'ArrowUp':
-            case 'KeyW':
-                target.keys.up = setkey;
-                break;
-            case 'ArrowLeft':
-            case 'KeyA':
-                target.keys.left = setkey;
-                break;
-            case 'ArrowDown':
-            case 'KeyS':
-                target.keys.down = setkey;
-                break;
-            case 'ArrowRight':
-            case 'KeyD':
-                target.keys.right = setkey;
-                break;
             case 'Equal':
-                target.keys.plus = setkey;
+                if (globalkeys.Shift) current_instrument.scale++;
                 break;
             case 'Minus':
-                target.keys.minus = setkey;
-                break;
-            case 'ShiftLeft':
-            case 'ShiftRight':
-                target.keys.shift = setkey;
+                if (globalkeys.Shift)
+                    current_instrument.scale = Math.max(current_instrument.scale-1, 1);
                 break;
         }
     },
     mouse_down: function (target, mb)
     {
-        let setkey = true;
-        switch (mb)
+        if (!fieldsui.show)
         {
-            case engine.LMB:
-                target.keys.lmb = setkey;
-                break;
-            case engine.WHEELUP:
-                if (target.keys.shift) current_instrument.scale++;
-                else this.board_zoom_in(target, 1);
-                break;
-            case engine.WHEELDOWN:
-                if (target.keys.shift)
-                    current_instrument.scale = Math.max(current_instrument.scale-1, 1);
-                else this.board_zoom_out(target, 1);
-                break;
+            let setkey = true;
+            switch (mb)
+            {
+                case engine.WHEELUP:
+                    if (globalkeys.Shift) current_instrument.scale++;
+                    else this.board_zoom_in(target, 1);
+                    break;
+                case engine.WHEELDOWN:
+                    if (globalkeys.Shift)
+                        current_instrument.scale = Math.max(current_instrument.scale-1, 1);
+                    else this.board_zoom_out(target, 1);
+                    break;
+            }
         }
-    },
-    mouse_up: function (target, mb)
-    {
-        let setkey = false;
-        switch (mb)
-        {
-            case engine.LMB:
-                target.keys.lmb = setkey;
-                break;
-        }
+
     },
     board_step: function (target)
     {
@@ -782,30 +716,30 @@ const EntFieldBoard = new engine.Entity({
         {
             case 'pencil':
                 scale = current_instrument.scale-1
-                if (current_instrument.penciltype === true) // round
+                if (((rx % cellsize) < target.viewscale) && ((ry % cellsize) < target.viewscale))
                 {
-
-                }
-                else // square
-                {
-                    if (((rx % cellsize) < target.viewscale) && ((ry % cellsize) < target.viewscale))
+                    for (let ix = cx-scale; ix < cx+scale+1; ix++)
                     {
-                        for (let ix = cx-scale; ix < cx+scale+1; ix++)
+                        for (let iy = cy-scale; iy < cy+scale+1; iy++)
                         {
-                            for (let iy = cy-scale; iy < cy+scale+1; iy++)
+                            if ((0 <= ix) && (ix < maxcx) && (0 <= iy) && (iy < maxcy))
                             {
-                                if ((0 <= ix) && (ix < maxcx) && (0 <= iy) && (iy < maxcy))
+                                if (current_instrument.penciltype === true) // round
                                 {
-                                    let cellid = current_instrument.cell;
-                                    target.board[iy][ix].reset(cellid);
-                                    /*target.board[iy][ix] = new comp.Cell({X:ix,Y:iy},cellid, target.board,
-                                        gvars);*/
+                                    let dx = ix-cx;
+                                    let dy = iy-cy;
+                                    if (Math.round(Math.sqrt(dx*dx + dy*dy)) <= scale)
+                                        target.board[iy][ix].reset(current_instrument.cell);
                                 }
+                                else target.board[iy][ix].reset(current_instrument.cell);
+                                /*target.board[iy][ix] = new comp.Cell({X:ix,Y:iy},cellid, target.board,
+                                    gvars);*/
                             }
                         }
-                        target.surfaces.board = this.draw_board(target);
                     }
+                    target.surfaces.board = this.draw_board(target);
                 }
+                break;
         }
     },
 });
@@ -814,10 +748,10 @@ const EntFieldBoard = new engine.Entity({
 const EntFieldSUI = new engine.Entity({
     create: function(target)
     {
-        target.keys = {ctrl: false};
         target.show_step = 0.0;
-        target.show_menu = false;
-        target.show_all = true;
+        target.show = false;
+        //target.show_menu = false;
+        //target.show_all = true;
         target.element_number = 5;
         let en = target.element_number;
         target.window_spacing = Math.round(8*scale/100);
@@ -844,7 +778,7 @@ const EntFieldSUI = new engine.Entity({
     },
     step: function(target)
     {
-        let new_step = engine.linear_interpolation(target.show_step, Math.floor(target.show_menu), 3);
+        let new_step = engine.linear_interpolation(target.show_step, Math.floor(target.show), 3);
         if (target.show_step !== new_step)
         {
             target.show_step = new_step;
@@ -856,13 +790,15 @@ const EntFieldSUI = new engine.Entity({
     },
     draw: function(target, surface)
     {
-        if (target.show_all)
+        if (target.show_step !== 0.0)
         {
+            surface.fillStyle = `rgba(0,0,0,${target.show_step/2})`;
+            surface.fillRect(0,0,surface.canvas.width,surface.canvas.height);
             let [ds, eb, ws] = [target.display_scale, target.element_border, target.window_spacing];
             let measure = Math.floor(target.cellmenu_width*1.5);
             let phase_offset = Math.floor(measure*target.show_step)-measure;
             surface.drawImage(target.cell_window_surface.canvas, phase_offset, 0);
-            if (target.desc_window_show)
+            if (target.desc_window_show && target.show)
                 surface.drawImage(target.desc_window_surface.canvas, ...target.desc_window_offset);
         }
     },
@@ -871,15 +807,18 @@ const EntFieldSUI = new engine.Entity({
         switch (key.code)
         {
             case 'Tab':
-                if (target.keys.ctrl)
-                    target.show_all = !target.show_all;
-                else
-                    target.show_menu = !target.show_menu;
+                if (globalkeys.Shift)
+                {
+                    if (current_instrument.hasOwnProperty('penciltype'))
+                        current_instrument.penciltype = !current_instrument.penciltype;
+                }
+                else target.show = !target.show;
+                break;
         }
     },
     mouse_move: function(target)
     {
-        if (target.show_all)
+        if (target.show)
         {
             let ci = this.mouse_on_cell(target);
             if (ci !== null)
@@ -897,7 +836,7 @@ const EntFieldSUI = new engine.Entity({
     },
     mouse_down: function(target, buttonid)
     {
-        if (target.show_all)
+        if (target.show)
         {
             let ci = this.mouse_on_cell(target);
             if (ci !== null)
@@ -905,7 +844,17 @@ const EntFieldSUI = new engine.Entity({
                 switch (buttonid)
                 {
                     case engine.LMB:
-                        current_instrument = {type: 'pencil', cell: ci, penciltype: false, scale: 1};
+                        current_instrument =
+                            {
+                                type: 'pencil',
+                                cell: ci,
+                                penciltype: current_instrument.hasOwnProperty('penciltype')
+                                    ? current_instrument.penciltype
+                                    : false,
+                                scale: current_instrument.hasOwnProperty('scale')
+                                    ? current_instrument.scale
+                                    : 1,
+                            };
                 }
             }
         }
@@ -949,7 +898,7 @@ const EntFieldSUI = new engine.Entity({
         let desc_string = localization.hasOwnProperty(loc) ? localization[loc].desc : celldata.desc;
 
         let border_color = '#4d4d4d';
-        let bg_color = 'rgba(77,77,77,0.5)';
+        let bg_color = 'rgba(0,0,0,0.5)';
 
         let surface = document.createElement('canvas').getContext('2d');
         surface.font = `${name_size}px sans-serif`;
@@ -1822,13 +1771,54 @@ var deltatime = 0.0;
 var mx = 0;
 var my = 0;
 var scroll_delta = 0;
+var globalkeys = {};
 document.addEventListener('keydown', function(event)
 {
     engine.current_room.do_kb_down(event);
+    globalkeys[event.code] = true;
+    switch (event.code)
+    {
+        case 'ShiftLeft':
+        case 'ShiftRight':
+            globalkeys.Shift = true;
+            break;
+        case 'ControlLeft':
+        case 'ControlRight':
+            globalkeys.Ctrl = true;
+            break;
+        case 'AltLeft':
+        case 'AltRight':
+            globalkeys.Alt = true;
+            break;
+        case 'MetaLeft':
+        case 'MetaRight':
+            globalkeys.Meta = true;
+            break;
+    }
 });
 document.addEventListener('keyup', function(event)
 {
     engine.current_room.do_kb_up(event);
+    globalkeys[event.code] = false;
+    switch (event.code)
+    {
+        case 'ShiftLeft':
+        case 'ShiftRight':
+            globalkeys.Shift = false;
+            break;
+        case 'ControlLeft':
+        case 'ControlRight':
+            globalkeys.Ctrl = false;
+            break;
+        case 'AltLeft':
+        case 'AltRight':
+            globalkeys.Alt = false;
+            break;
+        case 'MetaLeft':
+        case 'MetaRight':
+            globalkeys.Meta = false;
+            break;
+    }
 });
 canvas_element.addEventListener('mousemove', function(event)
 {
@@ -1839,10 +1829,34 @@ canvas_element.addEventListener('mousemove', function(event)
 canvas_element.addEventListener('mousedown', function(event)
 {
     engine.current_room.do_mouse_down(event.button);
+    switch (event.button)
+    {
+        case engine.LMB:
+            globalkeys.LMB = true;
+            break;
+        case engine.RMB:
+            globalkeys.RMB = true;
+            break;
+        case engine.MMB:
+            globalkeys.MMB = true;
+            break;
+    }
 });
 canvas_element.addEventListener('mouseup', function(event)
 {
     engine.current_room.do_mouse_up(event.button);
+    switch (event.button)
+    {
+        case engine.LMB:
+            globalkeys.LMB = false;
+            break;
+        case engine.RMB:
+            globalkeys.RMB = false;
+            break;
+        case engine.MMB:
+            globalkeys.MMB = false;
+            break;
+    }
 });
 canvas_element.addEventListener('wheel', function(event)
 {
