@@ -111,6 +111,21 @@
           "rus": "Высота доски"
         }
       }
+    },
+    "instrument":
+    {
+      "none":
+      {
+        "__usage": "Placeholder text displayed if no instrument is selected, capitalized",
+        "__noloc": "No instrument",
+        "rus": "Без инструмента"
+      },
+      "brush":
+      {
+        "__usage": "Brush instrument, capitalized",
+        "__noloc": "Brush",
+        "rus": "Кисть"
+      }
     }
   },
   "tutorial":
@@ -131,7 +146,7 @@
     "English doesn't need translation because '__noloc' is already an english variant of string.",
 
     "Translation is mainly made by community, because developer doesn't know any language except Russian and English.",
-    "You can make your contribution to game's localization on Casual Playground repo's 'localization' branch:",
+    "You can make your contribution to game's localization on Casual Playground repo's 'loc' branch:",
     "https://github.com/NottLexa/Casual-Playground/tree/loc"
   ]
 }

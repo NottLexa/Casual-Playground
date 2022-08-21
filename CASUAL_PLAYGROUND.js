@@ -32,7 +32,16 @@ const fs = require('fs');
 const path = require('path');
 var vi;
 try { vi = JSON.parse(fs.readFileSync('./version_info.json', {encoding: "utf8"})); }
-catch (err) { vi = {version_info:{version:"Unknown Version",stage:"Unknown Stage",build:0}}; }
+catch (err) {
+    vi = {
+        version_info: {
+            version: "Unknown Version",
+                stage: "Unknown Stage",
+                build: 0,
+        },
+        devtools: false,
+    };
+}
 
 //#endregion
 
@@ -42,7 +51,7 @@ let version = vi.version_info.version;
 let dvlp_stage = vi.version_info.stage;
 let dvlp_build = ''+vi.version_info.build;
 
-global.console.log(
+global.console.log('\n'+
     ' _____                       _    ______ _                                             _ \n' +
     '/  __ \\                     | |   | ___ \\ |                                           | |\n' +
     '| /  \\/ __ _ ___ _   _  __ _| |   | |_/ / | __ _ _   _  __ _ _ __ ___  _   _ _ __   __| |\n' +
@@ -244,6 +253,30 @@ const load_mod = function(modfolder, mod_origin, official)
     return mods;
 }
 
+const load_img = function(path)
+{
+    let img = new Image();
+    img.src = path;
+    return img;
+}
+
+const load_images = function(folder, preload=false)
+{
+    let loaded = {};
+    for (let folder_element of fs.readdirSync(folder))
+    {
+        let element_path = path.join(folder, folder_element);
+        let name = path.parse(folder_element).name;
+        if (fs.lstatSync(element_path).isDirectory())
+            loaded[folder_element] = load_images(element_path, preload);
+        else
+        {
+            loaded[name] = load_img(element_path);
+            if (preload) loaded[name].onload = ()=>{};
+        }
+    }
+    return loaded;
+}
 //#endregion
 
 //#region [SETTINGS]
@@ -251,7 +284,7 @@ let user_settings = JSON.parse(fs.readFileSync('./settings.json', {encoding:"utf
 
 var loc = user_settings.localization;
 var locstrings = JSON.parse(fs.readFileSync('./core/localization.json', {encoding:"utf8"})).localization;
-var current_instrument = {'type': null};
+var current_instrument = {'type': 'none'};
 var gvars = [{'objdata':{},
               'idlist':[],
               'logger':[],
@@ -260,6 +293,8 @@ var gvars = [{'objdata':{},
               'linecolor_infield': [26, 26, 26],
               'linecolor_outfield': [102, 102, 102]},
              {}];
+var sprites = load_images('./core/sprites', true);
+
 var idlist = gvars[0].idlist;
 var objdata = gvars[0].objdata;
 var logger = gvars[0].logger;
@@ -520,9 +555,10 @@ const EntFieldBoard = new engine.Entity({
         // instrument
         switch (current_instrument.type)
         {
-            case 'pencil':
-                let string = `Pencil[${current_instrument.scale}] | ${idlist[current_instrument.cell]}` +
-                    ` | ${current_instrument.penciltype ? 'Round' : 'Square'}`
+            case 'brush':
+                let string = `${get_locstring('instrument/brush')} [${current_instrument.scale}]` +
+                    ` | ${idlist[current_instrument.cell]}` +
+                    ` | ${current_instrument.brushtype ? 'Round' : 'Square'}`
                 engine.draw_text(surface,
                     surface.canvas.width - 2, surface.canvas.height - 2 - 2*(fontsize_default-2),
                     string, 'fill', fontsize_default, 'right', 'bottom', 'white', '"Source Sans Pro"');
@@ -714,7 +750,7 @@ const EntFieldBoard = new engine.Entity({
         let maxcy = target.board_height;
         switch (current_instrument.type)
         {
-            case 'pencil':
+            case 'brush':
                 scale = current_instrument.scale-1
                 if (((rx % cellsize) < target.viewscale) && ((ry % cellsize) < target.viewscale))
                 {
@@ -724,7 +760,7 @@ const EntFieldBoard = new engine.Entity({
                         {
                             if ((0 <= ix) && (ix < maxcx) && (0 <= iy) && (iy < maxcy))
                             {
-                                if (current_instrument.penciltype === true) // round
+                                if (current_instrument.brushtype === true) // round
                                 {
                                     let dx = ix-cx;
                                     let dy = iy-cy;
@@ -750,17 +786,27 @@ const EntFieldSUI = new engine.Entity({
     {
         target.show_step = 0.0;
         target.show = false;
-        //target.show_menu = false;
-        //target.show_all = true;
-        target.element_number = 5;
+
+        target.element_number = 5; // number of objects in one line
+        target.window_spacing = Math.round(20*scale/100); // space between object menu's edge and objects
+        target.window_margin = Math.round(16*scale/100); // space between object menu and the game window's edge
+        target.display_scale = Math.round(80*scale/100); // the size of each object's image in object menu
+        target.window_border = 4; // thickness of borders
+        target.objmenu_heading_size = 48; // size of object menu title
+        target.instrmenu_heading_size = 36; // size of instrument menu title
+        target.instrmenu_heading_size_minimized = 20; // size of minimized instrument menu title
+        target.instrmenu_imgbox_ratio = 0.9;
         let en = target.element_number;
-        target.window_spacing = Math.round(8*scale/100);
         let ws = target.window_spacing;
-        target.display_scale = Math.round(80*scale/100);
+        let wm = target.window_margin;
         let ds = target.display_scale;
-        target.element_border = Math.round(target.display_scale/4);
+        let wb = target.window_border;
+        target.width_part = Math.round(display.cw()/3 - 4*wm); // equal parts of screen's width (currently a third)
+        target.objmenu_height = display.ch() - (2*wm); // object menu height
+        target.instrmenu_height = display.ch()/3 - (3*wm); // instrument menu height
+        target.instrmenu_height_minimized = wb+ws+target.instrmenu_heading_size_minimized;
+        target.element_border = Math.round((target.width_part-(2*ws)-(en*ds))/(en-1));
         let eb = target.element_border;
-        target.cellmenu_width = ws + en*(ds + eb) + eb;
 
         target.desc_window_width = 256+128;
         target.desc_window_surface = document.createElement('canvas').getContext('2d');
@@ -768,14 +814,19 @@ const EntFieldSUI = new engine.Entity({
         target.desc_window_show = false;
         target.desc_window_offset = [0,0];
 
-        target.cell_window_surface = document.createElement('canvas').getContext('2d');
-        target.cell_window_surface.canvas.width = target.cellmenu_width + Math.floor(ws/2);
-        target.cell_window_surface.canvas.height = display.ch() - (2*ws);
+        /*target.objmenu_surface = document.createElement('canvas').getContext('2d'); // object menu
+        target.objmenu_surface.canvas.width = target.width_part;
+        target.objmenu_surface.canvas.height = target.objmenu_height;*/
+
+        /*target.instrmenu_surface = document.createElement('canvas').getContext('2d'); // instrument menu
+        target.instrmenu_surface.canvas.width = target.width_part;
+        target.instrmenu_surface.canvas.height = target.instrmenu_height;*/
     },
     room_start: function(target)
     {
-        this.draw_main_window(target);
-    },
+
+    }
+    ,
     step: function(target)
     {
         let new_step = engine.linear_interpolation(target.show_step, Math.floor(target.show), 3);
@@ -790,17 +841,26 @@ const EntFieldSUI = new engine.Entity({
     },
     draw: function(target, surface)
     {
+        let wm = target.window_margin;
+        let ih = target.instrmenu_height;
+        let ihm = target.instrmenu_height_minimized;
         if (target.show_step !== 0.0)
         {
             surface.fillStyle = `rgba(0,0,0,${target.show_step/2})`;
             surface.fillRect(0,0,surface.canvas.width,surface.canvas.height);
             let [ds, eb, ws] = [target.display_scale, target.element_border, target.window_spacing];
-            let measure = Math.floor(target.cellmenu_width*1.5);
+            let measure = Math.floor(target.width_part*1.5);
             let phase_offset = Math.floor(measure*target.show_step)-measure;
-            surface.drawImage(target.cell_window_surface.canvas, phase_offset, 0);
+            let objmenu = this.draw_objmenu(target);
+            surface.drawImage(objmenu.canvas, phase_offset+wm, wm);
             if (target.desc_window_show && target.show)
                 surface.drawImage(target.desc_window_surface.canvas, ...target.desc_window_offset);
+            objmenu.canvas.remove();
         }
+        let instrmenu = this.draw_instrmenu(target);
+        surface.drawImage(instrmenu.canvas, surface.canvas.width-wm-target.width_part,
+            surface.canvas.height+((1-target.show_step)*(ih+wm))-ihm-wm-target.instrmenu_height);
+        instrmenu.canvas.remove();
     },
     kb_down: function(target, key)
     {
@@ -809,8 +869,8 @@ const EntFieldSUI = new engine.Entity({
             case 'Tab':
                 if (globalkeys.Shift)
                 {
-                    if (current_instrument.hasOwnProperty('penciltype'))
-                        current_instrument.penciltype = !current_instrument.penciltype;
+                    if (current_instrument.hasOwnProperty('brushtype'))
+                        current_instrument.brushtype = !current_instrument.brushtype;
                 }
                 else target.show = !target.show;
                 break;
@@ -846,15 +906,16 @@ const EntFieldSUI = new engine.Entity({
                     case engine.LMB:
                         current_instrument =
                             {
-                                type: 'pencil',
+                                type: 'brush',
                                 cell: ci,
-                                penciltype: current_instrument.hasOwnProperty('penciltype')
-                                    ? current_instrument.penciltype
+                                brushtype: current_instrument.hasOwnProperty('brushtype')
+                                    ? current_instrument.brushtype
                                     : false,
                                 scale: current_instrument.hasOwnProperty('scale')
                                     ? current_instrument.scale
                                     : 1,
                             };
+                        break;
                 }
             }
         }
@@ -862,17 +923,19 @@ const EntFieldSUI = new engine.Entity({
     mouse_on_cell: function(target)
     {
         let [ds, eb, ws] = [target.display_scale, target.element_border, target.window_spacing];
-        let measure = Math.floor(target.cellmenu_width*1.5);
+        let [hs, wm] = [target.objmenu_heading_size, target.window_margin];
+        let measure = Math.floor(target.width_part*1.5);
         let phase_offset = Math.floor(measure*target.show_step)-measure;
-        let inoneline = Math.floor((target.cellmenu_width - ws) / (ds + eb));
-        let mousex = mx-phase_offset;
-        let mousey = my;
-        let [detectwidth, detectheight] = [ds + eb, ds + fontsize_smaller + (1.5 * eb)];
-        let ci = Math.floor((mousex-eb)/detectwidth) + (Math.floor((mousey-eb)/detectheight) * inoneline);
-        let cx = ws + eb + ((ds + eb)*(ci%inoneline));
-        let cy = ws + eb + ((ds + eb + fontsize_smaller)*Math.floor(ci/inoneline));
-        if (cx <= mousex && mousex <+ cx + detectwidth - eb)
-            if (cy <= mousey && mousey <= cy + detectheight - eb)
+        let inoneline = target.element_number;
+        let mousex = mx-phase_offset-wm-ws;
+        let mousey = my-wm-ws;
+        let [detectwidth, detectheight] = [ds + eb, ds + fontsize_smaller + eb];
+        let ci = Math.floor(mousex/detectwidth)
+            + (Math.floor((mousey-ws-hs)/detectheight) * inoneline);
+        let cx = ((ds + eb)*(ci%inoneline));
+        let cy = (ws + hs) + ((ds + eb + fontsize_smaller)*Math.floor(ci/inoneline));
+        if (cx <= mousex && mousex <= cx + ds)
+            if (cy <= mousey && mousey <= cy + ds)
                 if (ci < idlist.length && ci >= 0)
                     return ci;
         return null;
@@ -976,31 +1039,44 @@ const EntFieldSUI = new engine.Entity({
 
         return surface;
     },
-    draw_main_window: function(target)
+    draw_objmenu: function(target)
     {
+        let ctx = document.createElement('canvas').getContext('2d');
+        ctx.canvas.width = target.width_part;
+        ctx.canvas.height = target.objmenu_height;
+        
         let ws = target.window_spacing;
         let ds = target.display_scale;
         let eb = target.element_border;
+        let wb = target.window_border;
+        let wb2 = wb/2;
 
-        target.cell_window_surface.clearRect(0, 0,
-            target.cell_window_surface.canvas.width, target.cell_window_surface.canvas.height);
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
         let alphabg = document.createElement('canvas').getContext('2d');
-        alphabg.canvas.width = target.cell_window_surface.canvas.width;
-        alphabg.canvas.height = target.cell_window_surface.canvas.height;
+        alphabg.canvas.width = ctx.canvas.width;
+        alphabg.canvas.height = ctx.canvas.height;
         alphabg.fillStyle = '#1a1a1a';
-        roundRect(alphabg, ws, ws, target.cellmenu_width-ws, target.cell_window_surface.canvas.height - (2*ws), 5);
+        roundRect(alphabg, wb2, wb2, target.width_part-wb, target.objmenu_height-wb, 5);
         alphabg.strokeStyle = '#7f7f7f';
-        alphabg.lineWidth = Math.floor(ws/2);
-        roundRect(alphabg, ws, ws, target.cellmenu_width-ws, target.cell_window_surface.canvas.height - (2*ws), 5, true);
+        alphabg.lineWidth = wb;
+        roundRect(alphabg, wb2, wb2, target.width_part-wb, target.objmenu_height-wb, 5, true);
         alphabg.globalCompositeOperation = 'destination-in';
         alphabg.fillStyle = 'rgba(0, 0, 0, 0.8)';
         alphabg.fillRect(0, 0, alphabg.canvas.width, alphabg.canvas.height);
         alphabg.globalCompositeOperation = 'source-over';
 
-        target.cell_window_surface.drawImage(alphabg.canvas, 0, 0);
+        ctx.drawImage(alphabg.canvas, 0, 0);
 
-        let inoneline = Math.floor((target.cellmenu_width - ws) / (ds + eb));
+        alphabg.canvas.remove();
+
+        let textsize = target.objmenu_heading_size;
+        engine.draw_text(ctx, ws, ws+Math.round(textsize/2), 'Objects', 'fill', textsize,
+            'left', 'center', 'white', '"Source Sans Pro"', 'italic');
+
+        let oy = ws+textsize;
+
+        let inoneline = target.element_number; //Math.floor(target.cellmenu_width / (ds + eb));
         let ci = -1
         for (let o of idlist)
         {
@@ -1009,21 +1085,81 @@ const EntFieldSUI = new engine.Entity({
             {
                 case 'CELL':
                     ci++;
-                    let cx = ws + eb + ((ds + eb) * (ci % inoneline));
-                    let cy = ws + eb + ((ds + eb + fontsize_smaller) * Math.floor(ci/inoneline));
-                    target.cell_window_surface.fillStyle = rgb_to_style(...obj.notexture);
-                    target.cell_window_surface.fillRect(cx, cy, ds, ds);
+                    let cx = ws + ((ds + eb) * (ci % inoneline));
+                    let cy = ws + oy + ((ds + eb + fontsize_smaller) * Math.floor(ci/inoneline));
+                    ctx.fillStyle = rgb_to_style(...obj.notexture);
+                    ctx.fillRect(cx, cy, ds, ds);
                     let name_string = (obj.localization.hasOwnProperty(loc)
                         ? obj.localization[loc].name
                         : obj.name);
 
-                    engine.draw_text(target.cell_window_surface, cx + (ds/2), cy + ds + (eb/2),
+                    engine.draw_text(ctx, cx + (ds/2), cy + ds + (eb/2),
                         cut_string(name_string, `${fontsize_smaller}px "Source Sans Pro"`, ds), 'fill',
                         fontsize_smaller, 'center', 'top', 'white', '"Source Sans Pro"');
             }
         }
+        
+        return ctx;
+    },
+    draw_instrmenu: function(target)
+    {
+        let ctx = document.createElement('canvas').getContext('2d');
+        ctx.canvas.width = target.width_part;
+        ctx.canvas.height = target.instrmenu_height;
+        
+        let ws = target.window_spacing;
+        let ws2 = Math.round(ws/2);
+        let ds = target.display_scale;
+        let eb = target.element_border;
+        let wb = target.window_border;
+        let wb2 = Math.round(wb/2);
+        let ih = target.instrmenu_height;
+        let ihm = target.instrmenu_height_minimized;
+        let ihs = target.instrmenu_heading_size;
+        let ihsm = target.instrmenu_heading_size_minimized;
+
+        ctx.clearRect(0, 0,
+            ctx.canvas.width, ctx.canvas.height);
+
+        let alphabg = document.createElement('canvas').getContext('2d');
+        alphabg.canvas.width = ctx.canvas.width;
+        alphabg.canvas.height = ctx.canvas.height;
+        alphabg.fillStyle = '#1a1a1a';
+        roundRect(alphabg, wb2, wb2, target.width_part-wb, target.instrmenu_height-wb, 5);
+        alphabg.strokeStyle = '#7f7f7f';
+        alphabg.lineWidth = wb;
+        roundRect(alphabg, wb2, wb2, target.width_part-wb, target.instrmenu_height-wb, 5, true);
+        alphabg.globalCompositeOperation = 'destination-in';
+        alphabg.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        alphabg.fillRect(0, 0, alphabg.canvas.width, alphabg.canvas.height);
+        alphabg.globalCompositeOperation = 'source-over';
+
+        ctx.drawImage(alphabg.canvas, 0, 0);
 
         alphabg.canvas.remove();
+
+        let textsize = ihsm+(target.show_step*(ihs-ihsm)); //target.instrmenu_heading_size;
+        engine.draw_text(ctx, target.width_part - (ws2+(target.show_step*(ws2-wb))),
+            wb+ws2+(target.show_step*(-wb+ws2)) + Math.round(textsize/2),
+            get_locstring(`instrument/${current_instrument.type}`),
+            'fill', textsize, 'right', 'center', 'white', '"Source Sans Pro"', 'italic');
+
+        let oy = textsize + ws2 + (target.show_step*ws2);
+
+        let img_box = ihm - ws + (target.show_step*(ih - 2*ws - oy - ihm + ws));
+
+        let local_ws = Math.round(ws/(2-target.show_step));
+
+        ctx.fillStyle = 'rgba(102, 102, 102, 0.5)';
+        roundRect(ctx, local_ws, local_ws + (target.show_step*oy), img_box, img_box, 2+(target.show_step*6));
+
+        let iip = img_box * (1-target.instrmenu_imgbox_ratio);
+
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(sprites.instruments[current_instrument.type],
+            local_ws+iip, local_ws+(target.show_step*oy)+iip, img_box-iip-iip, img_box-iip-iip);
+
+        return ctx;
     },
 });
 //#endregion
@@ -1111,9 +1247,11 @@ const EntMMIntro = new engine.Entity({
 
         if (4 <= target.time && target.time < 5)
         {
-            engine.draw_text(surface, 0, 0, 'abc', 'fill', 16, 'left', 'top', 'rgba(0,0,0,0)', '"DejaVu Sans Mono"');
-            engine.draw_text(surface, 0, 0, 'abc', 'fill', 16, 'left', 'top', 'rgba(0,0,0,0)', '"Montserrat"');
-            engine.draw_text(surface, 0, 0, 'abc', 'fill', 16, 'left', 'top', 'rgba(0,0,0,0)', '"Source Sans Pro"');
+            let prerender = (fonts, weight_style='')=>{
+                fonts.forEach((name)=>{engine.draw_text(surface, 0, 0, 'abc', 'fill', 16, 'left', 'top',
+                    'rgba(0,0,0,0)', name, weight_style)})};
+            prerender(['"DejaVu Sans Mono"', '"Montserrat"', '"Source Sans Pro"']);
+            prerender(['"Source Sans Pro"'], 'italic');
         }
     },
     kb_down: function(target, key)
@@ -1795,6 +1933,7 @@ document.addEventListener('keydown', function(event)
             globalkeys.Meta = true;
             break;
     }
+    if (vi.devtools && event.code === 'Enter' && event.altKey) nw.Window.get().showDevTools();
 });
 document.addEventListener('keyup', function(event)
 {

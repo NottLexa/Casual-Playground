@@ -3,6 +3,7 @@
   {
     "version": "0.2.0",
       "stage": "Alpha Build",
-      "build": 28
-  }
+      "build": 29
+  },
+  "devtools": true
 }

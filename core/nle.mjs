@@ -60,9 +60,9 @@ const wrap = function(value, mn, mx)
 
 const draw_text = function(ctx, x, y, string = 'Sample Text', type = 'fill',
                            size  = 16, hor_align = 'left', vert_align = 'top',
-                           color = 'black', font_settings = 'serif')
+                           color = 'black', font_name = 'serif', weight_style = '')
 {
-    ctx.font = `${size}px ` + font_settings;
+    ctx.font = `${weight_style} ${size}px ` + font_name;
 
     switch (vert_align)
     {
