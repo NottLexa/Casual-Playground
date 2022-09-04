@@ -413,6 +413,11 @@ const EntFieldBoard = new engine.Entity({
         target.tpt_min = 1;
         target.tpt_max = 60;
 
+        target.text_size_default_origin = fontsize_default;
+        target.text_size_default = target.text_size_default_origin;
+        target.text_size_small_origin = fontsize_small;
+        target.text_size_small = target.text_size_small_origin;
+
         // See other initiations in room_start
     },
     room_start: function(target)
@@ -420,7 +425,9 @@ const EntFieldBoard = new engine.Entity({
         target.board_width = gvars[0].board_width;
         target.board_height = gvars[0].board_height;
 
-        target.viewscale = 16;
+        target.viewscale_origin = 16;
+        target.viewscale = target.viewscale_origin;
+
         this.board_center_view(target);
         target.cameraspeed = Math.round(Math.log2(Math.pow(2, 9)*scale/100));
         target.hsp = 0;
@@ -501,12 +508,12 @@ const EntFieldBoard = new engine.Entity({
     },
     draw: function(target, surface)
     {
-        let bordersize = target.viewscale*cellbordersize;
+        let bordersize = target.viewscale * cellbordersize;
         let cellsize = target.viewscale + bordersize;
         let ox = -target.viewx%cellsize;
         let oy = -target.viewy%cellsize;
-        let lx = Math.ceil(WIDTH/cellsize);
-        let ly = Math.ceil(HEIGHT/cellsize);
+        let lx = Math.ceil(surface.canvas.width/cellsize);
+        let ly = Math.ceil(surface.canvas.height/cellsize);
         let realx = -target.viewx - (target.viewx > 0);
         let realy = -target.viewy - (target.viewy > 0);
         /*let realx, realy;
@@ -523,50 +530,53 @@ const EntFieldBoard = new engine.Entity({
         {
             linex = ox+(ix*cellsize);
             starty = engine.clamp(0, -target.viewy, -target.viewy+(cellsize*target.board_height));
-            endy = engine.clamp(HEIGHT, -target.viewy, -target.viewy+(cellsize*target.board_height));
+            endy = engine.clamp(surface.canvas.height, -target.viewy, -target.viewy+(cellsize*target.board_height));
             if (!((linex+target.viewx < 0) || (linex+target.viewx > (cellsize*target.board_width))))
             {
                 if (starty-2 > 0) surface.fillRect(linex, 0, bordersize, starty);
-                if (HEIGHT > endy) surface.fillRect(linex, endy+bordersize, bordersize, HEIGHT-endy)
+                if (surface.canvas.height > endy)
+                    surface.fillRect(linex, endy+bordersize, bordersize, surface.canvas.height-endy)
             }
-            else surface.fillRect(linex, 0, bordersize, HEIGHT);
+            else surface.fillRect(linex, 0, bordersize, surface.canvas.height);
         }
         for (let iy = -1; iy < ly; iy++)
         {
             liney = oy+(iy*cellsize)
             startx = engine.clamp(0, -target.viewx, -target.viewx+(cellsize*target.board_width));
-            endx = engine.clamp(WIDTH, -target.viewx, -target.viewx+(cellsize*target.board_width));
+            endx = engine.clamp(surface.canvas.width, -target.viewx, -target.viewx+(cellsize*target.board_width));
             if (!((liney+target.viewy < 0) || (liney+target.viewy > (cellsize*target.board_height))))
             {
                 if (startx-2 > 0) surface.fillRect(0, liney, startx, bordersize);
-                if (WIDTH > endx) surface.fillRect(endx+bordersize, liney, WIDTH-endx, bordersize);
+                if (surface.canvas.width > endx)
+                    surface.fillRect(endx+bordersize, liney, surface.canvas.width-endx, bordersize);
             }
-            else surface.fillRect(0, liney, WIDTH, bordersize);
+            else surface.fillRect(0, liney, surface.canvas.width, bordersize);
         }
 
         // speed
-        engine.draw_text(surface, WIDTH-2, HEIGHT-2, `Max speed: ${Math.pow(2, target.cameraspeed)}`,
-            'fill', fontsize_default, 'right', 'bottom', 'white', '"Source Sans Pro"');
+        engine.draw_text(surface, surface.canvas.width-2, surface.canvas.height-2,
+            `Max speed: ${Math.pow(2, target.cameraspeed)}`, 'fill', target.text_size_default, 'right', 'bottom', 'white',
+            '"Source Sans Pro"');
         /*engine.draw_text(surface, WIDTH-2, HEIGHT-fontsize_default,
             `hsp: ${Math.round(target.hsp)} / vsp: ${Math.round(target.vsp)}`,
             'fill', fontsize_default, 'right', 'bottom', 'white');*/
 
         // time per tick
         engine.draw_text(surface,
-            5, -5 + surface.canvas.height - fontsize_default,
+            5, -5 + surface.canvas.height - target.text_size_default,
             `${target.timepertick}s`+(target.time_paused ? ' | Paused' : ''),
-            'fill', fontsize_default, 'left', 'top', 'white', '"Source Sans Pro"');
+            'fill', target.text_size_default, 'left', 'top', 'white', '"Source Sans Pro"');
 
         // time elapsed
         let clr = target.time_elapsed <= target.timepertick ? 'white' : rgb_to_style(17*14, 17, 17);
         engine.draw_text(surface,
-            5, -10 + surface.canvas.height - fontsize_default - 2*fontsize_small,
+            5, -10 + surface.canvas.height - target.text_size_default - 2*target.text_size_small,
             `${Math.round(target.time_elapsed*100000)/100000} s`,
-            'fill', fontsize_small, 'left', 'top', clr, '"DejaVu Sans Mono"');
+            'fill', target.text_size_small, 'left', 'top', clr, '"DejaVu Sans Mono"');
         engine.draw_text(surface,
-            5, -10 + surface.canvas.height - fontsize_default - fontsize_small,
+            5, -10 + surface.canvas.height - target.text_size_default - target.text_size_small,
             `${Math.round(target.time_elapsed/(target.board_width*target.board_height)*100000)/100000} s/cell`,
-            'fill', fontsize_small, 'left', 'top', clr, '"DejaVu Sans Mono"');
+            'fill', target.text_size_small, 'left', 'top', clr, '"DejaVu Sans Mono"');
 
         // instrument
         switch (current_instrument.type)
@@ -576,8 +586,8 @@ const EntFieldBoard = new engine.Entity({
                     ` | ${idlist[current_instrument.cell]}` +
                     ` | ${current_instrument.brushtype ? 'Round' : 'Square'}`
                 engine.draw_text(surface,
-                    surface.canvas.width - 2, surface.canvas.height - 2 - 2*(fontsize_default-2),
-                    string, 'fill', fontsize_default, 'right', 'bottom', 'white', '"Source Sans Pro"');
+                    surface.canvas.width - 2, surface.canvas.height - 2 - 2*(target.text_size_default-2),
+                    string, 'fill', target.text_size_default, 'right', 'bottom', 'white', '"Source Sans Pro"');
         }
     },
     kb_down: function(target, key)
@@ -619,7 +629,7 @@ const EntFieldBoard = new engine.Entity({
                 break;
         }
     },
-    mouse_down: function (target, mb)
+    mouse_down: function(target, mb)
     {
         if (!fieldsui.show)
         {
@@ -639,7 +649,7 @@ const EntFieldBoard = new engine.Entity({
         }
 
     },
-    board_step: function (target)
+    board_step: function(target)
     {
         let start = Date.now();
         for (let y = 0; y < target.board_height; y++)
@@ -665,7 +675,7 @@ const EntFieldBoard = new engine.Entity({
         }
         target.time_elapsed = (Date.now() - start)/1000;
     },
-    board_tasks: function (target)
+    board_tasks: function(target)
     {
         let taskcount = 0;
         for (let y = 0; y < target.board_height; y++)
@@ -689,7 +699,7 @@ const EntFieldBoard = new engine.Entity({
             }
         }
     },
-    draw_board: function (target)
+    draw_board: function(target)
     {
         let bw = target.board_width;
         let bh = target.board_height;
@@ -723,12 +733,12 @@ const EntFieldBoard = new engine.Entity({
         update_board = false;
         return surface;
     },
-    board_center_view: function (target)
+    board_center_view: function(target)
     {
         target.viewx = Math.floor(target.viewscale*target.board_width/2) - (WIDTH2);
         target.viewy = Math.floor(target.viewscale*target.board_height/2) - (HEIGHT2);
     },
-    board_zoom_in: function (target, mul)
+    board_zoom_in: function(target, mul)
     {
         let oldvs = target.viewscale;
         target.viewscale = engine.clamp(
@@ -741,7 +751,7 @@ const EntFieldBoard = new engine.Entity({
 
         target.surfaces.board = this.draw_board(target);
     },
-    board_zoom_out: function (target, mul)
+    board_zoom_out: function(target, mul)
     {
         let oldvs = target.viewscale;
         target.viewscale = engine.clamp(
@@ -754,7 +764,7 @@ const EntFieldBoard = new engine.Entity({
 
         target.surfaces.board = this.draw_board(target);
     },
-    board_do_instrument: function (target)
+    board_do_instrument: function(target)
     {
         let bordersize = target.viewscale*cellbordersize;
         let cellsize = bordersize + target.viewscale;
@@ -794,6 +804,15 @@ const EntFieldBoard = new engine.Entity({
                 break;
         }
     },
+    canvas_resize: function(target, width, height)
+    {
+        let measure = Math.min(height/HEIGHT, width/WIDTH);
+        target.viewscale = target.viewscale_origin * measure;
+        target.text_size_default = target.text_size_default_origin * measure;
+        target.text_size_small = target.text_size_small_origin * measure;
+
+        update_board = true;
+    },
 });
 //#endregion
 //#region [STANDARD UI]
@@ -804,14 +823,37 @@ const EntFieldSUI = new engine.Entity({
         target.show = false;
 
         target.element_number = 5; // number of objects in one line
-        target.window_spacing = Math.round(20*scale/100); // space between object menu's edge and objects
-        target.window_margin = Math.round(16*scale/100); // space between object menu and the game window's edge
-        target.display_scale = Math.round(80*scale/100); // the size of each object's image in object menu
-        target.window_border = 4; // thickness of borders
-        target.objmenu_heading_size = 48; // size of object menu title
-        target.instrmenu_heading_size = 36; // size of instrument menu title
-        target.instrmenu_heading_size_minimized = 20; // size of minimized instrument menu title
+        target.window_spacing_origin = Math.round(20*scale/100); // space between object menu's edge and objects
+        target.window_spacing = target.window_spacing_origin;
+        target.window_margin_origin = Math.round(16*scale/100); // space between object menu and the game window's edge
+        target.window_margin = target.window_margin_origin;
+        target.display_scale_origin = Math.round(80*scale/100); // the size of each object's image in object menu
+        target.display_scale = target.display_scale_origin;
+        target.window_border_origin = 4; // thickness of borders
+        target.window_border = target.window_border_origin;
+        target.objmenu_heading_size_origin = 48; // size of object menu title
+        target.objmenu_heading_size = target.objmenu_heading_size_origin;
+        target.instrmenu_heading_size_origin = 36; // size of instrument menu title
+        target.instrmenu_heading_size = target.instrmenu_heading_size_origin;
+        target.instrmenu_heading_size_minimized_origin = 20; // size of minimized instrument menu title
+        target.instrmenu_heading_size_minimized = target.instrmenu_heading_size_minimized_origin;
         target.instrmenu_imgbox_ratio = 0.9;
+        target.border_width_origin = 5;
+        target.border_width = target.border_width_origin;
+        target.object_name_size_origin = fontsize_smaller;
+        target.object_name_size = target.object_name_size_origin;
+        target.descmenu_name_size_origin = fontsize_big;
+        target.descmenu_name_size = target.descmenu_name_size_origin;
+        target.descmenu_properties_size_origin = fontsize_smaller;
+        target.descmenu_properties_size = target.descmenu_properties_size_origin;
+        target.descmenu_description_size_origin = fontsize_smaller;
+        target.descmenu_description_size = target.descmenu_description_size_origin;
+        target.descmenu_border_origin = Math.round(4*scale/100);
+        target.descmenu_border = target.descmenu_border_origin;
+        target.descmenu_padding_origin = Math.round(8*scale/100);
+        target.descmenu_padding = target.descmenu_padding_origin;
+        target.descmenu_divider_origin = Math.round(12*scale/100);
+        target.descmenu_divider = target.descmenu_divider_origin;
         let en = target.element_number;
         let ws = target.window_spacing;
         let wm = target.window_margin;
@@ -822,13 +864,15 @@ const EntFieldSUI = new engine.Entity({
         target.instrmenu_height = display.ch()/3 - (3*wm); // instrument menu height
         target.instrmenu_height_minimized = wb+ws+target.instrmenu_heading_size_minimized;
         target.element_border = Math.round((target.width_part-(2*ws)-(en*ds))/(en-1));
-        let eb = target.element_border;
 
-        target.desc_window_width = 256+128;
+        target.desc_window_width_origin = 256+128;
+        target.desc_window_width =  target.desc_window_width_origin;
         target.desc_window_surface = document.createElement('canvas').getContext('2d');
         target.desc_window_id = -1;
         target.desc_window_show = false;
         target.desc_window_offset = [0,0];
+
+        target.objmenu_surface = this.draw_objmenu(target);
 
         /*target.objmenu_surface = document.createElement('canvas').getContext('2d'); // object menu
         target.objmenu_surface.canvas.width = target.width_part;
@@ -840,9 +884,8 @@ const EntFieldSUI = new engine.Entity({
     },
     room_start: function(target)
     {
-
-    }
-    ,
+        this.canvas_resize(target, display.cw(), display.ch()); // is needed for some reason
+    },
     step: function(target)
     {
         let new_step = engine.linear_interpolation(target.show_step, Math.floor(target.show), 3);
@@ -867,11 +910,10 @@ const EntFieldSUI = new engine.Entity({
             let [ds, eb, ws] = [target.display_scale, target.element_border, target.window_spacing];
             let measure = Math.floor(target.width_part*1.5);
             let phase_offset = Math.floor(measure*target.show_step)-measure;
-            let objmenu = this.draw_objmenu(target);
-            surface.drawImage(objmenu.canvas, phase_offset+wm, wm);
+            surface.drawImage(target.objmenu_surface.canvas, phase_offset+wm, wm);
             if (target.desc_window_show && target.show)
                 surface.drawImage(target.desc_window_surface.canvas, ...target.desc_window_offset);
-            objmenu.canvas.remove();
+            target.objmenu_surface.canvas.remove();
         }
         let instrmenu = this.draw_instrmenu(target);
         surface.drawImage(instrmenu.canvas, surface.canvas.width-wm-target.width_part,
@@ -938,18 +980,19 @@ const EntFieldSUI = new engine.Entity({
     },
     mouse_on_cell: function(target)
     {
-        let [ds, eb, ws] = [target.display_scale, target.element_border, target.window_spacing];
+        let [ds, eb, ws, ons] = [target.display_scale, target.element_border, target.window_spacing,
+            target.object_name_size];
         let [hs, wm] = [target.objmenu_heading_size, target.window_margin];
         let measure = Math.floor(target.width_part*1.5);
         let phase_offset = Math.floor(measure*target.show_step)-measure;
         let inoneline = target.element_number;
         let mousex = mx-phase_offset-wm-ws;
         let mousey = my-wm-ws;
-        let [detectwidth, detectheight] = [ds + eb, ds + fontsize_smaller + eb];
+        let [detectwidth, detectheight] = [ds + eb, ds + ons + eb];
         let ci = Math.floor(mousex/detectwidth)
             + (Math.floor((mousey-ws-hs)/detectheight) * inoneline);
         let cx = ((ds + eb)*(ci%inoneline));
-        let cy = (ws + hs) + ((ds + eb + fontsize_smaller)*Math.floor(ci/inoneline));
+        let cy = (ws + hs) + ((ds + eb + ons)*Math.floor(ci/inoneline));
         if (cx <= mousex && mousex <= cx + ds)
             if (cy <= mousey && mousey <= cy + ds)
                 if (ci < idlist.length && ci >= 0)
@@ -960,12 +1003,12 @@ const EntFieldSUI = new engine.Entity({
     {
         //let widths = [];
         let cellname = idlist[cellid];
-        let [border, padding, divider] = [4, 8, 12].map(value => Math.round(value*scale/100));
+        let [border, padding, divider] = [target.descmenu_border, target.descmenu_padding, target.descmenu_divider];
         let padding2 = padding*2;
         let canvaswidth = target.desc_window_width - padding2;
-        let name_size = fontsize_big;
-        let origin_size = fontsize_smaller;
-        let description_size = fontsize_smaller;
+        let name_size =  target.descmenu_name_size;
+        let properties_size = target.descmenu_properties_size;
+        let description_size = target.descmenu_description_size;
         //let space_scale = 1/3;
 
         let celldata = objdata[cellname];
@@ -1003,8 +1046,8 @@ const EntFieldSUI = new engine.Entity({
         }
 
         surface.canvas.width = target.desc_window_width;
-        surface.canvas.height = name_size + origin_size + divider + padding2 +
-            y_offset + description_size + origin_size;
+        surface.canvas.height = name_size + properties_size + divider + padding2 +
+            y_offset + description_size + properties_size;
         surface.globalCompositeOperation = 'destination-atop';
         surface.fillStyle = bg_color;
         roundRect(surface, 0, 0, surface.canvas.width, surface.canvas.height,
@@ -1039,9 +1082,9 @@ const EntFieldSUI = new engine.Entity({
             y, border_color, border);
 
         y += Math.floor(divider/2);
-        engine.draw_text(surface, target.desc_window_width - padding, y,  origin_string, 'fill', origin_size,
+        engine.draw_text(surface, target.desc_window_width - padding, y,  origin_string, 'fill', properties_size,
             'right', 'top', origin_color, '"Source Sans Pro"');
-        engine.draw_text(surface, padding, y, from_string, 'fill', origin_size, 'left', 'top', origin_color,
+        engine.draw_text(surface, padding, y, from_string, 'fill', properties_size, 'left', 'top', origin_color,
             '"Source Sans Pro"');
 
         /*let ow = 0;
@@ -1073,10 +1116,10 @@ const EntFieldSUI = new engine.Entity({
         alphabg.canvas.width = ctx.canvas.width;
         alphabg.canvas.height = ctx.canvas.height;
         alphabg.fillStyle = '#1a1a1a';
-        roundRect(alphabg, wb2, wb2, target.width_part-wb, target.objmenu_height-wb, 5);
+        roundRect(alphabg, wb2, wb2, target.width_part-wb, target.objmenu_height-wb, target.border_width);
         alphabg.strokeStyle = '#7f7f7f';
         alphabg.lineWidth = wb;
-        roundRect(alphabg, wb2, wb2, target.width_part-wb, target.objmenu_height-wb, 5, true);
+        roundRect(alphabg, wb2, wb2, target.width_part-wb, target.objmenu_height-wb, target.border_width, true);
         alphabg.globalCompositeOperation = 'destination-in';
         alphabg.fillStyle = 'rgba(0, 0, 0, 0.8)';
         alphabg.fillRect(0, 0, alphabg.canvas.width, alphabg.canvas.height);
@@ -1102,7 +1145,7 @@ const EntFieldSUI = new engine.Entity({
                 case 'CELL':
                     ci++;
                     let cx = ws + ((ds + eb) * (ci % inoneline));
-                    let cy = ws + oy + ((ds + eb + fontsize_smaller) * Math.floor(ci/inoneline));
+                    let cy = ws + oy + ((ds + eb + target.object_name_size) * Math.floor(ci/inoneline));
                     ctx.fillStyle = rgb_to_style(...obj.notexture);
                     ctx.fillRect(cx, cy, ds, ds);
                     let name_string = (obj.localization.hasOwnProperty(loc)
@@ -1110,8 +1153,8 @@ const EntFieldSUI = new engine.Entity({
                         : obj.name);
 
                     engine.draw_text(ctx, cx + (ds/2), cy + ds + (eb/2),
-                        cut_string(name_string, `${fontsize_smaller}px "Source Sans Pro"`, ds), 'fill',
-                        fontsize_smaller, 'center', 'top', 'white', '"Source Sans Pro"');
+                        cut_string(name_string, `${target.object_name_size}px "Source Sans Pro"`, ds), 'fill',
+                        target.object_name_size, 'center', 'top', 'white', '"Source Sans Pro"');
             }
         }
         
@@ -1176,6 +1219,39 @@ const EntFieldSUI = new engine.Entity({
             local_ws+iip, local_ws+(target.show_step*oy)+iip, img_box-iip-iip, img_box-iip-iip);
 
         return ctx;
+    },
+    canvas_resize: function(target, width, height)
+    {
+        let measure = Math.min(height/HEIGHT, width/WIDTH);
+        target.window_spacing = target.window_spacing_origin * measure;
+        target.window_margin = target.window_margin_origin * measure;
+        target.display_scale = target.display_scale_origin * measure;
+        target.window_border = target.window_border_origin * measure;
+        target.objmenu_heading_size = target.objmenu_heading_size_origin * measure;
+        target.instrmenu_heading_size = target.instrmenu_heading_size_origin * measure;
+        target.instrmenu_heading_size_minimized = target.instrmenu_heading_size_minimized_origin * measure;
+        target.border_width = target.border_width_origin * measure;
+        target.object_name_size = target.object_name_size_origin * measure;
+        target.descmenu_name_size = target.descmenu_name_size_origin * measure;
+        target.descmenu_properties_size = target.descmenu_properties_size_origin * measure;
+        target.descmenu_description_size = target.descmenu_description_size_origin * measure;
+        target.descmenu_border = target.descmenu_border_origin * measure;
+        target.descmenu_padding = target.descmenu_padding_origin * measure;
+        target.descmenu_divider = target.descmenu_divider_origin * measure;
+
+        let en = target.element_number;
+        let ws = target.window_spacing;
+        let wm = target.window_margin;
+        let ds = target.display_scale;
+        let wb = target.window_border;
+        target.width_part = Math.round(display.cw()/3 - 4*wm); // equal parts of screen's width (currently a third)
+        target.objmenu_height = display.ch() - (2*wm); // object menu height
+        target.instrmenu_height = display.ch()/3 - (3*wm); // instrument menu height
+        target.instrmenu_height_minimized = wb+ws+target.instrmenu_heading_size_minimized;
+        target.element_border = Math.round((target.width_part-(2*ws)-(en*ds))/(en-1));
+
+        target.desc_window_width =  target.desc_window_width_origin * measure;
+        target.objmenu_surface = this.draw_objmenu(target);
     },
 });
 //#endregion
