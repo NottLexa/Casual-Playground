@@ -2,8 +2,10 @@ nw.Window.open
 (
     'play.html',
     {
-        'frame': false,
-        'show': false,
+        frame: false,
+        show: false,
+        min_width: 16*30,
+        min_height: 9*30,
     },
     function (win)
     {

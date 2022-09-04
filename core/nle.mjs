@@ -108,21 +108,34 @@ const Display = function(canvas, canvas_width, canvas_height)
     this.buffer.canvas.width = canvas_width;
     this.buffer.canvas.height = canvas_height;
 
+    this.original_width = canvas_width;
+    this.original_height = canvas_height;
+
     this.cw = () => this.buffer.canvas.width;
     this.ch = () => this.buffer.canvas.height;
     this.sw = () => this.ctx.canvas.width;
     this.sh = () => this.ctx.canvas.height;
+    this.ow = () => this.original_width;
+    this.oh = () => this.original_height;
 
     // Resizes canvas.
     this.resizeCanvas = function(width, height)
     {
         this.ctx.canvas.width = width;
         this.ctx.canvas.height = height;
-        this.scale_level = Math.min(this.sw()/this.cw(), this.sh()/this.ch())
-        this.scaled_size = [this.cw() * this.scale_level, this.ch() * this.scale_level];
+        this.scale_level = Math.min(this.sw()/this.ow(), this.sh()/this.oh())
+        this.scaled_size = [this.ow() * this.scale_level, this.oh() * this.scale_level];
+        this.resizeBuffer(...this.scaled_size);
         this.offset_x = (this.sw() - this.scaled_size[0])/2;
         this.offset_y = (this.sh() - this.scaled_size[1])/2;
     };
+
+    this.resizeBuffer = function(width, height)
+    {
+        this.buffer.canvas.width = width;
+        this.buffer.canvas.height = height;
+        current_room.do_resize_canvas(width, height);
+    }
 
     // Applies this.buffer on the real canvas element.
     this.render = function ()
@@ -154,7 +167,8 @@ const Display = function(canvas, canvas_width, canvas_height)
 };
 
 var default_room = {do_step: function(){}, do_start: function(){}, do_end: function(){}, do_kb_down: function(){},
-    do_kb_up: function(){}, do_mouse_down: function(){}, do_mouse_up: function(){}, do_mouse_move: function(){}};
+    do_kb_up: function(){}, do_mouse_down: function(){}, do_mouse_up: function(){}, do_mouse_move: function(){},
+    do_resize_canvas: function(){}};
 var current_room = default_room;
 const change_current_room = function(new_room)
 {
@@ -205,27 +219,30 @@ const Room = function(entities)
     {
         this.do_for_every('room_end', next_room);
     };
-
     this.do_kb_down = function(event)
     {
         this.do_for_every('kb_down', event);
-    }
+    };
     this.do_kb_up = function(event)
     {
         this.do_for_every('kb_up', event);
-    }
+    };
     this.do_mouse_move = function()
     {
         this.do_for_every('mouse_move')
-    }
+    };
     this.do_mouse_down = function(mb)
     {
         this.do_for_every('mouse_down', mb)
-    }
+    };
     this.do_mouse_up = function(mb)
     {
         this.do_for_every('mouse_up', mb)
-    }
+    };
+    this.do_resize_canvas = function(width, height)
+    {
+        this.do_for_every('canvas_resize', width, height)
+    };
 };
 
 const Entity = function(events)
@@ -246,6 +263,7 @@ const Entity = function(events)
     this.kb_up = function(){};
     this.room_start = function(){};
     this.room_end = function(){};
+    this.canvas_resize = function(){};
 
     for (let e in events) this[e] = events[e];
 

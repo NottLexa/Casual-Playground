@@ -73,7 +73,7 @@ var HEIGHT = 9*scale;
 var WIDTH2 = Math.floor(WIDTH/2);
 var HEIGHT2 = Math.floor(HEIGHT/2);
 var canvas_element = document.getElementById('CasualPlaygroundCanvas');
-var display = new engine.Display(canvas_element, 16*scale, 9*scale);
+var display = new engine.Display(canvas_element, WIDTH, HEIGHT);
 var top_panel = document.getElementById('top_panel');
 var text_window = document.getElementById('text_window');
 var button_max = document.getElementById('button_max');
@@ -337,6 +337,15 @@ const EntGlobalConsole = new engine.Entity({
     {
         target.log = [];
         target.logger_i = 0;
+
+        target.fps_size_origin = fontsize_default/6;
+        target.fps_size = target.fps_size_origin;
+
+        target.log_size_origin = fontsize_default/6;
+        target.log_size = target.log_size_origin;
+
+        target.padding_size_origin = 2;
+        target.padding_size = target.padding_size_origin;
     },
     step: function (target)
     {
@@ -361,16 +370,23 @@ const EntGlobalConsole = new engine.Entity({
     },
     draw_after: function (target, surface)
     {
-        engine.draw_text(surface, surface.canvas.width-10, 10,
-            `${(deltatime !== 0) ? Math.round(1/deltatime) : 0} FPS`, 'fill', fontsize_default,
+        engine.draw_text(surface, surface.canvas.width-target.padding_size, target.padding_size,
+            `${(deltatime !== 0) ? Math.round(1/deltatime) : 0} FPS`, 'fill', target.fps_size,
             'right', 'top', 'white', '"DejaVu Sans Mono"');
         for (let i in target.log)
         {
-            engine.draw_text(surface, 10,
-                surface.canvas.height-100-(target.log.length*fontsize_smaller)+(i*fontsize_smaller),
-                target.log[i], 'fill', fontsize_smaller, 'left', 'bottom', 'white', '"DejaVu Sans Mono"');
+            engine.draw_text(surface, target.padding_size,
+                surface.canvas.height-100-(target.log.length*target.log_size)+(i*target.log_size),
+                target.log[i], 'fill', target.log_size, 'left', 'bottom', 'white', '"DejaVu Sans Mono"');
         }
-    }
+    },
+    canvas_resize: function(target, width, height)
+    {
+        let measure = Math.min(height/150, width/300);
+        target.fps_size = target.fps_size_origin * measure;
+        target.padding_size = target.padding_size_origin * measure;
+        target.log_size = target.log_size_origin * measure;
+    },
 });
 
 var globalconsole = EntGlobalConsole.create_instance();
@@ -1179,6 +1195,15 @@ const EntMMIntro = new engine.Entity({
         /*target.icon2 = new Image();
         target.icon2.src = 'https://www.gnu.org/graphics/gplv3-or-later-sm.png';*/
         target.time = 0;
+
+        target.licence_text_size_origin = 12;
+        target.licence_text_size = target.licence_text_size_origin;
+
+        target.name_text_size_origin = 100;
+        target.name_text_size = target.name_text_size_origin;
+
+        target.author_text_size_origin = 60;
+        target.author_text_size = target.author_text_size_origin;
     },
     step: function(target)
     {
@@ -1214,31 +1239,32 @@ const EntMMIntro = new engine.Entity({
 
         let moment1 = moment_func(0, 2)*(1-moment_func(4, 5));
         engine.draw_text(surface, surface.canvas.width/2, surface.canvas.height/2,
-            'Casual Playground', 'fill', 100, 'center', 'center', `rgba(255, 255, 255, ${moment1})`,
+            'Casual Playground', 'fill', target.name_text_size, 'center', 'center', `rgba(255, 255, 255, ${moment1})`,
             '"Montserrat", serif');
-        engine.draw_text(surface, surface.canvas.width/2, surface.canvas.height/2 + 60,
-            'by NotLexa', 'fill', 40, 'center', 'top', `rgba(255, 255, 255, ${moment1})`,
+        engine.draw_text(surface, surface.canvas.width/2, surface.canvas.height/2 + target.author_text_size*1.5,
+            'by NotLexa', 'fill', target.author_text_size, 'center', 'top', `rgba(255, 255, 255, ${moment1})`,
             '"Montserrat", serif');
 
         let draw_copyright = function (txt, y)
         {
             engine.draw_text(surface, surface.canvas.width/2, surface.canvas.height - y,
-                txt, 'fill', 12, 'center', 'bottom',
+                txt, 'fill', target.licence_text_size, 'center', 'bottom',
                 `rgba(255, 255, 255, ${moment1})`, '"Montserrat", serif');
         };
 
         let copyright_offset = 5;
+        let copyright_spacing = target.licence_text_size+2;
 
         draw_copyright("Casual Playground / " +
-            'Copyright © 2022 Alexey Kozhanov', copyright_offset+42);
+            'Copyright © 2022 Alexey Kozhanov', copyright_offset+(3*copyright_spacing));
         draw_copyright('This program is free software: you can redistribute it and/or modify ' +
             'it under the terms of the GNU General Public License as published by ' +
             'the Free Software Foundation, either version 3 of the License, or ' +
-            '(at your option) any later version.', copyright_offset+28);
+            '(at your option) any later version.', copyright_offset+(2*copyright_spacing));
         draw_copyright('This program is distributed in the hope that it will be useful, ' +
             'but WITHOUT ANY WARRANTY; without even the implied warranty of ' +
             'MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the ' +
-            'GNU General Public License for more details.', copyright_offset+14);
+            'GNU General Public License for more details.', copyright_offset+copyright_spacing);
         draw_copyright('You should have received a copy of the GNU General Public License along with this program.' +
             'If not, see <https://www.gnu.org/licenses/>.', copyright_offset);
         /*surface.drawImage(target.icon2,
@@ -1261,6 +1287,13 @@ const EntMMIntro = new engine.Entity({
     mouse_down: function(target, key)
     {
         target.time = Math.max(4, target.time);
+    },
+    canvas_resize: function(target, width, height)
+    {
+        let measure = Math.min(height/HEIGHT, width/WIDTH);
+        target.licence_text_size = target.licence_text_size_origin * measure;
+        target.name_text_size = target.name_text_size_origin * measure;
+        target.author_text_size = target.author_text_size_origin * measure;
     }
 });
 //#endregion
@@ -1308,6 +1341,12 @@ const EntMMBG = new engine.Entity({
         target.controls_strings = [get_locstring('mm/controls/heading'),
             ...[...Array(7).keys()].map(val => get_locstring('mm/controls/'+(val+1)))];
         target.controls_keys = [null, 'WASD', 'QE', 'RT', 'Space', 'C', 'Tab', 'LMB', 'Esc'];
+
+        target.controls_text_size_origin = 32;
+        target.controls_text_size = target.controls_text_size_origin;
+
+        target.controls_padding_origin = 16;
+        target.controls_padding = target.controls_padding_origin;
     },
     step: function(target)
     {
@@ -1331,12 +1370,19 @@ const EntMMBG = new engine.Entity({
         for (let i = 0; i < target.controls_strings.length; i++)
         {
             let txt = target.controls_strings[target.controls_strings.length - 1 - i];
-            engine.draw_text(surface, surface.canvas.width-16, surface.canvas.height-16-(34*i),
+            engine.draw_text(surface, surface.canvas.width - target.controls_padding,
+                surface.canvas.height - target.controls_padding - (target.controls_text_size*1.0625)*i,
                 (i !== target.controls_strings.length-1)
                     ? `${target.controls_keys[target.controls_keys.length - 1 - i]} - ${txt}`
                     : txt,
-                'fill', 32, 'right', 'bottom', 'white', '"Montserrat", serif')
+                'fill', target.controls_text_size, 'right', 'bottom', 'white', '"Montserrat", serif')
         }
+    },
+    canvas_resize: function(target, width, height)
+    {
+        let measure = Math.min(height/HEIGHT, width/WIDTH);
+        target.controls_text_size = target.controls_text_size_origin * measure;
+        target.controls_padding = target.controls_padding_origin * measure;
     },
 });
 //#endregion
@@ -1359,8 +1405,23 @@ const EntMMController = new engine.Entity({
             return bttn;
         }
 
-        target.play_button = create_button(256+32, 80, 'mm/play_button', 0, -60,
-            ()=>
+        target.play_button_width_origin = 256+32;
+        target.play_button_width = target.play_button_width_origin;
+        target.play_button_height_origin = 80;
+        target.play_button_height = target.play_button_height_origin;
+        target.play_button_yoffset_origin = -60;
+        target.play_button_yoffset = target.play_button_yoffset_origin;
+        target.exit_button_width_origin = 256+32;
+        target.exit_button_width = target.exit_button_width_origin;
+        target.exit_button_height_origin = 80;
+        target.exit_button_height = target.exit_button_height_origin;
+        target.exit_button_yoffset_origin = 60;
+        target.exit_button_yoffset = target.exit_button_yoffset_origin;
+        target.button_triangle_width_origin = 20;
+        target.button_triangle_width = target.button_triangle_width_origin;
+
+        target.play_button = create_button(target.play_button_width, target.play_button_height, 'mm/play_button', 0,
+            target.play_button_yoffset, ()=>
             {
                 mainmenu_startmenu.show = true;
                 target.play_button.offset_animate = false;
@@ -1371,10 +1432,12 @@ const EntMMController = new engine.Entity({
                     - target.exit_button.triangle_width;
                 target.time = 4;
                 target.time_paused = true;
-            });
+            }
+        );
 
-        target.exit_button = create_button(256, 80, 'mm/exit_button', 0, 60,
-            ()=>{nw.Window.get().close()});
+        target.exit_button = create_button(target.exit_button_width, target.exit_button_height, 'mm/exit_button', 0, 
+            target.exit_button_yoffset, ()=>{nw.Window.get().close()}
+        );
     },
     step: function(target)
     {
@@ -1397,6 +1460,41 @@ const EntMMController = new engine.Entity({
     {
         target.time = prev_room === room_field ? 5 : 0;
         target.time_paused = false;
+    },
+    canvas_resize: function(target, width, height)
+    {
+        let measure = Math.min(height/HEIGHT, width/WIDTH);
+        
+        target.play_button_width = target.play_button_width_origin * measure;
+        target.play_button_height = target.play_button_height_origin * measure;
+        target.play_button_yoffset = target.play_button_yoffset_origin * measure;
+
+        target.exit_button_width = target.exit_button_width_origin * measure;
+        target.exit_button_height = target.exit_button_height_origin * measure;
+        target.exit_button_yoffset = target.exit_button_yoffset_origin * measure;
+
+        target.button_triangle_width = target.button_triangle_width_origin * measure;
+        
+        target.play_button.box_width = target.play_button_width;
+        target.play_button.box_height = target.play_button_height;
+        
+        target.play_button.const_x = (width - target.play_button.box_width)/2
+            - target.play_button.triangle_width;
+        target.play_button.const_y = (height - target.play_button.box_height)/2 + target.play_button_yoffset;
+        target.play_button.triangle_width = target.button_triangle_width;
+
+        target.exit_button.box_width = target.exit_button_width;
+        target.exit_button.box_height = target.exit_button_height;
+
+        target.exit_button.const_x = (width - target.exit_button.box_width)/2
+            - target.exit_button.triangle_width;
+        target.exit_button.const_y = (height - target.exit_button.box_height)/2 + target.exit_button_yoffset;
+        target.exit_button.triangle_width = target.button_triangle_width;
+        
+        if (target.play_button.offset_animate)
+            target.play_button.offset_x = -width/2 - target.play_button.box_width - target.play_button.triangle_width;
+        if (target.exit_button.offset_animate)
+            target.exit_button.offset_x = -width/2 - target.exit_button.box_width - target.exit_button.triangle_width;
     },
 });
 //#endregion
@@ -1513,15 +1611,22 @@ const EntMMStartMenu = new engine.Entity({
     create: function(target)
     {
         target.modlist = load_modlist(modsfolder).map(value => ({name: value, enabled: false}));
-        target.line_height = 30;
-        target.line_separation = 2;
-        target.window_width = 512+128;
-        target.window_height = 512+256+64+32;
+        target.line_height_origin = 30;
+        target.line_height = target.line_height_origin;
+        target.line_separation_origin = 2;
+        target.line_separation = target.line_separation_origin;
+        target.window_width_origin = 512+128;
+        target.window_width = target.window_width_origin;
+        target.window_height_origin = 512+256+64+32;
+        target.window_height = target.window_height_origin;
+        target.border_width_origin = 2;
+        target.border_width = target.border_width_origin;
+        target.inline_padding_origin = 4;
+        target.inline_padding = target.inline_padding_origin;
         target.subwindow_padding = Math.round(target.window_width*0.05);
         target.subwindow_width = target.window_width-(2*target.subwindow_padding);
         target.mods_height = Math.round((target.window_height-(4*target.subwindow_padding))*3/6);
         target.settings_height = Math.round((target.window_height-(4*target.subwindow_padding))*2/6);
-        target.button_height = Math.round((target.window_height-(4*target.subwindow_padding))/6);
         // target.show_step = 0;
         // target.show = false;
         // target.scroll = [0, 0];
@@ -1529,7 +1634,6 @@ const EntMMStartMenu = new engine.Entity({
         // target.new_scroll = [0, 0];
         // target.scroll_step = [0, 0];
         target.max_scroll_step = [0.25, 0.25];
-        target.inline_padding = 4;
         target.settings = [
             {
                 name: 'board_width', type: 'integer-scale', value: 32, min: 1, max: 999, step: 1, number_count: 3,
@@ -1558,9 +1662,14 @@ const EntMMStartMenu = new engine.Entity({
             bttn.const_y = (display.ch() - target.window_height)/2 + y_offset;
             bttn.trigger = trigger;
             return bttn;
-        }
+        };
 
-        target.start_button = create_button(target.window_width-128, target.button_height, 'start_menu/start_button',
+        target.start_button_width = target.window_width*0.8;
+        target.start_button_height = Math.round((target.window_height-(4*target.subwindow_padding))/6);
+        target.start_button_triangle_width_origin = 20;
+        target.start_button_triangle_width = target.start_button_triangle_width_origin;
+
+        target.start_button = create_button(target.start_button_width, target.start_button_height, 'start_menu/start_button',
             0, 3*target.subwindow_padding + target.mods_height + target.settings_height, ()=>
             {
                 gvars[0].board_width = target.settings.filter(x => x.name === 'board_width')[0].value;
@@ -1583,7 +1692,8 @@ const EntMMStartMenu = new engine.Entity({
                 }
 
                 engine.change_current_room(room_field);
-            });
+            }
+        );
     },
     step: function(target)
     {
@@ -1625,6 +1735,7 @@ const EntMMStartMenu = new engine.Entity({
         let sh = target.settings_height; // settings window height
         let padding = target.subwindow_padding; // subwindow padding
         let lh = target.line_height; // mod line height
+        let bw = target.border_width;
 
         target.start_button.const_x = -surface.canvas.width/2 - target.start_button.box_width/2
             - target.start_button.triangle_width + (surface.canvas.width*target.show_step);
@@ -1633,24 +1744,26 @@ const EntMMStartMenu = new engine.Entity({
         surf1.canvas.width = ww;
         surf1.canvas.height = wh;
         surf1.fillStyle = bg;
-        surf1.lineWidth = 2;
+        surf1.lineWidth = bw;
         surf1.strokeStyle = border;
-        roundRect(surf1, surf1.lineWidth, surf1.lineWidth,
-            ww-(2*surf1.lineWidth), wh-(2*surf1.lineWidth), surf1.lineWidth*2, false);
-        roundRect(surf1, 0, 0, ww, wh, surf1.lineWidth*2, true);
+        roundRect(surf1, bw, bw,
+            ww-(2*bw), wh-(2*bw), bw*2, false);
+        roundRect(surf1, 0, 0, ww, wh, bw*2, true);
 
         let surf2 = this.draw_mod_list(target);
-        surf1.lineWidth = 2;
+        surf1.lineWidth = bw;
         surf1.strokeStyle = border;
-        surf1.strokeRect(padding-2, padding-2, sww+4, mh+4);
-        surf1.drawImage(surf2.canvas, padding, padding);
+        surf1.strokeRect(padding-bw, padding-bw, sww+bw+bw, mh+bw);
+        if (surf2.canvas.width !== 0 && surf2.canvas.height !== 0)
+            surf1.drawImage(surf2.canvas, padding, padding);
         surf2.canvas.remove();
 
         let surf3 = this.draw_board_settings(target);
-        surf1.lineWidth = 2;
+        surf1.lineWidth = bw;
         surf1.strokeStyle = border;
-        surf1.strokeRect(padding-2, mh+(2*padding)-2, sww+4, sh+4);
-        surf1.drawImage(surf3.canvas, padding, padding*2 + mh);
+        surf1.strokeRect(padding-2, mh+(2*padding)+bw, sww+bw+bw, sh+bw+bw);
+        if (surf3.canvas.width !== 0 && surf3.canvas.height !== 0)
+            surf1.drawImage(surf3.canvas, padding, padding*2 + mh);
         surf3.canvas.remove();
 
         /*surf.globalCompositeOperation = 'destination-in';
@@ -1883,7 +1996,42 @@ const EntMMStartMenu = new engine.Entity({
         target.old_scroll = [0, 0];
         target.new_scroll = [0, 0];
         target.scroll_step = [0, 0];
-    }
+    },
+    canvas_resize: function (target, width, height)
+    {
+        let measure = Math.min(height/HEIGHT, width/WIDTH);
+
+        target.line_height = target.line_height_origin * measure;
+        target.line_separation = target.line_separation_origin * measure;
+        target.window_width = target.window_width_origin * measure;
+        target.window_height = target.window_height_origin * measure;
+        target.border_width = target.border_width_origin * measure;
+        target.inline_padding = target.inline_padding_origin * measure;
+
+        target.subwindow_padding = Math.round(target.window_width*0.05);
+        target.subwindow_width = target.window_width-(2*target.subwindow_padding);
+        target.mods_height = Math.round((target.window_height-(4*target.subwindow_padding))*3/6);
+        target.settings_height = Math.round((target.window_height-(4*target.subwindow_padding))*2/6);
+
+        target.start_button_width = target.window_width*0.8;
+        target.start_button_height = Math.round((target.window_height-(4*target.subwindow_padding))/6);
+        target.start_button_triangle_width = target.start_button_triangle_width_origin * measure;
+
+        target.start_button.const_x = (width - target.start_button.box_width)/2 - target.start_button.triangle_width;
+        target.start_button.const_y = (height - target.window_height)/2 + 3*target.subwindow_padding
+            + target.mods_height + target.settings_height;
+        target.start_button.box_width = target.start_button_width;
+        target.start_button.box_height = target.start_button_height;
+        target.start_button.triangle_width = target.start_button_triangle_width
+
+        target.settings_consts = {
+            integer_scale: {
+                triangle_height: target.line_height - (2*target.inline_padding),
+                triangle_width: target.line_height/2 - target.inline_padding,
+                spacing: target.inline_padding/2,
+            },
+        };
+    },
 });
 //#endregion
 //#endregion
