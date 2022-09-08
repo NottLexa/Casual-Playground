@@ -735,34 +735,42 @@ const EntFieldBoard = new engine.Entity({
     },
     board_center_view: function(target)
     {
-        target.viewx = Math.floor(target.viewscale*target.board_width/2) - (WIDTH2);
-        target.viewy = Math.floor(target.viewscale*target.board_height/2) - (HEIGHT2);
+        let [x, y] = this.board_get_center(target);
+        target.viewx = x;
+        target.viewy = y;
     },
     board_zoom_in: function(target, mul)
     {
-        let oldvs = target.viewscale;
+        let [oldx, oldy] = this.board_get_center(target);
         target.viewscale = engine.clamp(
             target.viewscale + engine.clamp(Math.floor(0.2 * mul * target.viewscale), 1, 64),
             2, 64);
-        let newvs = target.viewscale;
+        let [newx, newy] = this.board_get_center(target);
 
-        target.viewx = (target.viewx + (WIDTH2)) * newvs / oldvs - (WIDTH2);
-        target.viewy = (target.viewy + (HEIGHT2)) * newvs / oldvs - (HEIGHT2);
+        target.viewx += newx - oldx;
+        target.viewy += newy - oldy;
 
         target.surfaces.board = this.draw_board(target);
     },
     board_zoom_out: function(target, mul)
     {
-        let oldvs = target.viewscale;
+        let [oldx, oldy] = this.board_get_center(target);
         target.viewscale = engine.clamp(
             target.viewscale - engine.clamp(Math.floor(0.2 * mul * target.viewscale), 1, 64),
             2, 64);
-        let newvs = target.viewscale;
+        let [newx, newy] = this.board_get_center(target);
 
-        target.viewx = (target.viewx + (WIDTH2)) * newvs / oldvs - (WIDTH2);
-        target.viewy = (target.viewy + (HEIGHT2)) * newvs / oldvs - (HEIGHT2);
+        target.viewx += newx - oldx;
+        target.viewy += newy - oldy;
 
         target.surfaces.board = this.draw_board(target);
+    },
+    board_get_center: function(target)
+    {
+        let cellsize = target.viewscale * (cellbordersize+1);
+        let w = cellsize*target.board_width + (target.viewscale * cellbordersize);
+        let h = cellsize*target.board_height + (target.viewscale * cellbordersize);
+        return [(w-display.cw())/2, (h-display.ch())/2];
     },
     board_do_instrument: function(target)
     {
