@@ -741,27 +741,29 @@ const EntFieldBoard = new engine.Entity({
     },
     board_zoom_in: function(target, mul)
     {
-        let [oldx, oldy] = this.board_get_center(target);
+        let oldvs = target.viewscale;
         target.viewscale = engine.clamp(
             target.viewscale + engine.clamp(Math.floor(0.2 * mul * target.viewscale), 1, 64),
             2, 64);
-        let [newx, newy] = this.board_get_center(target);
+        let newvs = target.viewscale;
+        let ratio = newvs/oldvs;
 
-        target.viewx += newx - oldx;
-        target.viewy += newy - oldy;
+        target.viewx = ((target.viewx+mx) * ratio) - mx;
+        target.viewy = ((target.viewy+my) * ratio) - my;
 
         target.surfaces.board = this.draw_board(target);
     },
     board_zoom_out: function(target, mul)
     {
-        let [oldx, oldy] = this.board_get_center(target);
+        let oldvs = target.viewscale;
         target.viewscale = engine.clamp(
             target.viewscale - engine.clamp(Math.floor(0.2 * mul * target.viewscale), 1, 64),
             2, 64);
-        let [newx, newy] = this.board_get_center(target);
+        let newvs = target.viewscale;
+        let ratio = newvs/oldvs;
 
-        target.viewx += newx - oldx;
-        target.viewy += newy - oldy;
+        target.viewx = ((target.viewx+mx) * ratio) - mx;
+        target.viewy = ((target.viewy+my) * ratio) - my;
 
         target.surfaces.board = this.draw_board(target);
     },
