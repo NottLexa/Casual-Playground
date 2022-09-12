@@ -1,66 +1,144 @@
 {
-  "version": 1,
   "localization":
   {
-    "descwin/from":
+    "descwin":
     {
-      "__usage": "'from' string in cell description window, capitalized",
-      "__noloc": "From",
-      "rus": "Из"
+      "from":
+      {
+        "__usage": "'from' string in cell description window, capitalized",
+        "__noloc": "From",
+        "rus": "Из"
+      },
+      "author":
+      {
+        "__usage": "'author' string in cell description window, capitalized",
+        "__noloc": "Author",
+        "rus": "Автор"
+      }
     },
-    "descwin/author":
+    "mm":
     {
-      "__usage": "'author' string in cell description window, capitalized",
-      "__noloc": "Author",
-      "rus": "Автор"
+      "play_button":
+      {
+        "__usage": "play button in main menu, capitalized",
+        "__noloc": "Play",
+        "rus": "Играть"
+      },
+      "exit_button":
+      {
+        "__usage": "exit button in main menu, capitalized",
+        "__noloc": "Exit",
+        "rus": "Выйти"
+      },
+      "controls":
+      {
+        "heading":
+        {
+          "__usage": "controls in main menu: heading, capitalized",
+          "__noloc": "Controls",
+          "rus": "Управление"
+        },
+        "1":
+        {
+          "__usage": "controls in main menu: [camera] movement, lowercase",
+          "__noloc": "movement",
+          "rus": "движение"
+        },
+        "2":
+        {
+          "__usage": "controls in main menu: change/switch [camera] speed, lowercase",
+          "__noloc": "change speed",
+          "rus": "сменить скорость"
+        },
+        "3":
+        {
+          "__usage": "controls in main menu: change [board] tick duration, lowercase",
+          "__noloc": "change tick duration",
+          "rus": "изменить длительность шага"
+        },
+        "4":
+        {
+          "__usage": "controls in main menu: pause [board] time, lowercase",
+          "__noloc": "pause time",
+          "rus": "остановить время"
+        },
+        "5":
+        {
+          "__usage": "controls in main menu: center camera, lowercase",
+          "__noloc": "center camera",
+          "rus": "центрировать камеру"
+        },
+        "6":
+        {
+          "__usage": "controls in main menu: object menu, lowercase",
+          "__noloc": "object menu",
+          "rus": "меню объектов"
+        },
+        "7":
+        {
+          "__usage": "controls in main menu: draw/paint, lowercase",
+          "__noloc": "draw",
+          "rus": "рисовать"
+        },
+        "8":
+        {
+          "__usage": "controls in main menu: exit to main menu, lowercase",
+          "__noloc": "exit to main menu",
+          "rus": "выйти в главное меню"
+        }
+      }
     },
-    "mm/play_button":
+    "start_menu":
     {
-      "__usage": "play button in main menu, capitalized",
-      "__noloc": "Play",
-      "rus": "Играть"
+      "start_button":
+      {
+        "__usage": "start button in main menu's start menu, capitalized",
+        "__noloc": "Start",
+        "rus": "Начать"
+      },
+      "settings":
+      {
+        "board_width":
+        {
+          "__usage": "start menu's board settings: board width, capitalized",
+          "__noloc": "Board width",
+          "rus": "Ширина доски"
+        },
+        "board_height":
+        {
+          "__usage": "start menu's board settings: board height, capitalized",
+          "__noloc": "Board height",
+          "rus": "Высота доски"
+        }
+      }
     },
-    "mm/exit_button":
+    "instrument":
     {
-      "__usage": "exit button in main menu, capitalized",
-      "__noloc": "Exit",
-      "rus": "Выйти"
-    },
-    "mm/controls":
-    {
-      "__usage": "controls in main menu; separated by | symbol with no spaces, capitalized only in first phrase",
-      "__noloc": "Controls|movement|velocity change|tick duration|pause time|center camera|spawn menu|paint",
-      "rus": "Управление|движение|изменение скорости|длительность тика|пауза времени|центрировать камеру|меню спавна|рисовать"
-    },
-    "start_menu/start_button":
-    {
-      "__usage": "start button in main menu's start menu, capitalized",
-      "__noloc": "Start",
-      "rus": "Начать"
-    },
-    "start_menu/settings/board_width":
-    {
-      "__usage": "start menu's board settings: board width, capitalized",
-      "__noloc": "Board width",
-      "rus": "Ширина доски"
-    },
-    "start_menu/settings/board_height":
-    {
-      "__usage": "start menu's board settings: board height, capitalized",
-      "__noloc": "Board height",
-      "rus": "Высота доски"
+      "none":
+      {
+        "__usage": "Placeholder text displayed if no instrument is selected, capitalized",
+        "__noloc": "No instrument",
+        "rus": "Без инструмента"
+      },
+      "brush":
+      {
+        "__usage": "Brush instrument, capitalized",
+        "__noloc": "Brush",
+        "rus": "Кисть"
+      }
     }
   },
   "tutorial":
   [
     "Welcome to localization.json, fellow translators! This file is used to localize Casual Playground's strings",
     "to different languages. Each in-game text can be translated to preferred language by player. How texts will",
-    "look in the game depends on this file. Each in-game string is stored in 'localization' section (as a",
-    "dictionary). Each value in 'localization' (keyed as it is used in game's script, set by developer) is a",
-    "dictionary, called locstring.",
+    "look in the game depends on this file. 'localization' is a dictionary with a tree structure: leaf nodes",
+    "of this tree are locstrings - dictionary with several keys, described below:",
 
-    "Each locstring has several keys:",
-    "1) key '__usage' (set by developer) that describes where this locstring is used in the game;",
+    "1) key '__usage' (set by developer) that describes where this locstring is used in the game; at the end",
+    "of '__usage' key there should be an instruction, telling if this locstring in every its language variant",
+    "should be uppercase, lowercase, or capitalized (first letter is uppercase, each other is lowercase) if",
+    "this language differs lowercase and uppercase letters.",
     "2) key '__noloc' that is a standard version of string if it wasn't (yet) localized into player's preferred",
     "language; '__noloc' is an english version of string by default.",
     "3) other keys are being 3-letter code of language this string is being localized to (see ISO 639-2).",
@@ -68,7 +146,7 @@
     "English doesn't need translation because '__noloc' is already an english variant of string.",
 
     "Translation is mainly made by community, because developer doesn't know any language except Russian and English.",
-    "You can make your contribution to game's localization on Casual Playground repo's 'localization' branch:",
+    "You can make your contribution to game's localization on Casual Playground repo's 'loc' branch:",
     "https://github.com/NottLexa/Casual-Playground/tree/loc"
   ]
 }

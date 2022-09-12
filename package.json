@@ -7,29 +7,15 @@
     "type": "git",
     "url": "https://github.com/NottLexa/Casual-Playground"
   },
-  "files": [
-    "CASUAL_PLAYGROUND.js",
-    "play.html",
-    "run_nwjs.js",
-    "README.md",
-    "COPYING",
-    "core/"
-  ],
-  "version": "0.1.1",
+  "version": "0.2.0",
   "main": "run_nwjs.js",
   "chromium-args": "--disable-devtools --enable-logging=stderr",
   "devDependencies": {
-    "nwjs-builder-phoenix": "^1.15.0"
-  },
-  "build": {
-    "nwVersion": "0.63.0"
+    "nw": "^0.67.1",
+    "nw-builder": "^4.0.0-rc.1"
   },
   "scripts": {
-    "dist": "build --tasks win-x64,win-x86,mac-x64,linux-x64,linux-x86 --mirror https://dl.nwjs.io/ .",
-    "dist_win": "build --tasks win-x64,win-x86 --mirror https://dl.nwjs.io/ .",
-    "dist_mac": "build --tasks mac-x64 --mirror https://dl.nwjs.io/ .",
-    "dist_linux": "build --tasks linux-x64,linux-x86 --mirror https://dl.nwjs.io/ .",
-    "start": "run --x86 --mirror https://dl.nwjs.io/ .",
-    "log": "run --prof --x86 --mirror https://dl.nwjs.io/ ."
+    "dist": "nwbuild * ./core/** ./data/** --mode=build --zip=false --buildDir=./dist --platforms=win64 win32",
+    "start": "nw ."
   }
 }
