@@ -1839,7 +1839,7 @@ const EntMMStartMenu = new engine.Entity({
         let surf2 = this.draw_mod_list(target);
         surf1.lineWidth = bw;
         surf1.strokeStyle = border;
-        surf1.strokeRect(padding-bw, padding-bw, sww+bw+bw, mh+bw);
+        surf1.strokeRect(padding-bw, padding-bw, sww+bw, mh+bw);
         if (surf2.canvas.width !== 0 && surf2.canvas.height !== 0)
             surf1.drawImage(surf2.canvas, padding, padding);
         surf2.canvas.remove();
@@ -1847,9 +1847,9 @@ const EntMMStartMenu = new engine.Entity({
         let surf3 = this.draw_board_settings(target);
         surf1.lineWidth = bw;
         surf1.strokeStyle = border;
-        surf1.strokeRect(padding-2, mh+(2*padding)+bw, sww+bw+bw, sh+bw+bw);
+        surf1.strokeRect(padding-bw, mh+(2*padding), sww+bw, sh+bw);
         if (surf3.canvas.width !== 0 && surf3.canvas.height !== 0)
-            surf1.drawImage(surf3.canvas, padding, padding*2 + mh);
+            surf1.drawImage(surf3.canvas, padding, padding*2 + mh + bw);
         surf3.canvas.remove();
 
         /*surf.globalCompositeOperation = 'destination-in';
@@ -1979,6 +1979,7 @@ const EntMMStartMenu = new engine.Entity({
         let box_color = 'white'; // box color
         let ip = target.inline_padding;
         let box = lh-(2*ip);
+        let bw = target.border_width;
 
         let surf = document.createElement('canvas').getContext('2d');
         surf.canvas.width = sww;
@@ -1992,7 +1993,7 @@ const EntMMStartMenu = new engine.Entity({
             if (++mi >= target.modlist.length) break;
             surf.fillStyle = bg_lighter;
             surf.fillRect(0, oy, sww, lh);
-            surf.lineWidth = 2;
+            surf.lineWidth = bw;
             if (target.modlist[mi].enabled)
             {
                 surf.fillStyle = box_color;
@@ -2001,8 +2002,8 @@ const EntMMStartMenu = new engine.Entity({
             else
             {
                 surf.strokeStyle = box_color;
-                surf.strokeRect(ip + surf.lineWidth/2, oy + ip + surf.lineWidth/2,
-                    box - surf.lineWidth, box - surf.lineWidth);
+                surf.strokeRect(ip + bw/2, oy + ip + bw/2,
+                    box - bw, box - bw);
             }
             engine.draw_text(surf, lh, oy+lh/2, target.modlist[mi].name, 'fill', box, 'left',
                 'center', textcolor, '"Montserrat", serif');
@@ -2023,6 +2024,7 @@ const EntMMStartMenu = new engine.Entity({
         let triw = target.settings_consts.integer_scale.triangle_width;
         let trih = target.settings_consts.integer_scale.triangle_height;
         let box = lh-(2*ip);
+        let bw = target.border_width;
 
         let surf = document.createElement('canvas').getContext('2d');
         surf.canvas.width = sww;
@@ -2036,7 +2038,7 @@ const EntMMStartMenu = new engine.Entity({
             if (++si >= target.settings.length) break;
             surf.fillStyle = bg_lighter;
             surf.fillRect(0, oy, sww, lh);
-            surf.lineWidth = 2;
+            surf.lineWidth = bw;
             engine.draw_text(surf, ip, oy+lh/2, target.settings[si].display_name, 'fill', box, 'left', 'center',
                 textcolor, '"Montserrat", serif');
 
