@@ -125,6 +125,21 @@
         "__usage": "Brush instrument, capitalized",
         "__noloc": "Brush",
         "rus": "Кисть"
+      },
+      "brush_shape":
+      {
+        "round":
+        {
+          "__usage": "Round shape of brush instrument, capitalized",
+          "__noloc": "Round",
+          "rus": "Круглая"
+        },
+        "square":
+        {
+          "__usage": "Square shape of brush instrument, capitalized",
+          "__noloc": "Square",
+          "rus": "Квадратная"
+        }
       }
     }
   },

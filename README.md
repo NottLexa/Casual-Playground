@@ -4,7 +4,19 @@
 ____
 
 # Casual Playground (ENG)
+> A grid-based 2D-sandbox inspired by cellular automata.
 #### By Alexey "NotLexa" Kozhanov (Алексей Кожанов)
+
+[![Discord](https://img.shields.io/discord/1006230325061496872?logo=discord&logoColor=white)](https://discord.gg/HfsNpfJFDR)
+
+![GitHub all releases](https://img.shields.io/github/downloads/NottLexa/Casual-Playground/total)
+![GitHub package.json version](https://img.shields.io/github/package-json/v/NottLexa/Casual-Playground)
+[![GitHub](https://img.shields.io/github/license/NottLexa/Casual-Playground)](https://github.com/NottLexa/Casual-Playground/blob/release/COPYING)
+
+![Lines of code](https://img.shields.io/tokei/lines/github/NottLexa/Casual-Playground)
+![GitHub repo size](https://img.shields.io/github/repo-size/NottLexa/Casual-Playground)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/NottLexa/Casual-Playground)
+![GitHub last commit](https://img.shields.io/github/last-commit/NottLexa/Casual-Playground)
 
 [_Original version in python_](https://github.com/NottLexa/Casual-Playground-PY)
 
@@ -32,11 +44,24 @@ By their meaning you can understand what specific change did.
 ### Links
 
 * [GitHub](https://github.com/NottLexa/Casual-Playground)
+* [itch.io](https://notlexa.itch.io/Casual-Playground)
 
 ____
 
 # Casual Playground (RUS)
+> Сеточная 2D-песочница, вдохновлённая клеточными автоматами.
 #### Создано Алексеем "NotLexa" Кожановым
+
+[![Discord](https://img.shields.io/discord/1006230325061496872?logo=discord&logoColor=white)](https://discord.gg/HfsNpfJFDR)
+
+![GitHub all releases](https://img.shields.io/github/downloads/NottLexa/Casual-Playground/total)
+![GitHub package.json version](https://img.shields.io/github/package-json/v/NottLexa/Casual-Playground)
+[![GitHub](https://img.shields.io/github/license/NottLexa/Casual-Playground)](https://github.com/NottLexa/Casual-Playground/blob/release/COPYING)
+
+![Lines of code](https://img.shields.io/tokei/lines/github/NottLexa/Casual-Playground)
+![GitHub repo size](https://img.shields.io/github/repo-size/NottLexa/Casual-Playground)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/NottLexa/Casual-Playground)
+![GitHub last commit](https://img.shields.io/github/last-commit/NottLexa/Casual-Playground)
 
 [_Оригинальная версия на Python_](https://github.com/NottLexa/Casual-Playground-PY)
 
@@ -63,3 +88,4 @@ ____
 ### Ссылки
 
 * [GitHub](https://github.com/NottLexa/Casual-Playground)
+* [itch.io](https://notlexa.itch.io/Casual-Playground)
