@@ -309,7 +309,7 @@ var fontsize_smaller = Math.floor( 8*fontsize/scale);
 // INSERT FONT LOADER
 
 var corefolder = path.join('core', 'corecontent');
-var modsfolder = path.join('data', 'mods');
+var modsfolder = path.join('data', 'addons');
 if (!fs.existsSync(corefolder)) fs.mkdirSync(corefolder);
 if (!fs.existsSync(modsfolder)) fs.mkdirSync(modsfolder);
 
@@ -857,10 +857,11 @@ const EntFieldSUI = new engine.Entity({
         let wm = target.window_margin;
         let ds = target.display_scale;
         let wb = target.window_border;
-        target.width_part = Math.round(display.cw()/3 - 4*wm); // equal parts of screen's width (currently a third)
+        target.width_part = Math.round((display.cw() - 4*wm)/3); // equal parts of screen's width (currently a third)
         target.objmenu_height = display.ch() - (2*wm); // object menu height
         target.instrmenu_height = display.ch()/3 - (3*wm); // instrument menu height
         target.instrmenu_height_minimized = wb+ws+target.instrmenu_heading_size_minimized;
+        target.hotbar_height = target.width_part/10;
         target.element_border = Math.round((target.width_part-(2*ws)-(en*ds))/(en-1));
 
         target.desc_window_width_origin = 256+128;
@@ -882,6 +883,9 @@ const EntFieldSUI = new engine.Entity({
     },
     room_start: function(target)
     {
+        target.hotbar = Array(10).fill({type:'none'});
+        target.hotbar_slot = 1;
+
         this.canvas_resize(target, display.cw(), display.ch()); // is needed for some reason
     },
     step: function(target)
@@ -919,6 +923,10 @@ const EntFieldSUI = new engine.Entity({
         surface.drawImage(instrmenu.canvas, surface.canvas.width-wm-target.width_part,
             surface.canvas.height+((1-target.show_step)*(ih+wm))-ihm-wm-target.instrmenu_height);
         instrmenu.canvas.remove();
+
+        let instr_hb = this.draw_instrument_hotbar(target);
+        surface.drawImage(instr_hb.canvas, wm+wm+target.width_part, surface.canvas.height-wm-target.hotbar_height);
+        instr_hb.canvas.remove();
     },
     kb_down: function(target, key)
     {
@@ -934,6 +942,13 @@ const EntFieldSUI = new engine.Entity({
                     }
                 }
                 else target.show = !target.show;
+                break;
+            default:
+                if (key.code.slice(0, 5) === 'Digit')
+                {
+                    target.hotbar_slot = Number(key.code[5]);
+                    current_instrument = target.hotbar[target.hotbar_slot];
+                }
                 break;
         }
     },
@@ -965,7 +980,7 @@ const EntFieldSUI = new engine.Entity({
                 switch (buttonid)
                 {
                     case engine.LMB:
-                        current_instrument =
+                        target.hotbar[target.hotbar_slot] =
                             {
                                 type: 'brush',
                                 cell: ci,
@@ -976,6 +991,7 @@ const EntFieldSUI = new engine.Entity({
                                     ? current_instrument.scale
                                     : 1,
                             };
+                        current_instrument = target.hotbar[target.hotbar_slot];
                         break;
                 }
             }
@@ -1149,7 +1165,6 @@ const EntFieldSUI = new engine.Entity({
                     ci++;
                     let cx = ws + ((ds + eb) * (ci % inoneline));
                     let cy = ws + oy + ((ds + eb + target.object_name_size) * Math.floor(ci/inoneline));
-                    global.console.log([obj.hasOwnProperty('texture'), obj.texture_ready]);
                     ctx.imageSmoothingEnabled = false;
                     if (obj.hasOwnProperty('texture') && obj.texture_ready)
                         ctx.drawImage(obj.texture, cx, cy, ds, ds);
@@ -1278,6 +1293,73 @@ const EntFieldSUI = new engine.Entity({
 
         return ctx;
     },
+    draw_instrument_hotbar: function(target)
+    {
+        let ctx = document.createElement('canvas').getContext('2d');
+        ctx.canvas.width = target.width_part;
+        ctx.canvas.height = target.hotbar_height;
+
+        let wb = target.window_border;
+        let wb2 = wb/2;
+
+        let ox = 0
+
+        ctx.lineWidth = wb;
+        ctx.imageSmoothingEnabled = false;
+        for (let i=1; i<=10; i++)
+        {
+            let mi = i%10;
+            ctx.strokeStyle = mi === target.hotbar_slot ? '#7f7f7f' : '#1a1a1a';
+            ctx.strokeRect(ox+wb2, wb2, target.hotbar_height-wb, target.hotbar_height-wb);
+
+            let instrument = target.hotbar[mi];
+
+            switch (instrument.type) {
+                case 'brush':
+                    let celldata = objdata[idlist[instrument.cell]];
+                    if (celldata.hasOwnProperty('texture') && celldata.texture_ready)
+                        ctx.drawImage(celldata.texture,
+                            ox+wb, wb, target.hotbar_height-(2*wb), target.hotbar_height-(2*wb));
+                    else {
+                        ctx.fillStyle = rgb_to_style(...celldata.notexture);
+                        ctx.fillRect(ox+wb, wb, target.hotbar_height-(2*wb), target.hotbar_height-(2*wb));
+                    }
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    switch (instrument.brush_shape)
+                    {
+                        case 'round':
+                            ctx.beginPath();
+                            ctx.ellipse(ox + target.hotbar_height / 2, target.hotbar_height / 2,
+                                (target.hotbar_height-(4*wb)) / 2, (target.hotbar_height-(4*wb)) / 2,
+                                0, 0, 2 * Math.PI);
+                            ctx.fill();
+                            break;
+                        case 'square':
+                        default:
+                            ctx.fillRect(ox+(2*wb), 2*wb, target.hotbar_height-(4*wb), target.hotbar_height-(4*wb));
+                            break;
+                    }
+                    let textsize = target.hotbar_height-(4*wb);
+                    let textwidth = get_text_width('' + instrument.scale, `${textsize}px "Montserrat"`);
+                    engine.draw_text(ctx, ox + target.hotbar_height / 2, target.hotbar_height / 2, '' + instrument.scale,
+                        'fill', textsize * Math.min(1, textsize / textwidth), 'center', 'center',
+                        'rgba(255, 255, 255, 0.5)', '"Montserrat"');
+                    break;
+                default:
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                    ctx.fillRect(ox+wb, wb, target.hotbar_height-(2*wb), target.hotbar_height-(2*wb));
+                    break;
+            }
+
+            if (sprites.instruments.hasOwnProperty(instrument.type))
+                ctx.drawImage(sprites.instruments[instrument.type],
+                    ox+(2*wb), 2*wb, target.hotbar_height-(4*wb), target.hotbar_height-(4*wb));
+
+            ox += target.hotbar_height;
+        }
+
+        return ctx;
+    },
     canvas_resize: function(target, width, height)
     {
         let measure = Math.min(height/HEIGHT, width/WIDTH);
@@ -1302,10 +1384,11 @@ const EntFieldSUI = new engine.Entity({
         let wm = target.window_margin;
         let ds = target.display_scale;
         let wb = target.window_border;
-        target.width_part = Math.round(display.cw()/3 - 4*wm); // equal parts of screen's width (currently a third)
+        target.width_part = Math.round((display.cw() - 4*wm)/3); // equal parts of screen's width (currently a third)
         target.objmenu_height = display.ch() - (2*wm); // object menu height
         target.instrmenu_height = display.ch()/3 - (3*wm); // instrument menu height
         target.instrmenu_height_minimized = wb+ws+target.instrmenu_heading_size_minimized;
+        target.hotbar_height = target.width_part/10;
         target.element_border = Math.round((target.width_part-(2*ws)-(en*ds))/(en-1));
 
         target.desc_window_width =  target.desc_window_width_origin * measure;
@@ -1820,7 +1903,7 @@ const EntMMStartMenu = new engine.Entity({
 
                 for (let mod of target.modlist.filter(x => x.enabled))
                 {
-                    let loaded_mod = load_mod(path.join('data', 'mods', mod.name), mod.name, false);
+                    let loaded_mod = load_mod(path.join('data', 'addons', mod.name), mod.name, false);
                     idlist.push(...Object.keys(loaded_mod));
                     for (let k in loaded_mod) objdata[k] = loaded_mod[k];
                 }
