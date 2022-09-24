@@ -346,6 +346,10 @@ const EntGlobalConsole = new engine.Entity({
 
         target.padding_size_origin = 2;
         target.padding_size = target.padding_size_origin;
+
+        target.fps_records_number = 100;
+        target.fps_records = new Array(target.fps_records_number).fill(0);
+        target.fps_records_index = 0;
     },
     step: function (target)
     {
@@ -367,12 +371,15 @@ const EntGlobalConsole = new engine.Entity({
             }
             target.logger_i++;
         }
+
+        target.fps_records[target.fps_records_index] = (deltatime !== 0) ? Math.round(1/deltatime) : 0;
+        target.fps_records_index = (target.fps_records_index+1) % target.fps_records_number;
     },
     draw_after: function (target, surface)
     {
         engine.draw_text(surface, surface.canvas.width-target.padding_size, target.padding_size,
-            `${(deltatime !== 0) ? Math.round(1/deltatime) : 0} FPS`, 'fill', target.fps_size,
-            'right', 'top', 'white', '"DejaVu Sans Mono"');
+            `${Math.round(target.fps_records.reduce((s, a)=> s + a, 0) / target.fps_records_number)} FPS`,
+            'fill', target.fps_size, 'right', 'top', 'white', '"DejaVu Sans Mono"');
         for (let i in target.log)
         {
             engine.draw_text(surface, target.padding_size,
@@ -458,6 +465,10 @@ const EntFieldBoard = new engine.Entity({
         target.timepertick = 1.0;
         target.time_paused = false;
         target.time_elapsed = 0.0;
+
+        target.board_step_executed = false;
+        target.board_step_finished = false;
+        target.board_tasks_executed = false;
     },
     step: function(target)
     {
@@ -492,14 +503,41 @@ const EntFieldBoard = new engine.Entity({
         if (globalkeys.LMB && !fieldsui.show) this.board_do_instrument(target);
 
         if (!target.time_paused) target.time += deltatime;
-        if (target.time > target.timepertick) this.board_step(target);
+        if (target.time > target.timepertick)//&&(!target.board_tasks_executed)&&(!target.board_step_executed))
+        {
+            while (target.board_step_executed) {}
+            target.board_step_executed = true;
+            /*let promise = new Promise(((resolve, reject) => {
+                this.board_step(target);
+                target.board_step_executed = false;
+            }));
+            target.board_step_finished = true;*/
+            (async function async_step(board_step_func){
+                while (target.board_tasks_executed) {}
+                board_step_func(target);
+                target.board_step_executed = false;
+                target.board_step_finished = true;
+            })(this.board_step);
+        }
     },
     step_after: function(target)
     {
-        if (target.time > target.timepertick)
+        if (target.time > target.timepertick)//&&(!target.board_tasks_executed)&&(!target.board_step_executed)&&(target.board_step_finished))
         {
-            this.board_tasks(target);
             target.time = 0;
+            while (target.board_tasks_executed) {}
+            target.board_tasks_executed = true;
+            (async function async_tasks(board_tasks_func){
+                while (!target.board_step_finished) {}
+                board_tasks_func(target);
+                target.board_tasks_executed = false;
+                target.board_step_finished = false;
+            })(this.board_tasks);
+            /*let promise = new Promise(((resolve, reject) => {
+                this.board_tasks(target);
+                target.board_tasks_executed = false;
+                target.board_step_finished = false;
+            }));*/
         }
         if (update_board)
         {
