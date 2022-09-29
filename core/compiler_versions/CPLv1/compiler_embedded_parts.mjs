@@ -17,143 +17,151 @@ PURPOSE. See the GNU General Public License for more details.
 Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as ccc from '../../compiler_conclusions_cursors.mjs';
-
-const [ROUND, SQUARE, CURLY, COMMENT, DOUBLEQUOTEMARK, SINGLEQUOTEMARK] = Array(5).keys();
-const QUOTEMARK = DOUBLEQUOTEMARK;
-const EOC = ['(','[','{', '<<','"',"\'"];
-var EOC_index = {};
-Array.from(EOC).forEach((value, index)=>{EOC_index[value] = index});
-Object.freeze(EOC_index);
-//EOC_index = {EOC[x]:x for x in range(len(EOC))}
-const SET_EOC = new Set(EOC);
-const BS = '\\';
-
-const string_embedded_quotemark = function(text, start, sepsym, save_escapes = false)
+const cep = function(ccc)
 {
-    let indexes = [-1, -1];
-    let l = start;
-    let write = '';
-    let count = 0;
-    let not_break = true;
-    while (l < text.length)
+    Object.assign(this,
+        ['', 'ROUND', 'SQUARE', 'CURLY', 'COMMENT', 'DOUBLEQUOTEMARK', 'SINGLEQUOTEMARK']
+            .reduce((a, v, i)=>({ ...a, [v]: i-1})));
+    //const [ROUND, SQUARE, CURLY, COMMENT, DOUBLEQUOTEMARK, SINGLEQUOTEMARK] = Array(5).keys();
+    this.QUOTEMARK = this.DOUBLEQUOTEMARK;
+    this.EOC = ['(','[','{', '<<','"',"'"];
+    this.EOC_index = {};
+    Array.from(this.EOC).forEach((value, index)=>{this.EOC_index[value] = index});
+    Object.freeze(this.EOC_index);
+    //this.EOC_index = {this.EOC[x]:x for x in range(len(this.EOC))}
+    this.SET_EOC = new Set(this.EOC);
+    this.BS = '\\';
+
+    let self = this;
+
+    this.string_embedded_quotemark = function(text, start, sepsym, save_escapes = false)
     {
-        if (text[l] === sepsym) indexes[count++] = l;
-        if (count > 0)
+        let indexes = [-1, -1];
+        let l = start;
+        let write = '';
+        let count = 0;
+        let not_break = true;
+        while (l < text.length)
         {
-            if (text[l] === BS)
+            if (text[l] === sepsym) indexes[count++] = l;
+            if (count > 0)
             {
-                if (text[l+1] === BS)
+                if (text[l] === self.BS)
                 {
-                    write += (!save_escapes) ? BS : BS+BS;
-                    l += 2;
+                    if (text[l+1] === self.BS)
+                    {
+                        write += (!save_escapes) ? self.BS : self.BS+self.BS;
+                        l += 2;
+                    }
+                    else if (text[l+1] === sepsym)
+                    {
+                        write += (!save_escapes) ? sepsym : self.BS+sepsym;
+                        l += 2;
+                    }
+                    else return [0, 0, '', new ccc.CompilerConclusion(202),
+                            new ccc.CompilerCursor(text, l)];
                 }
-                else if (text[l+1] === sepsym)
-                {
-                    write += (!save_escapes) ? sepsym : BS+sepsym;
-                    l += 2;
-                }
-                else return [0, 0, '', new ccc.CompilerConclusion(202),
-                        new ccc.CompilerCursor(text, l)];
+                else write += text[l++];
             }
-            else write += text[l++];
-        }
-        if (count >= 2)
-        {
-            not_break = false;
-            break;
-        }
-    }
-    if (not_break)
-        return [0, 0, '', new ccc.CompilerConclusion(201), new ccc.CompilerCursor(text, start)];
-    return [indexes[0], indexes[1]+1, write, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
-}
-
-const string_embedded_brackets = function(text, start, sepsym)
-{
-    let indexes = [-1, -1];
-    let l = start;
-    let write = '';
-    let opened = false;
-    let not_break = true;
-    while (l < text.length)
-    {
-        let found = EOC.filter(value => text.slice(l, l+value.length) === value);
-        if (found.length > 0)
-        {
-            if (found[0] === sepsym[0])
+            if (count >= 2)
             {
-                if (!opened)
+                not_break = false;
+                break;
+            }
+        }
+        if (not_break)
+            return [0, 0, '', new ccc.CompilerConclusion(201), new ccc.CompilerCursor(text, start)];
+        return [indexes[0], indexes[1]+1, write, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
+    };
+
+    this.string_embedded_brackets = function(text, start, sepsym)
+    {
+        let indexes = [-1, -1];
+        let l = start;
+        let write = '';
+        let opened = false;
+        let not_break = true;
+        while (l < text.length)
+        {
+            let found = self.EOC.filter(value => text.slice(l, l+value.length) === value);
+            if (found.length > 0)
+            {
+                if (found[0] === sepsym[0])
                 {
-                    indexes[0] = l;
-                    opened = true;
-                    write += text[l++];
+                    if (!opened)
+                    {
+                        indexes[0] = l;
+                        opened = true;
+                        write += text[l++];
+                    }
+                    else if (self.EOC_index[sepsym[0]] !== self.COMMENT)
+                    {
+                        let _, add, concl, cur;
+                        [_, l, add, concl, cur] = self.string_embedded(text, l, self.EOC_index[found[0]]);
+                        if (!ccc.correct_concl(concl)) return [0, 0, '', concl, cur];
+                        write += add;
+                    }
                 }
-                else if (EOC_index[sepsym[0]] !== COMMENT)
+                else if (self.EOC_index[sepsym[0]] !== self.COMMENT)
                 {
                     let _, add, concl, cur;
-                    [_, l, add, concl, cur] = string_embedded(text, l, EOC_index[found[0]]);
+                    [_, l, add, concl, cur] = self.string_embedded(text, l, self.EOC_index[found[0]]);
                     if (!ccc.correct_concl(concl)) return [0, 0, '', concl, cur];
                     write += add;
                 }
             }
-            else if (EOC_index[sepsym[0]] !== COMMENT)
+            else
             {
-                let _, add, concl, cur;
-                [_, l, add, concl, cur] = string_embedded(text, l, EOC_index[found[0]]);
-                if (!ccc.correct_concl(concl)) return [0, 0, '', concl, cur];
-                write += add;
-            }
-        }
-        else
-        {
-            let sliced = text.slice(l, l+sepsym[1].length);
-            if (sliced === sepsym[1])
-            {
-                if (opened)
+                let sliced = text.slice(l, l+sepsym[1].length);
+                if (sliced === sepsym[1])
                 {
-                    indexes[1] = l;
-                    write += sliced;
-                    not_break = false;
-                    break;
+                    if (opened)
+                    {
+                        indexes[1] = l;
+                        write += sliced;
+                        not_break = false;
+                        break;
+                    }
+                    else return [0, 0, '', new ccc.CompilerConclusion(201), new ccc.CompilerCursor(text, l)];
                 }
-                else return [0, 0, '', new ccc.CompilerConclusion(201), new ccc.CompilerCursor(text, l)];
+                else write += text[l++];
             }
-            else write += text[l++];
         }
-    }
-    if (not_break)
-        return [0, 0, '', new ccc.CompilerConclusion(201), new ccc.CompilerCursor(text, start)];
-    return [indexes[0], indexes[1]+sepsym[1].length, write, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
-}
+        if (not_break)
+            return [0, 0, '', new ccc.CompilerConclusion(201), new ccc.CompilerCursor(text, start)];
+        return [indexes[0], indexes[1]+sepsym[1].length, write, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
+    };
 
-const string_embedded = function(text, start, separationtype, save_escapes = false)
-{
-    let sepsym;
-    if (typeof separationtype === 'string') sepsym = separationtype;
-    else sepsym = [
-        '()',
-        '[]',
-        '{}',
-        ['<<', '>>'],
-        '"',
-        "'"][separationtype];
-    if (text.slice(start, start+sepsym[0].length) !== sepsym[0]) // (text[start] !== sepsym[0])
-        return [0, 0, '', new ccc.CompilerConclusion(304), new ccc.CompilerCursor()];
-    if ('"\''.includes(sepsym[0]))
-        return string_embedded_quotemark(text, start, sepsym, save_escapes);
-    else
-        return string_embedded_brackets(text, start, sepsym);
-}
+    this.string_embedded = function(text, start, separationtype, save_escapes = false)
+    {
+        let sepsym;
+        if (typeof separationtype === 'string') sepsym = separationtype;
+        else sepsym = [
+            '()',
+            '[]',
+            '{}',
+            ['<<', '>>'],
+            '"',
+            "'"][separationtype];
+        if (text.slice(start, start+sepsym[0].length) !== sepsym[0]) // (text[start] !== sepsym[0])
+            return [0, 0, '', new ccc.CompilerConclusion(304), new ccc.CompilerCursor()];
+        if ('"\''.includes(sepsym[0]))
+            return self.string_embedded_quotemark(text, start, sepsym, save_escapes);
+        else
+            return self.string_embedded_brackets(text, start, sepsym);
+    };
 
-const string_only_embedded = function(text, start, separationtype, save_escapes = false)
-{
-    let ret = string_embedded(text, start, separationtype, save_escapes);
-    if (ccc.correct_concl(ret[3]))
-        return [ret[0], ret[1], ret[2].slice(1, -1), ret[3], new ccc.CompilerCursor()];
-    else return ret;
-}
+    this.string_only_embedded = function(text, start, separationtype, save_escapes = false)
+    {
+        let ret = this.string_embedded(text, start, separationtype, save_escapes);
+        if (ccc.correct_concl(ret[3]))
+            return [ret[0], ret[1], ret[2].slice(1, -1), ret[3], new ccc.CompilerCursor()];
+        else return ret;
+    };
+};
 
-export {string_embedded, string_embedded_brackets, string_embedded_quotemark, string_only_embedded,
-    DOUBLEQUOTEMARK, SINGLEQUOTEMARK, QUOTEMARK, BS, CURLY, EOC, EOC_index, ROUND, SET_EOC, SQUARE,
-    COMMENT};
+import * as _ccc from '../../compiler_conclusions_cursors.mjs';
+
+let _cep = new cep(_ccc);
+
+export {_cep, cep};

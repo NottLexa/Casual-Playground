@@ -17,132 +17,138 @@ PURPOSE. See the GNU General Public License for more details.
 Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as cep from './compiler_embedded_parts.mjs';
-import * as ccc from '../../compiler_conclusions_cursors.mjs';
+import {_cep} from './compiler_embedded_parts.mjs';
+import * as _ccc from '../../compiler_conclusions_cursors.mjs';
 
-const split_args1 = function(text, start, end_at = null)
+const coi = function(cep, ccc)
 {
-    let newlinestop = false;
-    let end = end_at;
-    if (end_at === null) end = text.length;
-    else if (end_at === '\n')
+    this.split_args1 = function(text, start, end_at = null)
     {
-        newlinestop = true;
-        end = text.length;
-    }
-    else end = Math.min(end_at, text.length);
-
-    let args = [];
-    let write = '';
-    let l = start;
-    while (l < end)
-    {
-        if (newlinestop && '\n\r'.includes(text[l])) break;
-        if (' \n\t\r'.includes(text[l]))
+        let newlinestop = false;
+        let end = end_at;
+        if (end_at === null) end = text.length;
+        else if (end_at === '\n')
         {
-            if (text[l] === '\r' && text[l+1] === '\n') l++;
-            if (write !== '')
+            newlinestop = true;
+            end = text.length;
+        }
+        else end = Math.min(end_at, text.length);
+
+        let args = [];
+        let write = '';
+        let l = start;
+        while (l < end)
+        {
+            if (newlinestop && '\n\r'.includes(text[l])) break;
+            if (' \n\t\r'.includes(text[l]))
             {
-                args.push(write);
-                write = '';
+                if (text[l] === '\r' && text[l+1] === '\n') l++;
+                if (write !== '')
+                {
+                    args.push(write);
+                    write = '';
+                }
             }
-        }
-        else if ('\'"'.includes(text[l]))
-        {
-            let i0, i1, string, concl, cur;
-            if (text[l] === '"')
-                [i0, i1, string, concl, cur] = cep.string_embedded(text, l, cep.DOUBLEQUOTEMARK, true);
-            else
-                [i0, i1, string, concl, cur] = cep.string_embedded(text, l, cep.SINGLEQUOTEMARK, true);
-            if (!ccc.correct_concl(concl))
-                return [[], concl, cur];
-            l = i1-1;
-            write += string;
-        }
-        else write += text[l];
-        l++;
-    }
-    if (write !== '') args.push(write);
-
-    return [args, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
-}
-
-const split_args2 = function(text, start)
-{
-    let end = text.length;
-    let args = [];
-    let write = '';
-    let l = start;
-    while (l < end)
-    {
-        if ('\n\r'.includes(text[l]))
-        {
-            if (text[l] === '\r' && text[l+1] === '\n') l++;
-            end = l;
-            break;
-        }
-        if (' \t'.includes(text[l]))
-        {
-            if (write !== '')
+            else if ('\'"'.includes(text[l]))
             {
-                args.push(write);
-                write = '';
+                let i0, i1, string, concl, cur;
+                if (text[l] === '"')
+                {
+                    [i0, i1, string, concl, cur] = cep.string_embedded(text, l, cep.DOUBLEQUOTEMARK, true);
+                }
+                else
+                    [i0, i1, string, concl, cur] = cep.string_embedded(text, l, cep.SINGLEQUOTEMARK, true);
+                if (!ccc.correct_concl(concl))
+                    return [[], concl, cur];
+                l = i1-1;
+                write += string;
             }
-            l += 1;
+            else write += text[l];
+            l++;
         }
-        else if (cep.SET_EOC.has(text[l]))
-        {
-            let [i0, i1, string, concl, cur] = cep.string_only_embedded(text, l, cep.EOC_index[text[l]]);
-            if (!ccc.correct_concl(concl)) return [end+1, [], concl, cur];
-            l = i1;
-            write += text[i0] + string + text[l-1];
-        }
-        else write += text[l++];
+        if (write !== '') args.push(write);
+        return [args, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
+    };
 
-    }
-    if (write !== '') args.push(write);
-
-    return [end+1, args, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
-}
-
-const split_args3 = function(text, start = 0, end_at = null, ...splitters)
-{
-    let end;
-    if (end_at === null) end = text.length;
-    else end = end_at;
-
-    let spls = [...splitters].sort((a,b)=>(a-b));
-    let ret = [''];
-    let l = start;
-    let not_break;
-    while (l < end)
+    this.split_args2 = function(text, start)
     {
-        not_break = true;
-        for (let spl of spls)
+        let end = text.length;
+        let args = [];
+        let write = '';
+        let l = start;
+        while (l < end)
         {
-            if (text.slice(l, l+spl.length) === spl)
+            if ('\n\r'.includes(text[l]))
             {
-                if (ret[ret.length-1] === '') ret.pop();
-                ret.push(spl, '');
-                l += spl.length;
-                not_break = false;
+                if (text[l] === '\r' && text[l+1] === '\n') l++;
+                end = l;
                 break;
             }
-        }
-        if (not_break)
-        {
-            if (cep.SET_EOC.has(text[l]))
+            if (' \t'.includes(text[l]))
             {
-                let [l0, l1, write, concl, cur] = cep.string_embedded(text, l, cep.EOC_index[text[l]])
-                if (!ccc.correct_concl(concl)) return [[], concl, cur];
-                ret[ret.length-1] += write;
-                l = l1;
+                if (write !== '')
+                {
+                    args.push(write);
+                    write = '';
+                }
+                l += 1;
             }
-            else ret[ret.length-1] += text[l++];
-        }
-    }
-    if (ret[ret.length-1] === '') ret.pop();
-    return [ret, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
-}
+            else if (cep.SET_EOC.has(text[l]))
+            {
+                let [i0, i1, string, concl, cur] = cep.string_only_embedded(text, l, cep.EOC_index[text[l]]);
+                if (!ccc.correct_concl(concl)) return [end+1, [], concl, cur];
+                l = i1;
+                write += text[i0] + string + text[l-1];
+            }
+            else write += text[l++];
 
-export {split_args1, split_args2, split_args3}
+        }
+        if (write !== '') args.push(write);
+
+        return [end+1, args, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
+    };
+
+    this.split_args3 = function(text, start = 0, end_at = null, ...splitters)
+    {
+        let end;
+        if (end_at === null) end = text.length;
+        else end = end_at;
+
+        let spls = [...splitters].sort((a,b)=>(a-b));
+        let ret = [''];
+        let l = start;
+        let not_break;
+        while (l < end)
+        {
+            not_break = true;
+            for (let spl of spls)
+            {
+                if (text.slice(l, l+spl.length) === spl)
+                {
+                    if (ret[ret.length-1] === '') ret.pop();
+                    ret.push(spl, '');
+                    l += spl.length;
+                    not_break = false;
+                    break;
+                }
+            }
+            if (not_break)
+            {
+                if (cep.SET_EOC.has(text[l]))
+                {
+                    let [l0, l1, write, concl, cur] = cep.string_embedded(text, l, cep.EOC_index[text[l]])
+                    if (!ccc.correct_concl(concl)) return [[], concl, cur];
+                    ret[ret.length-1] += write;
+                    l = l1;
+                }
+                else ret[ret.length-1] += text[l++];
+            }
+        }
+        if (ret[ret.length-1] === '') ret.pop();
+        return [ret, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
+    };
+};
+
+let _coi = new coi(_cep, _ccc);
+
+export {_coi, coi};

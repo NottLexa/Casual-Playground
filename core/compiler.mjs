@@ -17,7 +17,7 @@ PURPOSE. See the GNU General Public License for more details.
 Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as CPLv1 from './compiler_versions/CPLv1/__init__.mjs';
+import * as CPLv1 from './compiler_versions/CPLv1/main.mjs';
 import * as ccc from './compiler_conclusions_cursors.mjs';
 
 const COMPILER_VERSIONS = [CPLv1];
