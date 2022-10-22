@@ -23,12 +23,12 @@ Casual Playground Compiler - version 1 (CPLv1)
 Hello World!
 */
 
-import {_coi} from './compiler_other_instruments.mjs';
-import {_ccb} from './compiler_code_blocks.mjs';
-import {_cep} from './compiler_embedded_parts.mjs';
-import {_cbd} from './compiler_block_definers.mjs';
-import {_cvd} from './compiler_value_determinants.mjs';
-import * as _ccc from "../../compiler_conclusions_cursors.mjs";
+var {_coi} = require('./compiler_other_instruments.cjs');
+var {_ccb} = require('./compiler_code_blocks.cjs');
+var {_cep} = require('./compiler_embedded_parts.cjs');
+var {_cbd} = require('./compiler_block_definers.cjs');
+var {_cvd} = require('./compiler_value_determinants.cjs');
+var _ccc = require('../../compiler_conclusions_cursors.cjs');
 
 const cmp = function(coi, ccb, cep, cbd, cvd, ccc)
 {
@@ -282,4 +282,4 @@ const cmp = function(coi, ccb, cep, cbd, cvd, ccc)
 
 let _cmp = new cmp(_coi, _ccb, _cep, _cbd, _cvd, _ccc);
 
-export {_cmp, cmp};
+module.exports = {_cmp, cmp};

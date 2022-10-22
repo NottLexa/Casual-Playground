@@ -17,12 +17,12 @@ PURPOSE. See the GNU General Public License for more details.
 Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {_ccf} from './compiler_core_functions.mjs';
-import {_coi} from './compiler_other_instruments.mjs';
-import {_cep} from './compiler_embedded_parts.mjs';
-import {_ccb} from './compiler_code_blocks.mjs';
-import * as _csc from '../../compiler_string_constants.mjs';
-import * as _ccc from '../../compiler_conclusions_cursors.mjs';
+var {_ccf} = require('./compiler_core_functions.cjs');
+var {_coi} = require('./compiler_other_instruments.cjs');
+var {_cep} = require('./compiler_embedded_parts.cjs');
+var {_ccb} = require('./compiler_code_blocks.cjs');
+var _csc = require('../../compiler_string_constants.cjs');
+var _ccc = require('../../compiler_conclusions_cursors.cjs');
 
 const cvd = function(ccf, coi, cep, ccb, csc, ccc)
 {
@@ -221,4 +221,4 @@ const cvd = function(ccf, coi, cep, ccb, csc, ccc)
 
 let _cvd = new cvd(_ccf, _coi, _cep, _ccb, _csc, _ccc);
 
-export {_cvd, cvd};
+module.exports = {_cvd, cvd};

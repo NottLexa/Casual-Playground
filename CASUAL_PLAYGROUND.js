@@ -25,9 +25,13 @@ window.onerror = function(msg, url, linenumber)
     return true;
 }
 import * as engine from './core/nle.mjs';
-import * as comp from './core/compiler.mjs';
-import * as ctt from './core/compiler_task_types.mjs';
-import * as ccc from './core/compiler_conclusions_cursors.mjs';
+//import * as comp from './core/compiler.cjs';
+//import * as ctt from './core/compiler_task_types.cjs';
+//import * as ccc from './core/compiler_conclusions_cursors.cjs';
+const comp = require('./core/compiler.cjs');
+const ctt = require('./core/compiler_task_types.cjs');
+const ccc = require('./core/compiler_conclusions_cursors.cjs');
+
 const fs = require('fs');
 const path = require('path');
 var vi;

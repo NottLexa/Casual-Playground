@@ -17,9 +17,9 @@ PURPOSE. See the GNU General Public License for more details.
 Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {_cvd} from './compiler_value_determinants.mjs';
-import {_ccb} from './compiler_code_blocks.mjs';
-import * as _ccc from './../../compiler_conclusions_cursors.mjs';
+var {_cvd} = require('./compiler_value_determinants.cjs');
+var {_ccb} = require('./compiler_code_blocks.cjs');
+var _ccc = require('../../compiler_conclusions_cursors.cjs');
 
 const cbd = function(cvd, ccb, ccc)
 {
@@ -61,4 +61,4 @@ const cbd = function(cvd, ccb, ccc)
 
 let _cbd = new cbd(_cvd, _ccb, _ccc);
 
-export {_cbd, cbd};
+module.exports = {_cbd, cbd};

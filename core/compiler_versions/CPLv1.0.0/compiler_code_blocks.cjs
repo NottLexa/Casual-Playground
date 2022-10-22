@@ -195,4 +195,4 @@ const ccb = function()
 
 let _ccb = new ccb();
 
-export {_ccb, ccb};
+module.exports = {_ccb, ccb};

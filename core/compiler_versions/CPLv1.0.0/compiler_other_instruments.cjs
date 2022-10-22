@@ -17,8 +17,8 @@ PURPOSE. See the GNU General Public License for more details.
 Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import {_cep} from './compiler_embedded_parts.mjs';
-import * as _ccc from '../../compiler_conclusions_cursors.mjs';
+var {_cep} = require('./compiler_embedded_parts.cjs');
+var _ccc = require('../../compiler_conclusions_cursors.cjs');
 
 const coi = function(cep, ccc)
 {
@@ -151,4 +151,4 @@ const coi = function(cep, ccc)
 
 let _coi = new coi(_cep, _ccc);
 
-export {_coi, coi};
+module.exports = {_coi, coi};

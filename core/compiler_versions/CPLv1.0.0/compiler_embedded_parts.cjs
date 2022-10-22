@@ -160,8 +160,8 @@ const cep = function(ccc)
     };
 };
 
-import * as _ccc from '../../compiler_conclusions_cursors.mjs';
+var _ccc = require('../../compiler_conclusions_cursors.cjs');
 
 let _cep = new cep(_ccc);
 
-export {_cep, cep};
+module.exports = {_cep, cep};

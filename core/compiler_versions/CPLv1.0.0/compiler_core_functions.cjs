@@ -17,7 +17,7 @@ PURPOSE. See the GNU General Public License for more details.
 Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import * as _ctt from '../../compiler_task_types.mjs';
+var _ctt = require('../../compiler_task_types.cjs');
 
 const ccf = function(ctt)
 {
@@ -114,4 +114,4 @@ const ccf = function(ctt)
 
 let _ccf = new ccf(_ctt);
 
-export {_ccf, ccf};
+module.exports = {_ccf, ccf};
