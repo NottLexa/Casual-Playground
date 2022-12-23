@@ -22,12 +22,10 @@ const path = require('path');
 //const desync = require('deasync');
 
 //import * as CPLv1_0_0 from './compiler_versions/CPLv1.0.0/main.cjs';
-var ccc = require('./compiler_conclusions_cursors.cjs');
-var csc = require('./compiler_string_constants.cjs');
+const ccc = require('./compiler_conclusions_cursors.cjs');
+const ctt = require('./compiler_task_types.cjs');
+const csc = require('./compiler_string_constants.cjs');
 
-//const COMPILER_VERSIONS = [CPLv1.0.0];
-//const LAST_COMPILER_VERSION = COMPILER_VERSIONS.length;
-//const [X, Y, CELLID] = Array(3).keys();
 const Globals = {
     REPLY_DEFAULT: 0,
 };
@@ -67,13 +65,6 @@ const get = function(code = '')
     }
     else return [{}, new ccc.CompilerConclusion(2), new ccc.CompilerCursor()];
 
-    //let version = Number(write);
-    /*if (!(0 < version && version <= LAST_COMPILER_VERSION))
-    {
-        return [{}, new ccc.CompilerConclusion(3), new ccc.CompilerCursor(code, 0, 0)];
-    }*/
-
-    //let compiler = COMPILER_VERSIONS[version-1];
     let compilers = fs.readdirSync(path.join('core', 'compiler_versions'));
     let compiler;
     if (compilers.includes(version)) // exact compiler name
@@ -85,58 +76,38 @@ const get = function(code = '')
         if (versions_filtered.length === 0)
             return [{}, new ccc.CompilerConclusion(3), new ccc.CompilerCursor(code, 0, 0)];
         version = versions_filtered[versions_filtered.length-1];
-        //compiler = path.join('core', 'compiler_version', );
     }
 
     let ret;
 
     try {
         let compiler_path = path.join('core', 'compiler_versions', version);
-        //console.log(fs.readdirSync(compiler_path));
-        //compiler = require(compiler_path);
-        //import(compiler_path).then((compiler)=>{ret = compiler.get(code, l);});
-        //console.log('B');
 
-        let compiler = require(compiler_path); //let compiler = require('compiler_versions/CPLv1.0.0');
+        let compiler = require(compiler_path);
 
         ret = compiler.get(code, l);
 
-        /*desync(()=>{
-            import(compiler_path).then((compiler)=>{ret = compiler.get(code, l);});
-        })();*/
+        if (ret[0].hasOwnProperty('script'))
+        {
+            for (let i in ret[0].script)
+            {
+                if (ret[0].script[i] === undefined)
+                    ret[0].script[i] = (caller)=>{};
+                else
+                {
+                    let jsc = compiler.jsconvert(ret[0].script[i]);
+                    jsc = new Function('caller', 'ctt', jsc);
+                    ret[0].script[i] = (caller)=>{jsc(caller, ctt)};
+                }
+
+            }
+        }
     }
     catch (err) {
         ret = [{}, new ccc.CompilerConclusion(200),
             new ccc.CompilerCursor(err.message+'\n'+err.fileName+'\n'+err.lineNumber)];
     }
-    /*if (ret[1] === new ccc.CompilerConclusion(0) && version !== LAST_COMPILER_VERSION)
-    {
-        ret[1] = new ccc.CompilerConclusion(1);
-    }*/
     return [{...DEFAULT, ...ret[0]}, ret[1], ret[2]];
-
-    /*import(compiler)
-        .then((compiler)=>
-            {
-                //let ret;
-                try {
-                    ret = compiler.get(code, l);
-                }
-                catch (err) {
-                    ret = [{}, new ccc.CompilerConclusion(200), new ccc.CompilerCursor(err.message)];
-                }
-                if (ret[1] === new ccc.CompilerConclusion(0) && version !== LAST_COMPILER_VERSION)
-                {
-                    ret[1] = new ccc.CompilerConclusion(1);
-                }
-                ret = [{...DEFAULT, ...ret[0]}, ret[1], ret[2]];
-            })
-        .catch((err)=>
-            {
-                ret = [{}, new ccc.CompilerConclusion(3), new ccc.CompilerCursor(code, 0, 0)];
-            });
-    while (ret === undefined) {};
-    return ret;*/
 }
 
 const Cell = function(
@@ -160,11 +131,13 @@ const Cell = function(
     this.globals = globals;
     this.tasks = [];
     this.code = this.globals[0].objdata[this.globals[0].idlist[this.cellid]];
-    if (this.code.script.create !== undefined) this.code.script.create.exec(this);
+    this.code.script.create(this);
+    //if (this.code.script.create !== undefined) this.code.script.create.exec(this);
 
     this.step = function()
     {
-        if (this.code.script.step !== undefined) this.code.script.step.exec(this);
+        this.code.script.step(this);
+        //if (this.code.script.step !== undefined) this.code.script.step.exec(this);
     }
 
     this.reply = function(
@@ -192,7 +165,7 @@ const Cell = function(
         this.locals = {};
         this.tasks = [];
         this.code = this.globals[0].objdata[this.globals[0].idlist[this.cellid]];
-        if (this.code.script.create !== undefined) this.code.script.create.exec(this);
+        this.code.script.create(this);
     }
 }
 
