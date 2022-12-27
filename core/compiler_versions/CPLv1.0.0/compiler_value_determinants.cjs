@@ -119,8 +119,8 @@ const cvd = function(ccf, coi, cep, ccb, csc, ccc)
                                 new ccc.CompilerCursor()];
                         case 2:
                             return [new ccb.Value(ccb.FUNC, 'cellid_by_name', ccf.CoreFuncs,
-                                [new ccb.Value(ccb.FIXEDVAR, splt[0], splt[1])]), new ccc.CompilerConclusion(0),
-                                new ccc.CompilerCursor()];
+                                [new ccb.Value(ccb.FIXEDVAR, splt[1]+'/'+splt[0])]),
+                                new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
                         default:
                             return [new ccb.Value(ccb.EMPTY), new ccc.CompilerConclusion(301), new ccc.CompilerCursor()];
                     }

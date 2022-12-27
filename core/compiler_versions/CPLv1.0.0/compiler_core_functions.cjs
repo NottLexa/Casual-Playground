@@ -92,8 +92,7 @@ const ccf = function(ctt)
         },
         cellid_by_name: function(caller, a)
         {
-            if (a.source !== null) return caller.globals[0].idlist.indexOf(a.source+'/'+a.read(caller));
-            else return caller.globals[0].idlist.indexOf(a.read(caller));
+            return caller.globals[0].idlist.indexOf(a.read(caller));
         },
         min: function(caller, a, b)
         {
@@ -126,7 +125,7 @@ const ccf = function(ctt)
         or: (a, b) => ['(', a, `|`, b, ')'],
         xor: (a, b) => ['(', a, `^`, b, ')'],
         not: (a) => [`(!`, a, ')'],
-        cellid_by_name: (a) => ['caller.globals[0].idlist.indexOf(', a, ')'], // temporarily without unofficial source support
+        cellid_by_name: (a) => ['caller.globals[0].idlist.indexOf(', a, ')'],
         /*cellid_by_name: function(caller, a)
         {
 
