@@ -25,9 +25,6 @@ window.onerror = function(msg, url, linenumber)
     return true;
 }
 import * as engine from './core/nle.mjs';
-//import * as comp from './core/compiler.cjs';
-//import * as ctt from './core/compiler_task_types.cjs';
-//import * as ccc from './core/compiler_conclusions_cursors.cjs';
 const comp = require('./core/compiler.cjs');
 const ctt = require('./core/compiler_task_types.cjs');
 const ccc = require('./core/compiler_conclusions_cursors.cjs');
@@ -694,8 +691,9 @@ const EntFieldBoard = new engine.Entity({
                     logger.push([
                         comp.LoggerClass.ERROR,
                         new Date(),
-                        `Runtime error for cell (${x}, ${y}) with CellID ${idlist[target.board[y][x].cellid]}`,
+                        `Runtime error for cell (${x}, ${y}) with CellID #${idlist[target.board[y][x].cellid]}`,
                         `CasualPlayground Compiler encountered an error: ${concl.code}`,
+                        err.name, err.message,
                         concl.full_conclusion(),
                         cur.highlight(),
                         cur.string(),

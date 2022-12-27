@@ -17,13 +17,6 @@ PURPOSE. See the GNU General Public License for more details.
 Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 */
 
-var {_ccf} = require('./compiler_core_functions.cjs');
-var {_coi} = require('./compiler_other_instruments.cjs');
-var {_cep} = require('./compiler_embedded_parts.cjs');
-var {_ccb} = require('./compiler_code_blocks.cjs');
-var _csc = require('../../compiler_string_constants.cjs');
-var _ccc = require('../../compiler_conclusions_cursors.cjs');
-
 const cvd = function(ccf, coi, cep, ccb, csc, ccc)
 {
     this.MO = [['==', '!=', '>=', '>', '<=', '<'], ['+', '-'], ['*', '/']];
@@ -126,8 +119,8 @@ const cvd = function(ccf, coi, cep, ccb, csc, ccc)
                                 new ccc.CompilerCursor()];
                         case 2:
                             return [new ccb.Value(ccb.FUNC, 'cellid_by_name', ccf.CoreFuncs,
-                                [new ccb.Value(ccb.FIXEDVAR, splt[0], splt[1])]), new ccc.CompilerConclusion(0),
-                                new ccc.CompilerCursor()];
+                                [new ccb.Value(ccb.FIXEDVAR, splt[1]+'/'+splt[0])]),
+                                new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
                         default:
                             return [new ccb.Value(ccb.EMPTY), new ccc.CompilerConclusion(301), new ccc.CompilerCursor()];
                     }
@@ -218,6 +211,13 @@ const cvd = function(ccf, coi, cep, ccb, csc, ccc)
         return [new ccb.Value(ccb.EMPTY), new ccc.CompilerConclusion(301), new ccc.CompilerCursor()];
     };
 };
+
+var {_ccf} = require('./compiler_core_functions.cjs');
+var {_coi} = require('./compiler_other_instruments.cjs');
+var {_cep} = require('./compiler_embedded_parts.cjs');
+var {_ccb} = require('./compiler_code_blocks.cjs');
+var _csc = require('../../compiler_string_constants.cjs');
+var _ccc = require('../../compiler_conclusions_cursors.cjs');
 
 let _cvd = new cvd(_ccf, _coi, _cep, _ccb, _csc, _ccc);
 

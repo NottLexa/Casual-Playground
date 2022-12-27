@@ -17,10 +17,6 @@ PURPOSE. See the GNU General Public License for more details.
 Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 */
 
-var {_cvd} = require('./compiler_value_determinants.cjs');
-var {_ccb} = require('./compiler_code_blocks.cjs');
-var _ccc = require('../../compiler_conclusions_cursors.cjs');
-
 const cbd = function(cvd, ccb, ccc)
 {
     this.definer = function(parts)
@@ -58,6 +54,10 @@ const cbd = function(cvd, ccb, ccc)
         return [new ccb.Block(ccb.RUNFUNC, func), new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
     }
 };
+
+var {_cvd} = require('./compiler_value_determinants.cjs');
+var {_ccb} = require('./compiler_code_blocks.cjs');
+var _ccc = require('../../compiler_conclusions_cursors.cjs');
 
 let _cbd = new cbd(_cvd, _ccb, _ccc);
 

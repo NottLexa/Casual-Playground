@@ -17,8 +17,6 @@ PURPOSE. See the GNU General Public License for more details.
 Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 */
 
-var _ctt = require('../../compiler_task_types.cjs');
-
 const ccf = function(ctt)
 {
     this.CoreFuncs = {
@@ -94,8 +92,7 @@ const ccf = function(ctt)
         },
         cellid_by_name: function(caller, a)
         {
-            if (a.source !== null) return caller.globals[0].idlist.indexOf(a.source+'/'+a.read(caller));
-            else return caller.globals[0].idlist.indexOf(a.read(caller));
+            return caller.globals[0].idlist.indexOf(a.read(caller));
         },
         min: function(caller, a, b)
         {
@@ -109,8 +106,39 @@ const ccf = function(ctt)
         {
             return Math.max(mn.read(caller), Math.min(mx.read(caller), value.read(caller)));
         },
+    };
+    this.CoreFuncsString = { // for compiler_javascript_converter.cjs
+        add: (a, b) => ['(', a, `+`, b, ')'],
+        sub: (a, b) => ['(', a, `-`, b, ')'],
+        mul: (a, b) => ['(', a, `*`, b, ')'],
+        div: (a, b) => ['(', a, `/`, b, ')'],
+        getcell: (x, y) => ['caller.board[', y, '][', x, '].cellid'],
+        setcell: (x, y, cellid) => ['caller.tasks.push([ctt.SET_CELL,', x, ',', y, ',', cellid, '])'],
+        eq: (a, b) => ['(', a, `===`, b, ')'],
+        ne: (a, b) => ['(', a, `!==`, b, ')'],
+        ge: (a, b) => ['(', a, `>=`, b, ')'],
+        gt: (a, b) => ['(', a, `>`, b, ')'],
+        le: (a, b) => ['(', a, `<=`, b, ')'],
+        lt: (a, b) => ['(', a, `<`, b, ')'],
+        reply: (string) => ['caller.reply(0, toString(', string, '))'],
+        and: (a, b) => ['(', a, `&`, b, ')'],
+        or: (a, b) => ['(', a, `|`, b, ')'],
+        xor: (a, b) => ['(', a, `^`, b, ')'],
+        not: (a) => [`(!`, a, ')'],
+        cellid_by_name: (a) => ['caller.globals[0].idlist.indexOf(', a, ')'],
+        /*cellid_by_name: function(caller, a)
+        {
+
+            if (a.source !== null) return caller.globals[0].idlist.indexOf(a.source+'/'+a.read(caller));
+            else return caller.globals[0].idlist.indexOf(a.read(caller));
+        },*/
+        min: (a, b) => ['Math.min(', a, ',', b, ')'],
+        max: (a, b) => ['Math.max(', a, ',', b, ')'],
+        clamp: (value, mn, mx) => ['Math.max(', mn, ',', 'Math.min(', mx, ',', value, ')', ')'],
     }
 };
+
+var _ctt = require('../../compiler_task_types.cjs');
 
 let _ccf = new ccf(_ctt);
 

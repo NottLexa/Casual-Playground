@@ -23,13 +23,6 @@ Casual Playground Compiler - version 1 (CPLv1)
 Hello World!
 */
 
-var {_coi} = require('./compiler_other_instruments.cjs');
-var {_ccb} = require('./compiler_code_blocks.cjs');
-var {_cep} = require('./compiler_embedded_parts.cjs');
-var {_cbd} = require('./compiler_block_definers.cjs');
-var {_cvd} = require('./compiler_value_determinants.cjs');
-var _ccc = require('../../compiler_conclusions_cursors.cjs');
-
 const cmp = function(coi, ccb, cep, cbd, cvd, ccc)
 {
     this.LineType = {
@@ -279,6 +272,13 @@ const cmp = function(coi, ccb, cep, cbd, cvd, ccc)
         }
     };
 };
+
+var {_coi} = require('./compiler_other_instruments.cjs');
+var {_ccb} = require('./compiler_code_blocks.cjs');
+var {_cep} = require('./compiler_embedded_parts.cjs');
+var {_cbd} = require('./compiler_block_definers.cjs');
+var {_cvd} = require('./compiler_value_determinants.cjs');
+var _ccc = require('../../compiler_conclusions_cursors.cjs');
 
 let _cmp = new cmp(_coi, _ccb, _cep, _cbd, _cvd, _ccc);
 

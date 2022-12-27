@@ -17,9 +17,6 @@ PURPOSE. See the GNU General Public License for more details.
 Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 */
 
-var {_cep} = require('./compiler_embedded_parts.cjs');
-var _ccc = require('../../compiler_conclusions_cursors.cjs');
-
 const coi = function(cep, ccc)
 {
     this.split_args1 = function(text, start, end_at = null)
@@ -148,6 +145,9 @@ const coi = function(cep, ccc)
         return [ret, new ccc.CompilerConclusion(0), new ccc.CompilerCursor()];
     };
 };
+
+var {_cep} = require('./compiler_embedded_parts.cjs');
+var _ccc = require('../../compiler_conclusions_cursors.cjs');
 
 let _coi = new coi(_cep, _ccc);
 
