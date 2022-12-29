@@ -142,4 +142,4 @@ const CompilerConclusion = function(conclusion_code)
 
 const correct_concl = (conclusion) => conclusion.code === 0;
 
-export {CompilerConclusion, CompilerCursor, correct_concl};
+module.exports = {CompilerConclusion, CompilerCursor, correct_concl};
