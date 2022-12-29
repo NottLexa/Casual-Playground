@@ -25,9 +25,10 @@ window.onerror = function(msg, url, linenumber)
     return true;
 }
 import * as engine from './core/nle.mjs';
-import * as comp from './core/compiler.mjs';
-import * as ctt from './core/compiler_task_types.mjs';
-import * as ccc from './core/compiler_conclusions_cursors.mjs';
+const comp = require('./core/compiler.cjs');
+const ctt = require('./core/compiler_task_types.cjs');
+const ccc = require('./core/compiler_conclusions_cursors.cjs');
+
 const fs = require('fs');
 const path = require('path');
 var vi;
@@ -309,7 +310,7 @@ var fontsize_smaller = Math.floor( 8*fontsize/scale);
 // INSERT FONT LOADER
 
 var corefolder = path.join('core', 'corecontent');
-var modsfolder = path.join('data', 'mods');
+var modsfolder = path.join('data', 'addons');
 if (!fs.existsSync(corefolder)) fs.mkdirSync(corefolder);
 if (!fs.existsSync(modsfolder)) fs.mkdirSync(modsfolder);
 
@@ -346,6 +347,10 @@ const EntGlobalConsole = new engine.Entity({
 
         target.padding_size_origin = 2;
         target.padding_size = target.padding_size_origin;
+
+        target.fps_records_number = 100;
+        target.fps_records = new Array(target.fps_records_number).fill(0);
+        target.fps_records_index = 0;
     },
     step: function (target)
     {
@@ -367,12 +372,15 @@ const EntGlobalConsole = new engine.Entity({
             }
             target.logger_i++;
         }
+
+        target.fps_records[target.fps_records_index] = (deltatime !== 0) ? Math.round(1/deltatime) : 0;
+        target.fps_records_index = (target.fps_records_index+1) % target.fps_records_number;
     },
     draw_after: function (target, surface)
     {
         engine.draw_text(surface, surface.canvas.width-target.padding_size, target.padding_size,
-            `${(deltatime !== 0) ? Math.round(1/deltatime) : 0} FPS`, 'fill', target.fps_size,
-            'right', 'top', 'white', '"DejaVu Sans Mono"');
+            `${Math.round(target.fps_records.reduce((s, a)=> s + a, 0) / target.fps_records_number)} FPS`,
+            'fill', target.fps_size, 'right', 'top', 'white', '"DejaVu Sans Mono"');
         for (let i in target.log)
         {
             engine.draw_text(surface, target.padding_size,
@@ -458,6 +466,10 @@ const EntFieldBoard = new engine.Entity({
         target.timepertick = 1.0;
         target.time_paused = false;
         target.time_elapsed = 0.0;
+
+        target.board_step_executed = false;
+        target.board_step_finished = false;
+        target.board_tasks_executed = false;
     },
     step: function(target)
     {
@@ -492,14 +504,41 @@ const EntFieldBoard = new engine.Entity({
         if (globalkeys.LMB && !fieldsui.show) this.board_do_instrument(target);
 
         if (!target.time_paused) target.time += deltatime;
-        if (target.time > target.timepertick) this.board_step(target);
+        if (target.time > target.timepertick)//&&(!target.board_tasks_executed)&&(!target.board_step_executed))
+        {
+            while (target.board_step_executed) {}
+            target.board_step_executed = true;
+            /*let promise = new Promise(((resolve, reject) => {
+                this.board_step(target);
+                target.board_step_executed = false;
+            }));
+            target.board_step_finished = true;*/
+            (async function async_step(board_step_func){
+                while (target.board_tasks_executed) {}
+                board_step_func(target);
+                target.board_step_executed = false;
+                target.board_step_finished = true;
+            })(this.board_step);
+        }
     },
     step_after: function(target)
     {
-        if (target.time > target.timepertick)
+        if (target.time > target.timepertick)//&&(!target.board_tasks_executed)&&(!target.board_step_executed)&&(target.board_step_finished))
         {
-            this.board_tasks(target);
             target.time = 0;
+            while (target.board_tasks_executed) {}
+            target.board_tasks_executed = true;
+            (async function async_tasks(board_tasks_func){
+                while (!target.board_step_finished) {}
+                board_tasks_func(target);
+                target.board_tasks_executed = false;
+                target.board_step_finished = false;
+            })(this.board_tasks);
+            /*let promise = new Promise(((resolve, reject) => {
+                this.board_tasks(target);
+                target.board_tasks_executed = false;
+                target.board_step_finished = false;
+            }));*/
         }
         if (update_board)
         {
@@ -577,18 +616,6 @@ const EntFieldBoard = new engine.Entity({
             5, -10 + surface.canvas.height - target.text_size_default - target.text_size_small,
             `${Math.round(target.time_elapsed/(target.board_width*target.board_height)*100000)/100000} s/cell`,
             'fill', target.text_size_small, 'left', 'top', clr, '"DejaVu Sans Mono"');
-
-        // instrument
-        switch (current_instrument.type)
-        {
-            case 'brush':
-                let string = `${get_locstring('instrument/brush')} [${current_instrument.scale}]` +
-                    ` | ${idlist[current_instrument.cell]}` +
-                    ` | ${current_instrument.brushtype ? 'Round' : 'Square'}`
-                engine.draw_text(surface,
-                    surface.canvas.width - 2, surface.canvas.height - 2 - 2*(target.text_size_default-2),
-                    string, 'fill', target.text_size_default, 'right', 'bottom', 'white', '"Source Sans Pro"');
-        }
     },
     kb_down: function(target, key)
     {
@@ -638,12 +665,11 @@ const EntFieldBoard = new engine.Entity({
             {
                 case engine.WHEELUP:
                     if (globalkeys.Shift) current_instrument.scale++;
-                    else this.board_zoom_in(target, 1);
+                    else if (globalkeys.Ctrl) this.board_zoom_in(target, 1);
                     break;
                 case engine.WHEELDOWN:
-                    if (globalkeys.Shift)
-                        current_instrument.scale = Math.max(current_instrument.scale-1, 1);
-                    else this.board_zoom_out(target, 1);
+                    if (globalkeys.Shift) current_instrument.scale = Math.max(current_instrument.scale-1, 1);
+                    else if (globalkeys.Ctrl) this.board_zoom_out(target, 1);
                     break;
             }
         }
@@ -664,8 +690,9 @@ const EntFieldBoard = new engine.Entity({
                     logger.push([
                         comp.LoggerClass.ERROR,
                         new Date(),
-                        `Runtime error for cell (${x}, ${y}) with CellID ${idlist[target.board[y][x].cellid]}`,
+                        `Runtime error for cell (${x}, ${y}) with CellID #${idlist[target.board[y][x].cellid]}`,
                         `CasualPlayground Compiler encountered an error: ${concl.code}`,
+                        err.name, err.message,
                         concl.full_conclusion(),
                         cur.highlight(),
                         cur.string(),
@@ -796,7 +823,7 @@ const EntFieldBoard = new engine.Entity({
                         {
                             if ((0 <= ix) && (ix < maxcx) && (0 <= iy) && (iy < maxcy))
                             {
-                                if (current_instrument.brushtype === true) // round
+                                if (current_instrument.brush_shape === 'round')
                                 {
                                     let dx = ix-cx;
                                     let dy = iy-cy;
@@ -845,7 +872,7 @@ const EntFieldSUI = new engine.Entity({
         target.objmenu_heading_size = target.objmenu_heading_size_origin;
         target.instrmenu_heading_size_origin = 36; // size of instrument menu title
         target.instrmenu_heading_size = target.instrmenu_heading_size_origin;
-        target.instrmenu_heading_size_minimized_origin = 20; // size of minimized instrument menu title
+        target.instrmenu_heading_size_minimized_origin = 28; // size of minimized instrument menu title
         target.instrmenu_heading_size_minimized = target.instrmenu_heading_size_minimized_origin;
         target.instrmenu_imgbox_ratio = 0.9;
         target.border_width_origin = 5;
@@ -869,10 +896,11 @@ const EntFieldSUI = new engine.Entity({
         let wm = target.window_margin;
         let ds = target.display_scale;
         let wb = target.window_border;
-        target.width_part = Math.round(display.cw()/3 - 4*wm); // equal parts of screen's width (currently a third)
+        target.width_part = Math.round((display.cw() - 4*wm)/3); // equal parts of screen's width (currently a third)
         target.objmenu_height = display.ch() - (2*wm); // object menu height
         target.instrmenu_height = display.ch()/3 - (3*wm); // instrument menu height
         target.instrmenu_height_minimized = wb+ws+target.instrmenu_heading_size_minimized;
+        target.hotbar_height = target.width_part/10;
         target.element_border = Math.round((target.width_part-(2*ws)-(en*ds))/(en-1));
 
         target.desc_window_width_origin = 256+128;
@@ -894,6 +922,9 @@ const EntFieldSUI = new engine.Entity({
     },
     room_start: function(target)
     {
+        target.hotbar = Array(10).fill({type:'none'});
+        target.hotbar_slot = 1;
+
         this.canvas_resize(target, display.cw(), display.ch()); // is needed for some reason
     },
     step: function(target)
@@ -907,6 +938,8 @@ const EntFieldSUI = new engine.Entity({
             else if (Math.round(target.show_step * 1000) / 1000 === 1.0) target.show_step = 1;
             this.mouse_move(target);
         }
+
+        if (update_board) target.objmenu_surface = this.draw_objmenu(target);
     },
     draw: function(target, surface)
     {
@@ -929,6 +962,10 @@ const EntFieldSUI = new engine.Entity({
         surface.drawImage(instrmenu.canvas, surface.canvas.width-wm-target.width_part,
             surface.canvas.height+((1-target.show_step)*(ih+wm))-ihm-wm-target.instrmenu_height);
         instrmenu.canvas.remove();
+
+        let instr_hb = this.draw_instrument_hotbar(target);
+        surface.drawImage(instr_hb.canvas, wm+wm+target.width_part, surface.canvas.height-wm-target.hotbar_height);
+        instr_hb.canvas.remove();
     },
     kb_down: function(target, key)
     {
@@ -937,10 +974,20 @@ const EntFieldSUI = new engine.Entity({
             case 'Tab':
                 if (globalkeys.Shift)
                 {
-                    if (current_instrument.hasOwnProperty('brushtype'))
-                        current_instrument.brushtype = !current_instrument.brushtype;
+                    if (current_instrument.hasOwnProperty('brush_shape'))
+                    {
+                        current_instrument.brush_shape =
+                            (current_instrument.brush_shape === 'round' ? 'square' : 'round');
+                    }
                 }
                 else target.show = !target.show;
+                break;
+            default:
+                if (key.code.slice(0, 5) === 'Digit')
+                {
+                    target.hotbar_slot = Number(key.code[5]);
+                    current_instrument = target.hotbar[target.hotbar_slot];
+                }
                 break;
         }
     },
@@ -972,19 +1019,34 @@ const EntFieldSUI = new engine.Entity({
                 switch (buttonid)
                 {
                     case engine.LMB:
-                        current_instrument =
+                        target.hotbar[target.hotbar_slot] =
                             {
                                 type: 'brush',
                                 cell: ci,
-                                brushtype: current_instrument.hasOwnProperty('brushtype')
-                                    ? current_instrument.brushtype
-                                    : false,
+                                brush_shape: current_instrument.hasOwnProperty('brush_shape')
+                                    ? current_instrument.brush_shape
+                                    : 'square',
                                 scale: current_instrument.hasOwnProperty('scale')
                                     ? current_instrument.scale
                                     : 1,
                             };
+                        current_instrument = target.hotbar[target.hotbar_slot];
                         break;
                 }
+            }
+        }
+        if (!(globalkeys.Ctrl || globalkeys.Shift || globalkeys.Alt))
+        {
+            switch (buttonid)
+            {
+                case engine.WHEELDOWN:
+                    target.hotbar_slot = engine.wrap(target.hotbar_slot+1, 0, 9);
+                    current_instrument = target.hotbar[target.hotbar_slot];
+                    break;
+                case engine.WHEELUP:
+                    target.hotbar_slot = engine.wrap(target.hotbar_slot-1, 0, 9);
+                    current_instrument = target.hotbar[target.hotbar_slot];
+                    break;
             }
         }
     },
@@ -1156,8 +1218,15 @@ const EntFieldSUI = new engine.Entity({
                     ci++;
                     let cx = ws + ((ds + eb) * (ci % inoneline));
                     let cy = ws + oy + ((ds + eb + target.object_name_size) * Math.floor(ci/inoneline));
-                    ctx.fillStyle = rgb_to_style(...obj.notexture);
-                    ctx.fillRect(cx, cy, ds, ds);
+                    ctx.imageSmoothingEnabled = false;
+                    if (obj.hasOwnProperty('texture') && obj.texture_ready)
+                        ctx.drawImage(obj.texture, cx, cy, ds, ds);
+                    else
+                    {
+                        ctx.fillStyle = rgb_to_style(...obj.notexture);
+                        ctx.fillRect(cx, cy, ds, ds);
+                    }
+
                     let name_string = (obj.localization.hasOwnProperty(loc)
                         ? obj.localization[loc].name
                         : obj.name);
@@ -1186,6 +1255,7 @@ const EntFieldSUI = new engine.Entity({
         let ihm = target.instrmenu_height_minimized;
         let ihs = target.instrmenu_heading_size;
         let ihsm = target.instrmenu_heading_size_minimized;
+        let ss = target.show_step;
 
         ctx.clearRect(0, 0,
             ctx.canvas.width, ctx.canvas.height);
@@ -1207,26 +1277,142 @@ const EntFieldSUI = new engine.Entity({
 
         alphabg.canvas.remove();
 
-        let textsize = ihsm+(target.show_step*(ihs-ihsm)); //target.instrmenu_heading_size;
-        engine.draw_text(ctx, target.width_part - (ws2+(target.show_step*(ws2-wb))),
-            wb+ws2+(target.show_step*(-wb+ws2)) + Math.round(textsize/2),
+        let textsize = ihsm+(ss*(ihs-ihsm)); //target.instrmenu_heading_size;
+
+        let instr_name_length = get_text_width(get_locstring(`instrument/${current_instrument.type}`),
+            `italic ${textsize}px "Source Sans Pro"`);
+
+        engine.draw_text(ctx, target.width_part - (ws2+(ss*(ws2-wb))), wb+ws2+(ss*(-wb+ws2)),
             get_locstring(`instrument/${current_instrument.type}`),
-            'fill', textsize, 'right', 'center', 'white', '"Source Sans Pro"', 'italic');
+            'fill', textsize, 'right', 'top', 'white', '"Source Sans Pro"', 'italic');
 
-        let oy = textsize + ws2 + (target.show_step*ws2);
+        let oy = textsize + ws2 + (ss*ws2); // instrument image box offset
+        let img_box = ihm - ws + (ss*(ih - 2*ws - oy - ihm + ws)); // size of instrument image box
 
-        let img_box = ihm - ws + (target.show_step*(ih - 2*ws - oy - ihm + ws));
+        let local_ws = Math.round(ws/(2-ss));
 
-        let local_ws = Math.round(ws/(2-target.show_step));
+        let rounded_image = function()
+        {
+            let ctx1 = document.createElement('canvas').getContext('2d');
+            ctx1.canvas.width = img_box;
+            ctx1.canvas.height = img_box;
+            ctx.fillStyle = 'white';
+            roundRect(ctx1, 0, 0, img_box, img_box, 2+(ss*(8-2)));
+            let ctx2 = document.createElement('canvas').getContext('2d');
+            ctx2.canvas.width = img_box;
+            ctx2.canvas.height = img_box;
+            ctx2.imageSmoothingEnabled = false;
+            let celldata = objdata[idlist[current_instrument.cell]]
+            if (celldata.hasOwnProperty('texture') && celldata.texture_ready)
+                ctx2.drawImage(celldata.texture, 0, 0, img_box, img_box);
+            else
+            {
+                ctx2.fillStyle = rgb_to_style(...celldata.notexture);
+                ctx2.fillRect(0, 0, img_box, img_box);
+            }
+            ctx1.globalCompositeOperation = 'source-atop';
+            ctx1.drawImage(ctx2.canvas, 0, 0);
+            ctx1.globalCompositeOperation = 'source-over';
+            ctx2.canvas.remove();
+            return ctx1;
+        }
 
-        ctx.fillStyle = 'rgba(102, 102, 102, 0.5)';
-        roundRect(ctx, local_ws, local_ws + (target.show_step*oy), img_box, img_box, 2+(target.show_step*6));
+        switch (current_instrument.type)
+        {
+            case 'brush':
+                let string = get_locstring(`instrument/brush_shape/${current_instrument.brush_shape}`)
+                    +` [${current_instrument.scale}] | `+idlist[current_instrument.cell];
+                let string_limit = target.width_part-instr_name_length-ws-(ss*ws)-((1-ss)*img_box);
+                engine.draw_text(ctx, ws2+(ss*ws2)+((1-ss)*(ihm-ws2)), wb+ws2+(ss*(-wb+ws2)) + Math.round(textsize)/2,
+                    cut_string(string, '"Source Sans Pro"', string_limit / 0.8),
+                    'fill', textsize*0.8, 'left', 'center', 'white', '"Source Sans Pro"');
+                let ctx1 = rounded_image();
+                ctx.drawImage(ctx1.canvas, local_ws, local_ws + (ss*oy));
+                ctx.fillStyle = `rgba(0, 0, 0, ${(1-ss)*0.25})`;
+                roundRect(ctx, local_ws, local_ws + (ss*oy), img_box, img_box, 2+(ss*(8-2)));
+                ctx1.canvas.remove();
+                break;
+            default:
+                ctx.fillStyle = 'rgba(102, 102, 102, 0.5)';
+                roundRect(ctx, local_ws, local_ws + (ss*oy), img_box, img_box, 2+(ss*(8-2)));
+                break;
+        }
 
         let iip = img_box * (1-target.instrmenu_imgbox_ratio);
 
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(sprites.instruments[current_instrument.type],
             local_ws+iip, local_ws+(target.show_step*oy)+iip, img_box-iip-iip, img_box-iip-iip);
+
+        return ctx;
+    },
+    draw_instrument_hotbar: function(target)
+    {
+        let ctx = document.createElement('canvas').getContext('2d');
+        ctx.canvas.width = target.width_part;
+        ctx.canvas.height = target.hotbar_height;
+
+        let wb = target.window_border;
+        let wb2 = wb/2;
+
+        let ox = 0
+
+        ctx.lineWidth = wb;
+        ctx.imageSmoothingEnabled = false;
+        for (let i=1; i<=10; i++)
+        {
+            let mi = i%10;
+            ctx.strokeStyle = mi === target.hotbar_slot ? '#7f7f7f' : '#1a1a1a';
+            ctx.strokeRect(ox+wb2, wb2, target.hotbar_height-wb, target.hotbar_height-wb);
+
+            let instrument = target.hotbar[mi];
+
+            switch (instrument.type) {
+                case 'brush':
+                    let celldata = objdata[idlist[instrument.cell]];
+                    if (celldata.hasOwnProperty('texture') && celldata.texture_ready)
+                        ctx.drawImage(celldata.texture,
+                            ox+wb, wb, target.hotbar_height-(2*wb), target.hotbar_height-(2*wb));
+                    else {
+                        ctx.fillStyle = rgb_to_style(...celldata.notexture);
+                        ctx.fillRect(ox+wb, wb, target.hotbar_height-(2*wb), target.hotbar_height-(2*wb));
+                    }
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    switch (instrument.brush_shape)
+                    {
+                        case 'round':
+                            ctx.beginPath();
+                            ctx.ellipse(ox + target.hotbar_height / 2, target.hotbar_height / 2,
+                                (target.hotbar_height-(4*wb)) / 2, (target.hotbar_height-(4*wb)) / 2,
+                                0, 0, 2 * Math.PI);
+                            ctx.fill();
+                            break;
+                        case 'square':
+                        default:
+                            ctx.fillRect(ox+(2*wb), 2*wb, target.hotbar_height-(4*wb), target.hotbar_height-(4*wb));
+                            break;
+                    }
+                    let textsize = target.hotbar_height-(4*wb);
+                    let textwidth = get_text_width('' + instrument.scale, `${textsize}px "Montserrat"`);
+                    engine.draw_text(ctx, ox + target.hotbar_height / 2, target.hotbar_height / 2, '' + instrument.scale,
+                        'fill', textsize * Math.min(1, textsize / textwidth), 'center', 'center',
+                        'rgba(255, 255, 255, 0.5)', '"Montserrat"');
+                    break;
+                default:
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                    ctx.fillRect(ox+wb, wb, target.hotbar_height-(2*wb), target.hotbar_height-(2*wb));
+                    break;
+            }
+
+            if (sprites.instruments.hasOwnProperty(instrument.type))
+                ctx.drawImage(sprites.instruments[instrument.type],
+                    ox+(2*wb), 2*wb, target.hotbar_height-(4*wb), target.hotbar_height-(4*wb));
+
+            engine.draw_text(ctx, ox + target.hotbar_height - Math.round(1.5*wb), Math.round(1.5*wb), `${mi}`,
+                'fill', (target.hotbar_height-(2*wb))/2, 'right', 'top', 'rgba(255, 255, 255, 0.5)', '"Montserrat"');
+
+            ox += target.hotbar_height;
+        }
 
         return ctx;
     },
@@ -1254,10 +1440,11 @@ const EntFieldSUI = new engine.Entity({
         let wm = target.window_margin;
         let ds = target.display_scale;
         let wb = target.window_border;
-        target.width_part = Math.round(display.cw()/3 - 4*wm); // equal parts of screen's width (currently a third)
+        target.width_part = Math.round((display.cw() - 4*wm)/3); // equal parts of screen's width (currently a third)
         target.objmenu_height = display.ch() - (2*wm); // object menu height
         target.instrmenu_height = display.ch()/3 - (3*wm); // instrument menu height
         target.instrmenu_height_minimized = wb+ws+target.instrmenu_heading_size_minimized;
+        target.hotbar_height = target.width_part/10;
         target.element_border = Math.round((target.width_part-(2*ws)-(en*ds))/(en-1));
 
         target.desc_window_width =  target.desc_window_width_origin * measure;
@@ -1772,7 +1959,7 @@ const EntMMStartMenu = new engine.Entity({
 
                 for (let mod of target.modlist.filter(x => x.enabled))
                 {
-                    let loaded_mod = load_mod(path.join('data', 'mods', mod.name), mod.name, false);
+                    let loaded_mod = load_mod(path.join('data', 'addons', mod.name), mod.name, false);
                     idlist.push(...Object.keys(loaded_mod));
                     for (let k in loaded_mod) objdata[k] = loaded_mod[k];
                 }

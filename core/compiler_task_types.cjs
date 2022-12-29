@@ -1,3 +1,3 @@
 const [SET_CELL] = Array(1).keys();
 
-export {SET_CELL};
+module.exports = {SET_CELL};
