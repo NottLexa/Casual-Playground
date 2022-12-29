@@ -664,13 +664,19 @@ const EntFieldBoard = new engine.Entity({
             switch (mb)
             {
                 case engine.WHEELUP:
-                    if (globalkeys.Shift) current_instrument.scale++;
-                    else this.board_zoom_in(target, 1);
+                    if (!globalkeys.Ctrl)
+                    {
+                        if (globalkeys.Shift) current_instrument.scale++;
+                        else this.board_zoom_in(target, 1);
+                    }
                     break;
                 case engine.WHEELDOWN:
-                    if (globalkeys.Shift)
-                        current_instrument.scale = Math.max(current_instrument.scale-1, 1);
-                    else this.board_zoom_out(target, 1);
+                    if (!globalkeys.Ctrl)
+                    {
+                        if (globalkeys.Shift)
+                            current_instrument.scale = Math.max(current_instrument.scale-1, 1);
+                        else this.board_zoom_out(target, 1);
+                    }
                     break;
             }
         }
@@ -1036,6 +1042,20 @@ const EntFieldSUI = new engine.Entity({
                 }
             }
         }
+        if (globalkeys.Ctrl)
+        {
+            switch (buttonid)
+            {
+                case engine.WHEELDOWN:
+                    target.hotbar_slot = engine.wrap(target.hotbar_slot+1, 0, 9);
+                    current_instrument = target.hotbar[target.hotbar_slot];
+                    break;
+                case engine.WHEELUP:
+                    target.hotbar_slot = engine.wrap(target.hotbar_slot-1, 0, 9);
+                    current_instrument = target.hotbar[target.hotbar_slot];
+                    break;
+            }
+        }
     },
     mouse_on_cell: function(target)
     {
@@ -1394,6 +1414,9 @@ const EntFieldSUI = new engine.Entity({
             if (sprites.instruments.hasOwnProperty(instrument.type))
                 ctx.drawImage(sprites.instruments[instrument.type],
                     ox+(2*wb), 2*wb, target.hotbar_height-(4*wb), target.hotbar_height-(4*wb));
+
+            engine.draw_text(ctx, ox + target.hotbar_height - Math.round(1.5*wb), Math.round(1.5*wb), `${mi}`,
+                'fill', (target.hotbar_height-(2*wb))/2, 'right', 'top', 'rgba(255, 255, 255, 0.5)', '"Montserrat"');
 
             ox += target.hotbar_height;
         }
