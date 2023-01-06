@@ -665,11 +665,13 @@ const EntFieldBoard = new engine.Entity({
             {
                 case engine.WHEELUP:
                     if (globalkeys.Shift) current_instrument.scale++;
-                    else if (globalkeys.Ctrl) this.board_zoom_in(target, 1);
+                    else if (!(globalkeys.Ctrl || globalkeys.Shift || globalkeys.Alt))
+                        this.board_zoom_in(target, 1);
                     break;
                 case engine.WHEELDOWN:
                     if (globalkeys.Shift) current_instrument.scale = Math.max(current_instrument.scale-1, 1);
-                    else if (globalkeys.Ctrl) this.board_zoom_out(target, 1);
+                    else if (!(globalkeys.Ctrl || globalkeys.Shift || globalkeys.Alt))
+                        this.board_zoom_out(target, 1);
                     break;
             }
         }
@@ -1035,7 +1037,7 @@ const EntFieldSUI = new engine.Entity({
                 }
             }
         }
-        if (!(globalkeys.Ctrl || globalkeys.Shift || globalkeys.Alt))
+        if (globalkeys.Ctrl)
         {
             switch (buttonid)
             {
