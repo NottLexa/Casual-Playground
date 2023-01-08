@@ -292,7 +292,10 @@ var gvars = [{'objdata':{},
               'board_width':32,
               'board_height':32,
               'linecolor_infield': [26, 26, 26],
-              'linecolor_outfield': [102, 102, 102]},
+              'linecolor_outfield': [102, 102, 102],
+              'cellbordersize': 0.125,
+              'cell_fill_on_init': 'grass',
+              },
              {}];
 var sprites = load_images('./core/sprites', true);
 
@@ -323,8 +326,6 @@ global.console.log(Object.keys(objdata));
 global.console.log(idlist);
 global.console.log(idlist.map((value, index) => [index, value]));
 
-var cell_fill_on_init = idlist.indexOf('grass');
-var cellbordersize = 0.125;
 var update_board = false;
 
 //#endregion
@@ -338,6 +339,10 @@ const EntGlobalConsole = new engine.Entity({
     {
         target.log = [];
         target.logger_i = 0;
+        target.showtimes = [];
+        target.max_showtime = 7.0;
+        target.fade_at_showtime = 2.0;
+        target.showtimes_start_at = 0;
 
         target.fps_size_origin = fontsize_default/6;
         target.fps_size = target.fps_size_origin;
@@ -354,6 +359,15 @@ const EntGlobalConsole = new engine.Entity({
     },
     step: function (target)
     {
+        for (let i = target.showtimes_start_at; i<target.showtimes.length; i++)
+        {
+            target.showtimes[i] = Math.max(target.showtimes[i]-deltatime, 0.0);
+            if (target.showtimes[i] === 0.0)
+            {
+                target.showtimes_start_at++;
+            }
+        }
+
         while (target.logger_i < logger.length)
         {
             let log = logger[target.logger_i];
@@ -364,11 +378,13 @@ const EntGlobalConsole = new engine.Entity({
             //process.stdout.write(prefix + log[2]);
             global.console.log(prefix + log[2]);
             target.log.push(prefix + log[2]);
+            target.showtimes.push(target.max_showtime);
             for (let line of log.slice(3))
             {
                 //process.stdout.write(' '.repeat(prefix_l) + line);
                 global.console.log(' '.repeat(prefix_l) + line);
                 target.log.push(' '.repeat(prefix_l) + line);
+                target.showtimes.push(target.max_showtime);
             }
             target.logger_i++;
         }
@@ -381,11 +397,15 @@ const EntGlobalConsole = new engine.Entity({
         engine.draw_text(surface, surface.canvas.width-target.padding_size, target.padding_size,
             `${Math.round(target.fps_records.reduce((s, a)=> s + a, 0) / target.fps_records_number)} FPS`,
             'fill', target.fps_size, 'right', 'top', 'white', '"DejaVu Sans Mono"');
-        for (let i in target.log)
+
+        for (let i = target.showtimes_start_at; i < target.log.length; i++)
         {
+            let si = i - target.showtimes_start_at;
+            let alpha = Math.min(1.0, target.showtimes[i]/target.fade_at_showtime);
+            let color = `rgba(255, 255, 255, ${alpha})`;
             engine.draw_text(surface, target.padding_size,
-                surface.canvas.height-100-(target.log.length*target.log_size)+(i*target.log_size),
-                target.log[i], 'fill', target.log_size, 'left', 'bottom', 'white', '"DejaVu Sans Mono"');
+                surface.canvas.height-100+((i-target.log.length)*target.log_size),
+                target.log[i], 'fill', target.log_size, 'left', 'bottom', color, '"DejaVu Sans Mono"');
         }
     },
     canvas_resize: function(target, width, height)
@@ -449,7 +469,7 @@ const EntFieldBoard = new engine.Entity({
             {
                 let celldata = new comp.Cell(
                     {'X': x, 'Y': y},
-                    cell_fill_on_init,
+                    idlist.indexOf(gvars[0].cell_fill_on_init),
                     target.board,
                     gvars,
                 );
@@ -479,10 +499,15 @@ const EntFieldBoard = new engine.Entity({
         let limitspeed = 2**target.cameraspeed;
         let acc = limitspeed*target.acceleration;
 
-        let right = ~~(globalkeys.ArrowRight||globalkeys.KeyD);
-        let left = ~~(globalkeys.ArrowLeft||globalkeys.KeyA);
-        let down = ~~(globalkeys.ArrowDown||globalkeys.KeyS);
-        let up = ~~(globalkeys.ArrowUp||globalkeys.KeyW);
+        let right = 0, left = 0, down = 0, up = 0;
+
+        if (!(globalkeys.Ctrl || globalkeys.Alt || globalkeys.Shift))
+        {
+            right = ~~(globalkeys.ArrowRight||globalkeys.KeyD);
+            left = ~~(globalkeys.ArrowLeft||globalkeys.KeyA);
+            down = ~~(globalkeys.ArrowDown||globalkeys.KeyS);
+            up = ~~(globalkeys.ArrowUp||globalkeys.KeyW);
+        }
 
         let hmov = right - left;
         let vmov = down - up;
@@ -547,7 +572,7 @@ const EntFieldBoard = new engine.Entity({
     },
     draw: function(target, surface)
     {
-        let bordersize = target.viewscale * cellbordersize;
+        let bordersize = target.viewscale * gvars[0].cellbordersize;
         let cellsize = target.viewscale + bordersize;
         let ox = -target.viewx%cellsize;
         let oy = -target.viewy%cellsize;
@@ -732,7 +757,7 @@ const EntFieldBoard = new engine.Entity({
     {
         let bw = target.board_width;
         let bh = target.board_height;
-        let bordersize = target.viewscale*cellbordersize;
+        let bordersize = target.viewscale*gvars[0].cellbordersize;
         let cellsize = target.viewscale+bordersize;
         let surface = document.createElement('canvas').getContext('2d');
         surface.canvas.width = (cellsize*bw)+bordersize
@@ -798,14 +823,14 @@ const EntFieldBoard = new engine.Entity({
     },
     board_get_center: function(target)
     {
-        let cellsize = target.viewscale * (cellbordersize+1);
-        let w = cellsize*target.board_width + (target.viewscale * cellbordersize);
-        let h = cellsize*target.board_height + (target.viewscale * cellbordersize);
+        let cellsize = target.viewscale * (gvars[0].cellbordersize+1);
+        let w = cellsize*target.board_width + (target.viewscale * gvars[0].cellbordersize);
+        let h = cellsize*target.board_height + (target.viewscale * gvars[0].cellbordersize);
         return [(w-display.cw())/2, (h-display.ch())/2];
     },
     board_do_instrument: function(target)
     {
-        let bordersize = target.viewscale*cellbordersize;
+        let bordersize = target.viewscale*gvars[0].cellbordersize;
         let cellsize = bordersize + target.viewscale;
         let rx = mx + target.viewx - bordersize;
         let ry = my + target.viewy - bordersize;
@@ -977,10 +1002,8 @@ const EntFieldSUI = new engine.Entity({
                 if (globalkeys.Shift)
                 {
                     if (current_instrument.hasOwnProperty('brush_shape'))
-                    {
                         current_instrument.brush_shape =
                             (current_instrument.brush_shape === 'round' ? 'square' : 'round');
-                    }
                 }
                 else target.show = !target.show;
                 break;

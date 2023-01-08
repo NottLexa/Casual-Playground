@@ -7,7 +7,7 @@
     "type": "git",
     "url": "https://github.com/NottLexa/Casual-Playground"
   },
-  "version": "0.3.0",
+  "version": "0.4.0",
   "main": "run_nwjs.js",
   "chromium-args": "--disable-devtools --enable-logging=stderr",
   "devDependencies": {
