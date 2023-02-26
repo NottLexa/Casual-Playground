@@ -241,7 +241,7 @@ const load_mod = function(modfolder, mod_origin, official)
                     moddata.texture.onload = function()
                     {
                         moddata.texture_ready = true;
-                        update_board = true;
+                        update_board_fully = true;
                     };
                     moddata.texture.src = imgpath;
                 }
@@ -327,6 +327,7 @@ global.console.log(idlist);
 global.console.log(idlist.map((value, index) => [index, value]));
 
 var update_board = false;
+var update_board_fully = false;
 
 //#endregion
 
@@ -479,7 +480,13 @@ const EntFieldBoard = new engine.Entity({
 
         target.linecolor_infield = gvars[0].linecolor_infield;
         target.linecolor_outfield = gvars[0].linecolor_outfield;
-        target.surfaces = {board: this.draw_board(target)};
+        target.cells_to_redraw = [];
+        target.surfaces = {board: document.createElement('canvas').getContext('2d'),
+                           grid:  document.createElement('canvas').getContext('2d')};
+        target.surfaces.board.canvas.style.imageRendering = 'pixelated';
+        target.surfaces.grid.canvas.style.imageRendering  = 'pixelated';
+        update_board_fully = true;
+        this.draw_board(target);
 
         target.time = 0.0;
         target.tpt_power = 28;
@@ -565,14 +572,14 @@ const EntFieldBoard = new engine.Entity({
                 target.board_step_finished = false;
             }));*/
         }
-        if (update_board)
+        if (update_board || update_board_fully)
         {
-            target.surfaces.board = this.draw_board(target);
+            this.draw_board(target);
         }
     },
     draw: function(target, surface)
     {
-        let bordersize = target.viewscale * gvars[0].cellbordersize;
+        let bordersize = Math.floor(target.viewscale * gvars[0].cellbordersize);
         let cellsize = target.viewscale + bordersize;
         let ox = -target.viewx%cellsize;
         let oy = -target.viewy%cellsize;
@@ -586,6 +593,7 @@ const EntFieldBoard = new engine.Entity({
         if (target.viewy > 0) { realy = -target.viewy-1; }
         else { realy = -target.viewy; }*/
         surface.drawImage(target.surfaces.board.canvas, realx, realy);
+        surface.drawImage(target.surfaces.grid.canvas, realx, realy);
 
         let linex, liney, startx, starty, endx, endy;
         surface.fillStyle = rgb_to_style(...target.linecolor_outfield);
@@ -742,8 +750,8 @@ const EntFieldBoard = new engine.Entity({
                     {
                         case ctt.SET_CELL:
                             let [_x, _y, _cellid] = args.slice(1);
-                            target.board[_y][_x] = new comp.Cell({X: _x, Y: _y}, _cellid, target.board,
-                                gvars);
+                            target.board[_y][_x].reset(_cellid);
+                            target.cells_to_redraw.push([_x, _y]);
                             update_board = true;
                             break;
                     }
@@ -757,35 +765,51 @@ const EntFieldBoard = new engine.Entity({
     {
         let bw = target.board_width;
         let bh = target.board_height;
-        let bordersize = target.viewscale*gvars[0].cellbordersize;
+        let bordersize = Math.floor(target.viewscale * gvars[0].cellbordersize);
         let cellsize = target.viewscale+bordersize;
-        let surface = document.createElement('canvas').getContext('2d');
-        surface.canvas.width = (cellsize*bw)+bordersize
-        surface.canvas.height = (cellsize*bh)+bordersize;
-        surface.fillStyle = rgb_to_style(...target.linecolor_infield);
-        surface.fillRect(0, 0, surface.canvas.width, surface.canvas.height);
-        for (let ix = 0; ix < bw; ix++)
+        let surface_board = target.surfaces.board;
+        let surface_grid = target.surfaces.grid;
+        surface_board.imageSmoothingEnabled = false;
+        let update_cell = function (ix, iy)
         {
-            for (let iy = 0; iy < bh; iy++)
+            let cx = (ix*cellsize)+bordersize;
+            let cy = (iy*cellsize)+bordersize;
+            let celldata = target.board[iy][ix].code;
+            surface_board.fillStyle = rgb_to_style(...target.linecolor_infield);
+            surface_board.fillRect(cx-bordersize/2, cy-bordersize/2, cellsize, cellsize);
+            if (celldata.hasOwnProperty('texture') && celldata.texture_ready)
             {
-                let cx = (ix*cellsize)+bordersize;
-                let cy = (iy*cellsize)+bordersize;
-                let celldata = target.board[iy][ix].code;
-                surface.imageSmoothingEnabled = false;
-                if (celldata.hasOwnProperty('texture') && celldata.texture_ready)
-                {
-                    surface.drawImage(celldata.texture, cx, cy, target.viewscale, target.viewscale);
-                }
-                else
-                {
-                    surface.fillStyle = rgb_to_style(...celldata.notexture);
-                    //surface.fillStyle = rgb_to_style(109, 183, 65);
-                    surface.fillRect(cx, cy, target.viewscale, target.viewscale);
-                }
+                surface_board.drawImage(celldata.texture, cx, cy, target.viewscale, target.viewscale);
+            }
+            else
+            {
+                surface_board.fillStyle = rgb_to_style(...celldata.notexture);
+                //surface.fillStyle = rgb_to_style(109, 183, 65);
+                surface_board.fillRect(cx, cy, target.viewscale, target.viewscale);
             }
         }
+        if (update_board_fully)
+        {
+            surface_board.canvas.width = (cellsize*bw)+bordersize;
+            surface_board.canvas.height = (cellsize*bh)+bordersize;
+            for (let ix = 0; ix < bw; ix++) for (let iy = 0; iy < bh; iy++) update_cell(ix, iy);
+
+            surface_grid.canvas.width = (cellsize*bw)+bordersize;
+            surface_grid.canvas.height = (cellsize*bh)+bordersize;
+            surface_grid.clearRect(0, 0, surface_grid.canvas.width, surface_grid.canvas.height);
+            surface_grid.fillStyle = rgb_to_style(...target.linecolor_infield);
+            for (let ix = 0; ix <= bw; ix++)
+                surface_grid.fillRect(ix*cellsize, 0, bordersize, surface_grid.canvas.height);
+            for (let iy = 0; iy <= bh; iy++)
+                surface_grid.fillRect(0, iy*cellsize, surface_grid.canvas.width, bordersize);
+        }
+        else
+        {
+            for (let coord of target.cells_to_redraw) update_cell(...coord);
+        }
+        target.cells_to_redraw = [];
         update_board = false;
-        return surface;
+        update_board_fully = false;
     },
     board_center_view: function(target)
     {
@@ -796,30 +820,32 @@ const EntFieldBoard = new engine.Entity({
     board_zoom_in: function(target, mul)
     {
         let oldvs = target.viewscale;
-        target.viewscale = engine.clamp(
+        target.viewscale = Math.floor(engine.clamp(
             target.viewscale + engine.clamp(Math.floor(0.2 * mul * target.viewscale), 1, 64),
-            2, 64);
+            2, 64));
         let newvs = target.viewscale;
         let ratio = newvs/oldvs;
 
         target.viewx = ((target.viewx+mx) * ratio) - mx;
         target.viewy = ((target.viewy+my) * ratio) - my;
 
-        target.surfaces.board = this.draw_board(target);
+        update_board_fully = true;
+        this.draw_board(target);
     },
     board_zoom_out: function(target, mul)
     {
         let oldvs = target.viewscale;
-        target.viewscale = engine.clamp(
+        target.viewscale = Math.floor(engine.clamp(
             target.viewscale - engine.clamp(Math.floor(0.2 * mul * target.viewscale), 1, 64),
-            2, 64);
+            2, 64));
         let newvs = target.viewscale;
         let ratio = newvs/oldvs;
 
         target.viewx = ((target.viewx+mx) * ratio) - mx;
         target.viewy = ((target.viewy+my) * ratio) - my;
 
-        target.surfaces.board = this.draw_board(target);
+        update_board_fully = true;
+        this.draw_board(target);
     },
     board_get_center: function(target)
     {
@@ -830,7 +856,7 @@ const EntFieldBoard = new engine.Entity({
     },
     board_do_instrument: function(target)
     {
-        let bordersize = target.viewscale*gvars[0].cellbordersize;
+        let bordersize = Math.floor(target.viewscale*gvars[0].cellbordersize);
         let cellsize = bordersize + target.viewscale;
         let rx = mx + target.viewx - bordersize;
         let ry = my + target.viewy - bordersize;
@@ -858,12 +884,13 @@ const EntFieldBoard = new engine.Entity({
                                         target.board[iy][ix].reset(current_instrument.cell);
                                 }
                                 else target.board[iy][ix].reset(current_instrument.cell);
+                                target.cells_to_redraw.push([ix, iy]);
                                 /*target.board[iy][ix] = new comp.Cell({X:ix,Y:iy},cellid, target.board,
                                     gvars);*/
                             }
                         }
                     }
-                    target.surfaces.board = this.draw_board(target);
+                    this.draw_board(target);
                 }
                 break;
         }
@@ -875,7 +902,7 @@ const EntFieldBoard = new engine.Entity({
         target.text_size_default = target.text_size_default_origin * measure;
         target.text_size_small = target.text_size_small_origin * measure;
 
-        update_board = true;
+        update_board_fully = true;
     },
 });
 //#endregion
@@ -1637,7 +1664,7 @@ const EntMMBG = new engine.Entity({
             )
         );
         target.controls_strings = [get_locstring('mm/controls/heading'),
-            ...[...Array(7).keys()].map(val => get_locstring('mm/controls/'+(val+1)))];
+            ...[...Array(8).keys()].map(val => get_locstring('mm/controls/'+(val+1)))];
         target.controls_keys = [null, 'WASD', 'QE', 'RT', 'Space', 'C', 'Tab', 'LMB', 'Esc'];
 
         target.controls_text_size_origin = 32;
