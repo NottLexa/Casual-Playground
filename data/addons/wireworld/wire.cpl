@@ -7,9 +7,6 @@ NOTEXTURE 239 185 73
 LOCALIZATION
     rus "Провод" "Клетка провода из WireWorld."
 
-INCLUDE MOD
-    MYSELF AS @wireworld
-
 SCRIPT CREATE
     _mincx = :max(-1, -__X)
     _mincy = :max(-1, -__Y)
