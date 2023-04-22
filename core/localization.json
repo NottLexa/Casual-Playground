@@ -126,7 +126,7 @@
         "__noloc": "Brush",
         "rus": "Кисть"
       },
-      "brush_shape":
+      "shape":
       {
         "round":
         {
@@ -140,6 +140,24 @@
           "__noloc": "Square",
           "rus": "Квадратная"
         }
+      },
+      "selection":
+      {
+        "__usage": "Selection instrument, capitalized",
+        "__noloc": "Selection",
+        "rus": "Выделение"
+      },
+      "selection_brush":
+      {
+        "__usage": "Selection brush instrument, capitalized",
+        "__noloc": "Selection brush",
+        "rus": "Кисть выделения"
+      },
+      "line":
+      {
+        "__usage": "Drawing line instrument, capitalized",
+        "__noloc": "Line",
+        "rus": "Линия"
       }
     }
   },

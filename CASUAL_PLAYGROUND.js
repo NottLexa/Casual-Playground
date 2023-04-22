@@ -293,6 +293,7 @@ var gvars = [{'objdata':{},
               'board_height':32,
               'linecolor_infield': [26, 26, 26],
               'linecolor_outfield': [102, 102, 102],
+              'selection_color': [55, 55, 200],
               'cellbordersize': 0.125,
               'cell_fill_on_init': 'grass',
               },
@@ -328,6 +329,7 @@ global.console.log(idlist.map((value, index) => [index, value]));
 
 var update_board = false;
 var update_board_fully = false;
+var update_selection = false;
 
 //#endregion
 
@@ -477,14 +479,17 @@ const EntFieldBoard = new engine.Entity({
                 target.board[target.board.length-1].push(celldata);
             }
         }
-
+        target.selection = Array(target.board_height).fill(0);
+        target.selection[0] = 1+4+16;
         target.linecolor_infield = gvars[0].linecolor_infield;
         target.linecolor_outfield = gvars[0].linecolor_outfield;
         target.cells_to_redraw = [];
         target.surfaces = {board: document.createElement('canvas').getContext('2d'),
-                           grid:  document.createElement('canvas').getContext('2d')};
+                           grid:  document.createElement('canvas').getContext('2d'),
+                           selection:  document.createElement('canvas').getContext('2d')};
         target.surfaces.board.canvas.style.imageRendering = 'pixelated';
         target.surfaces.grid.canvas.style.imageRendering  = 'pixelated';
+        target.surfaces.selection.canvas.style.imageRendering  = 'pixelated';
         update_board_fully = true;
         this.draw_board(target);
 
@@ -572,10 +577,8 @@ const EntFieldBoard = new engine.Entity({
                 target.board_step_finished = false;
             }));*/
         }
-        if (update_board || update_board_fully)
-        {
-            this.draw_board(target);
-        }
+        if (update_board || update_board_fully) this.draw_board(target);
+        if (update_selection) this.draw_selection(target);
     },
     draw: function(target, surface)
     {
@@ -594,6 +597,7 @@ const EntFieldBoard = new engine.Entity({
         else { realy = -target.viewy; }*/
         surface.drawImage(target.surfaces.board.canvas, realx, realy);
         surface.drawImage(target.surfaces.grid.canvas, realx, realy);
+        surface.drawImage(target.surfaces.selection.canvas, realx, realy);
 
         let linex, liney, startx, starty, endx, endy;
         surface.fillStyle = rgb_to_style(...target.linecolor_outfield);
@@ -771,9 +775,11 @@ const EntFieldBoard = new engine.Entity({
         let cellsize = target.viewscale+bordersize;
         let surface_board = target.surfaces.board;
         let surface_grid = target.surfaces.grid;
-        surface_board.imageSmoothingEnabled = false;
-        let update_cell = function (ix, iy)
+        let surface_selection = target.surfaces.selection;
+        let update_cell = function(ix, iy)
         {
+            surface_board.imageSmoothingEnabled = false;
+            surface_grid.imageSmoothingEnabled = false;
             let cx = (ix*cellsize)+bordersize;
             let cy = (iy*cellsize)+bordersize;
             let celldata = target.board[iy][ix].code;
@@ -804,6 +810,11 @@ const EntFieldBoard = new engine.Entity({
                 surface_grid.fillRect(ix*cellsize, 0, bordersize, surface_grid.canvas.height);
             for (let iy = 0; iy <= bh; iy++)
                 surface_grid.fillRect(0, iy*cellsize, surface_grid.canvas.width, bordersize);
+
+            surface_selection.imageSmoothingEnabled = false;
+            surface_selection.canvas.width = (cellsize*bw)+bordersize;
+            surface_selection.canvas.height = (cellsize*bh)+bordersize;
+            this.draw_selection(target);
         }
         else
         {
@@ -812,6 +823,30 @@ const EntFieldBoard = new engine.Entity({
         target.cells_to_redraw = [];
         update_board = false;
         update_board_fully = false;
+    },
+    draw_selection: function(target)
+    {
+        let bw = target.board_width;
+        let bh = target.board_height;
+        let bordersize = Math.floor(target.viewscale * gvars[0].cellbordersize);
+        let cellsize = target.viewscale+bordersize;
+        let surface_selection = target.surfaces.selection;
+        surface_selection.clearRect(0,0,surface_selection.canvas.width,surface_selection.canvas.height);
+        let color = gvars[0].selection_color
+        surface_selection.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.3)`
+        for (let ix = 0; ix < bw; ix++)
+        {
+            for (let iy = 0; iy < bh; iy++)
+            {
+                if ((target.selection[iy] & (1<<ix)) > 0)
+                {
+                    let cx = (ix*cellsize)+bordersize;
+                    let cy = (iy*cellsize)+bordersize;
+                    surface_selection.fillRect(cx, cy, target.viewscale, target.viewscale)
+                }
+            }
+        }
+        update_selection = false;
     },
     board_center_view: function(target)
     {
@@ -869,7 +904,8 @@ const EntFieldBoard = new engine.Entity({
         switch (current_instrument.type)
         {
             case 'brush':
-                scale = current_instrument.scale-1
+            case 'selection_brush':
+                scale = current_instrument.scale-1;
                 if (((rx % cellsize) < target.viewscale) && ((ry % cellsize) < target.viewscale))
                 {
                     for (let ix = cx-scale; ix < cx+scale+1; ix++)
@@ -878,17 +914,34 @@ const EntFieldBoard = new engine.Entity({
                         {
                             if ((0 <= ix) && (ix < maxcx) && (0 <= iy) && (iy < maxcy))
                             {
-                                if (current_instrument.brush_shape === 'round')
+                                let command;
+                                switch (current_instrument.type)
+                                {
+                                    case 'brush':
+                                        if (current_instrument.hasOwnProperty('cell'))
+                                        {
+                                            command = (ix,iy)=>{
+                                                target.board[iy][ix].reset(current_instrument.cell);
+                                                target.cells_to_redraw.push([ix, iy]);
+                                            };
+                                        }
+                                        else command = ()=>{};
+                                        break;
+                                    case 'selection_brush':
+                                        command = (ix,iy)=>{
+                                            target.selection[iy] |= (1<<ix);
+                                            update_selection = true;
+                                        };
+                                        break;
+                                }
+
+                                if (current_instrument.shape === 'round')
                                 {
                                     let dx = ix-cx;
                                     let dy = iy-cy;
-                                    if (Math.round(Math.sqrt(dx*dx + dy*dy)) <= scale)
-                                        target.board[iy][ix].reset(current_instrument.cell);
+                                    if (Math.round(Math.sqrt(dx*dx + dy*dy)) <= scale) command(ix,iy);
                                 }
-                                else target.board[iy][ix].reset(current_instrument.cell);
-                                target.cells_to_redraw.push([ix, iy]);
-                                /*target.board[iy][ix] = new comp.Cell({X:ix,Y:iy},cellid, target.board,
-                                    gvars);*/
+                                else command(ix,iy);
                             }
                         }
                     }
@@ -978,8 +1031,10 @@ const EntFieldSUI = new engine.Entity({
     },
     room_start: function(target)
     {
-        target.hotbar = Array(10).fill({type:'none'});
+        target.hotbar = Array(10);
+        for (let i = 0; i<10;i++) target.hotbar[i] = {type:'none'};
         target.hotbar_slot = 1;
+        current_instrument = target.hotbar[target.hotbar_slot]
 
         this.canvas_resize(target, display.cw(), display.ch()); // is needed for some reason
     },
@@ -1030,11 +1085,38 @@ const EntFieldSUI = new engine.Entity({
             case 'Tab':
                 if (globalkeys.Shift)
                 {
-                    if (current_instrument.hasOwnProperty('brush_shape'))
-                        current_instrument.brush_shape =
-                            (current_instrument.brush_shape === 'round' ? 'square' : 'round');
+                    if (current_instrument.hasOwnProperty('shape'))
+                        current_instrument.shape =
+                            (current_instrument.shape === 'round' ? 'square' : 'round');
                 }
                 else target.show = !target.show;
+                break;
+            case 'F1': // none
+                current_instrument.type = 'none';
+                break;
+            case 'F2': // selection / selection brush
+                switch (current_instrument.type)
+                {
+                    case 'selection':
+                        current_instrument.type = 'selection_brush';
+                        break;
+                    case 'selection_brush':
+                    default:
+                        current_instrument.type = 'selection';
+                        current_instrument.scale = current_instrument.hasOwnProperty('scale')
+                            ? current_instrument.scale : 1;
+                        current_instrument.shape = current_instrument.hasOwnProperty('shape')
+                            ? current_instrument.scale : 'square';
+                        break;
+                }
+                break;
+            case 'F3': // brush
+            case 'F4': // line
+                current_instrument.type = (key.code === 'F3' ? 'brush' : 'line');
+                current_instrument.scale = current_instrument.hasOwnProperty('scale')
+                    ? current_instrument.scale : 1;
+                current_instrument.shape = current_instrument.hasOwnProperty('shape')
+                    ? current_instrument.scale : 'square';
                 break;
             default:
                 if (key.code.slice(0, 5) === 'Digit')
@@ -1077,8 +1159,8 @@ const EntFieldSUI = new engine.Entity({
                             {
                                 type: 'brush',
                                 cell: ci,
-                                brush_shape: current_instrument.hasOwnProperty('brush_shape')
-                                    ? current_instrument.brush_shape
+                                shape: current_instrument.hasOwnProperty('shape')
+                                    ? current_instrument.shape
                                     : 'square',
                                 scale: current_instrument.hasOwnProperty('scale')
                                     ? current_instrument.scale
@@ -1229,7 +1311,7 @@ const EntFieldSUI = new engine.Entity({
         let ctx = document.createElement('canvas').getContext('2d');
         ctx.canvas.width = target.width_part;
         ctx.canvas.height = target.objmenu_height;
-        
+
         let ws = target.window_spacing;
         let ds = target.display_scale;
         let eb = target.element_border;
@@ -1290,7 +1372,7 @@ const EntFieldSUI = new engine.Entity({
                         target.object_name_size, 'center', 'top', 'white', '"Source Sans Pro"');
             }
         }
-        
+
         return ctx;
     },
     draw_instrmenu: function(target)
@@ -1298,7 +1380,7 @@ const EntFieldSUI = new engine.Entity({
         let ctx = document.createElement('canvas').getContext('2d');
         ctx.canvas.width = target.width_part;
         ctx.canvas.height = target.instrmenu_height;
-        
+
         let ws = target.window_spacing;
         let ws2 = Math.round(ws/2);
         let ds = target.display_scale;
@@ -1356,7 +1438,7 @@ const EntFieldSUI = new engine.Entity({
             ctx2.canvas.width = img_box;
             ctx2.canvas.height = img_box;
             ctx2.imageSmoothingEnabled = false;
-            let celldata = objdata[idlist[current_instrument.cell]]
+            let celldata = objdata[idlist[current_instrument.cell]];
             if (celldata.hasOwnProperty('texture') && celldata.texture_ready)
                 ctx2.drawImage(celldata.texture, 0, 0, img_box, img_box);
             else
@@ -1374,18 +1456,27 @@ const EntFieldSUI = new engine.Entity({
         switch (current_instrument.type)
         {
             case 'brush':
-                let string = get_locstring(`instrument/brush_shape/${current_instrument.brush_shape}`)
+                let string = get_locstring(`instrument/shape/${current_instrument.shape}`)
                     +` [${current_instrument.scale}] | `+idlist[current_instrument.cell];
                 let string_limit = target.width_part-instr_name_length-ws-(ss*ws)-((1-ss)*img_box);
                 engine.draw_text(ctx, ws2+(ss*ws2)+((1-ss)*(ihm-ws2)), wb+ws2+(ss*(-wb+ws2)) + Math.round(textsize)/2,
                     cut_string(string, '"Source Sans Pro"', string_limit / 0.8),
                     'fill', textsize*0.8, 'left', 'center', 'white', '"Source Sans Pro"');
-                let ctx1 = rounded_image();
-                ctx.drawImage(ctx1.canvas, local_ws, local_ws + (ss*oy));
-                ctx.fillStyle = `rgba(0, 0, 0, ${(1-ss)*0.25})`;
-                roundRect(ctx, local_ws, local_ws + (ss*oy), img_box, img_box, 2+(ss*(8-2)));
-                ctx1.canvas.remove();
-                break;
+                if (current_instrument.hasOwnProperty('cell'))
+                {
+                    let ctx1 = rounded_image();
+                    ctx.drawImage(ctx1.canvas, local_ws, local_ws + (ss*oy));
+                    ctx1.canvas.remove();
+                    ctx.fillStyle = `rgba(0, 0, 0, ${(1-ss)*0.25})`;
+                    roundRect(ctx, local_ws, local_ws + (ss*oy), img_box, img_box, 2+(ss*(8-2)));
+                    break;
+                }
+                else
+                {
+                    ctx.fillStyle = 'rgba(102, 102, 102, 0.5)';
+                    roundRect(ctx, local_ws, local_ws + (ss*oy), img_box, img_box, 2+(ss*(8-2)));
+                    break;
+                }
             default:
                 ctx.fillStyle = 'rgba(102, 102, 102, 0.5)';
                 roundRect(ctx, local_ws, local_ws + (ss*oy), img_box, img_box, 2+(ss*(8-2)));
@@ -1423,16 +1514,25 @@ const EntFieldSUI = new engine.Entity({
 
             switch (instrument.type) {
                 case 'brush':
-                    let celldata = objdata[idlist[instrument.cell]];
-                    if (celldata.hasOwnProperty('texture') && celldata.texture_ready)
-                        ctx.drawImage(celldata.texture,
-                            ox+wb, wb, target.hotbar_height-(2*wb), target.hotbar_height-(2*wb));
-                    else {
-                        ctx.fillStyle = rgb_to_style(...celldata.notexture);
+                    if (instrument.hasOwnProperty('cell'))
+                    {
+                        let celldata = objdata[idlist[instrument.cell]];
+                        if (celldata.hasOwnProperty('texture') && celldata.texture_ready)
+                            ctx.drawImage(celldata.texture,
+                                ox+wb, wb, target.hotbar_height-(2*wb), target.hotbar_height-(2*wb));
+                        else
+                        {
+                            ctx.fillStyle = rgb_to_style(...celldata.notexture);
+                            ctx.fillRect(ox+wb, wb, target.hotbar_height-(2*wb), target.hotbar_height-(2*wb));
+                        }
+                    }
+                    else
+                    {
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
                         ctx.fillRect(ox+wb, wb, target.hotbar_height-(2*wb), target.hotbar_height-(2*wb));
                     }
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-                    switch (instrument.brush_shape)
+                    switch (instrument.shape)
                     {
                         case 'round':
                             ctx.beginPath();
@@ -1762,7 +1862,7 @@ const EntMMController = new engine.Entity({
             }
         );
 
-        target.exit_button = create_button(target.exit_button_width, target.exit_button_height, 'mm/exit_button', 0, 
+        target.exit_button = create_button(target.exit_button_width, target.exit_button_height, 'mm/exit_button', 0,
             target.exit_button_yoffset, ()=>{nw.Window.get().close()}
         );
     },
@@ -1791,7 +1891,7 @@ const EntMMController = new engine.Entity({
     canvas_resize: function(target, width, height)
     {
         let measure = Math.min(height/HEIGHT, width/WIDTH);
-        
+
         target.play_button_width = target.play_button_width_origin * measure;
         target.play_button_height = target.play_button_height_origin * measure;
         target.play_button_yoffset = target.play_button_yoffset_origin * measure;
@@ -1801,10 +1901,10 @@ const EntMMController = new engine.Entity({
         target.exit_button_yoffset = target.exit_button_yoffset_origin * measure;
 
         target.button_triangle_width = target.button_triangle_width_origin * measure;
-        
+
         target.play_button.box_width = target.play_button_width;
         target.play_button.box_height = target.play_button_height;
-        
+
         target.play_button.const_x = (width - target.play_button.box_width)/2
             - target.play_button.triangle_width;
         target.play_button.const_y = (height - target.play_button.box_height)/2 + target.play_button_yoffset;
@@ -1817,7 +1917,7 @@ const EntMMController = new engine.Entity({
             - target.exit_button.triangle_width;
         target.exit_button.const_y = (height - target.exit_button.box_height)/2 + target.exit_button_yoffset;
         target.exit_button.triangle_width = target.button_triangle_width;
-        
+
         if (target.play_button.offset_animate)
             target.play_button.offset_x = -width/2 - target.play_button.box_width - target.play_button.triangle_width;
         if (target.exit_button.offset_animate)
