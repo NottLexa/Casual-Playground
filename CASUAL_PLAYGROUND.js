@@ -666,9 +666,13 @@ const EntFieldBoard = new engine.Entity({
                 target.cameraspeed = engine.clamp(target.cameraspeed+1, target.mincamspeed, target.maxcamspeed);
                 break;
             case 'KeyC':
-                this.board_center_view(target);
-                target.hsp = 0;
-                target.vsp = 0;
+                if (!globalkeys.Ctrl && !globalkeys.Shift && !globalkeys.Alt)
+                {
+                    this.board_center_view(target);
+                    target.hsp = 0;
+                    target.vsp = 0;
+                }
+
                 break;
             case 'Space':
                 target.time_paused = !target.time_paused;
@@ -1606,10 +1610,54 @@ const EntFieldSUI = new engine.Entity({
     },
 });
 //#endregion
+//#region [SELECTION HANDLER]
+const EntFieldSH = new engine.Entity({
+    kb_down: function(target, key)
+    {
+        switch (key.code)
+        {
+            case 'KeyC':
+                if (globalkeys.Ctrl && !globalkeys.Shift && !globalkeys.Alt)
+                {
+                    let selection = fieldboard.selection;
+                    let selected_cells = [];
+                    let palette = [];
+                    for (let iy = 0; iy < fieldboard.board_height; iy++)
+                    {
+                        for (let ix = 0; ix < fieldboard.board_width; ix++)
+                        {
+                            if ((selection[iy] & (1<<ix)) > 0)
+                            {
+                                let cellid = fieldboard.board[iy][ix].cellid;
+                                selected_cells.push([ix,iy,gvars[0].idlist[cellid]]);
+                                palette.push(gvars[0].idlist[cellid]);
+                            }
+                        }
+                    }
+                    palette = Array.from(new Set(palette));
+                    let backpalette = {};
+                    for (let key in palette)
+                    {
+                        backpalette[palette[key]] = key;
+                    }
+                    let ret = '1|'+palette.join(',')+'|';
+                    for (let i=0; i < selected_cells.length; i++)
+                    {
+                        ret += [selected_cells[i][0], selected_cells[i][1], backpalette[selected_cells[i][2]]].join(',');
+                        if (i !== selected_cells.length-1) ret += ';';
+                    }
+                    navigator.clipboard.writeText(ret);
+                };
+                break;
+        }
+    },
+});
+//#endregion
 //#endregion
 //#region [INSTANCES]
 var fieldboard = EntFieldBoard.create_instance();
 var fieldsui = EntFieldSUI.create_instance();
+var fieldsh = EntFieldSH.create_instance();
 //#endregion
 //#endregion
 
@@ -2472,7 +2520,7 @@ var mainmenu_startmenu = EntMMStartMenu.create_instance();
 //#endregion
 //#endregion
 
-var room_field = new engine.Room([EntGlobalConsole, EntFieldBoard, EntFieldSUI]);
+var room_field = new engine.Room([EntGlobalConsole, EntFieldBoard, EntFieldSUI, EntFieldSH]);
 var room_mainmenu = new engine.Room([EntGlobalConsole, EntMMIntro, EntMMController, EntMMBG,
     EntMMStartMenu, EntMMButton]);
 //#endregion
