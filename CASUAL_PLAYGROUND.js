@@ -1,5 +1,5 @@
 /*
-    Copyright © 2022 Alexey Kozhanov
+    Copyright © 2023 Alexey Kozhanov
 
     =====
 
@@ -28,6 +28,7 @@ import * as engine from './core/nle.mjs';
 const comp = require('./core/compiler.cjs');
 const ctt = require('./core/compiler_task_types.cjs');
 const ccc = require('./core/compiler_conclusions_cursors.cjs');
+const clippar = require('./core/clipboard_parser.cjs');
 
 const fs = require('fs');
 const path = require('path');
@@ -45,7 +46,6 @@ catch (err) {
 }
 
 //#endregion
-
 
 //#region [ИНИЦИАЛИЗАЦИЯ]
 let version = vi.version_info.version;
@@ -117,7 +117,6 @@ nw.Window.get().moveTo(Math.round(window.screen.width/8),
 nw.Window.get().show();
 //#endregion
 
-
 //#region [LOADING FUNCTIONS]
 
 const get_text_width = function(txt, font)
@@ -126,6 +125,13 @@ const get_text_width = function(txt, font)
     text_window.innerHTML = txt;
     return text_window.offsetWidth;
 };
+
+const lead0 = function(number, targetlength)
+{
+    number = number.toString();
+    while (number.length < targetlength) number = "0" + number;
+    return number;
+}
 
 const get_locstring = function(locstring_id)
 {
@@ -286,8 +292,8 @@ let user_settings = JSON.parse(fs.readFileSync('./settings.json', {encoding:"utf
 var loc = user_settings.localization;
 var locstrings = JSON.parse(fs.readFileSync('./core/localization.json', {encoding:"utf8"})).localization;
 var current_instrument = {'type': 'none'};
-var gvars = [{'objdata':{},
-              'idlist':[],
+var gvars = [{'objdata':{}, // = {'grass':{CELLDATA}, 'dirt':{CELLDATA}, ...}
+              'idlist':[], // = ['grass', 'dirt', ...]
               'logger':[],
               'board_width':32,
               'board_height':32,
@@ -323,9 +329,9 @@ idlist.push(...Object.keys(coremods));
 objdata = {...objdata, ...coremods};
 gvars[0].objdata = objdata;
 
-global.console.log(Object.keys(objdata));
-global.console.log(idlist);
-global.console.log(idlist.map((value, index) => [index, value]));
+console.log(Object.keys(objdata));
+console.log(idlist);
+console.log(idlist.map((value, index) => [index, value]));
 
 var update_board = false;
 var update_board_fully = false;
@@ -375,7 +381,10 @@ const EntGlobalConsole = new engine.Entity({
         {
             let log = logger[target.logger_i];
             let type_string = comp.LoggerClass.types[log[0]];//'ERROR';
-            let time_string = '00:00:00'; //let time_string = timeformat(log[1], 1);
+            let h = log[1].getHours();
+            let m = log[1].getMinutes();
+            let s = log[1].getSeconds();
+            let time_string = lead0(h, 2) + ':' + lead0(m, 2) + ':' + lead0(s, 2);
             let prefix = `[${type_string} ${time_string}]` + ' ';
             let prefix_l = prefix.length;
             //process.stdout.write(prefix + log[2]);
@@ -697,6 +706,10 @@ const EntFieldBoard = new engine.Entity({
                 break;
         }
     },
+    mouse_up: function(target, mb)
+    {
+        if (globalkeys.LMB && !fieldsui.show) this.board_do_instrument_end(target);
+    },
     mouse_down: function(target, mb)
     {
         if (!fieldsui.show)
@@ -718,7 +731,7 @@ const EntFieldBoard = new engine.Entity({
                     break;
             }
         }
-
+        if (globalkeys.LMB && !fieldsui.show) this.board_do_instrument_start(target);
     },
     board_step: function(target)
     {
@@ -836,8 +849,8 @@ const EntFieldBoard = new engine.Entity({
         let cellsize = target.viewscale+bordersize;
         let surface_selection = target.surfaces.selection;
         surface_selection.clearRect(0,0,surface_selection.canvas.width,surface_selection.canvas.height);
-        let color = gvars[0].selection_color
-        surface_selection.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.3)`
+        let color = gvars[0].selection_color;
+        surface_selection.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.3)`;
         for (let ix = 0; ix < bw; ix++)
         {
             for (let iy = 0; iy < bh; iy++)
@@ -905,6 +918,16 @@ const EntFieldBoard = new engine.Entity({
         let cy = Math.floor(ry/cellsize);
         let maxcx = target.board_width;
         let maxcy = target.board_height;
+        let commands = {
+            "selection_brush": (ix,iy)=>{target.selection[iy] |= (1<<ix); update_selection = true},
+            "brush": (ix,iy)=>{
+                if (current_instrument.hasOwnProperty('cell'))
+                {
+                    target.board[iy][ix].reset(current_instrument.cell);
+                    target.cells_to_redraw.push([ix, iy]);
+                }
+            },
+        };
         switch (current_instrument.type)
         {
             case 'brush':
@@ -918,34 +941,13 @@ const EntFieldBoard = new engine.Entity({
                         {
                             if ((0 <= ix) && (ix < maxcx) && (0 <= iy) && (iy < maxcy))
                             {
-                                let command;
-                                switch (current_instrument.type)
-                                {
-                                    case 'brush':
-                                        if (current_instrument.hasOwnProperty('cell'))
-                                        {
-                                            command = (ix,iy)=>{
-                                                target.board[iy][ix].reset(current_instrument.cell);
-                                                target.cells_to_redraw.push([ix, iy]);
-                                            };
-                                        }
-                                        else command = ()=>{};
-                                        break;
-                                    case 'selection_brush':
-                                        command = (ix,iy)=>{
-                                            target.selection[iy] |= (1<<ix);
-                                            update_selection = true;
-                                        };
-                                        break;
-                                }
-
+                                let command = commands[current_instrument.type];
                                 if (current_instrument.shape === 'round')
                                 {
                                     let dx = ix-cx;
                                     let dy = iy-cy;
                                     if (Math.round(Math.sqrt(dx*dx + dy*dy)) <= scale) command(ix,iy);
-                                }
-                                else command(ix,iy);
+                                } else command(ix,iy);
                             }
                         }
                     }
@@ -953,6 +955,61 @@ const EntFieldBoard = new engine.Entity({
                 }
                 break;
         }
+    },
+    board_do_instrument_start: function(target)
+    {
+        let bordersize = Math.floor(target.viewscale*gvars[0].cellbordersize);
+        let cellsize = bordersize + target.viewscale;
+        let rx = mx + target.viewx - bordersize;
+        let ry = my + target.viewy - bordersize;
+        let cx = Math.floor(rx/cellsize);
+        let cy = Math.floor(ry/cellsize);
+        let maxcx = target.board_width;
+        let maxcy = target.board_height;
+        let commands = {
+            "paste": (ox,oy)=>{
+                if (current_instrument.hasOwnProperty('pastedata'))
+                {
+                    let pw = current_instrument.pastewidth;
+                    let ph = current_instrument.pasteheight;
+                    let hx = Math.floor(pw/2); let hy = Math.floor(ph/2);
+                    for (let ix=0; ix<pw; ix++)
+                    {
+                        for (let iy=0; iy<ph; iy++)
+                        {
+                            let jx = ox+ix-hx;
+                            let jy = oy+iy-hy;
+                            if ((0 <= jx) && (jx < maxcx) && (0 <= jy) && (jy < maxcy))
+                            {
+                                if (current_instrument.pastedata.hasOwnProperty(iy))
+                                {
+                                    if (current_instrument.pastedata[iy].hasOwnProperty(ix))
+                                    {
+                                        let cellid = idlist.indexOf(current_instrument.pastedata[iy][ix]);
+                                        target.board[jy][jx].reset(cellid);
+                                        target.cells_to_redraw.push([jx, jy]);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+        };
+        switch (current_instrument.type)
+        {
+            case 'paste':
+                if (((rx % cellsize) < target.viewscale) && ((ry % cellsize) < target.viewscale))
+                {
+                    let command = commands[current_instrument.type];
+                    command(cx,cy);
+                    this.draw_board(target);
+                }
+        }
+    },
+    board_do_instrument_end: function(target)
+    {
+        // placeholder
     },
     canvas_resize: function(target, width, height)
     {
@@ -1490,9 +1547,11 @@ const EntFieldSUI = new engine.Entity({
         let iip = img_box * (1-target.instrmenu_imgbox_ratio);
 
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(sprites.instruments[current_instrument.type],
-            local_ws+iip, local_ws+(target.show_step*oy)+iip, img_box-iip-iip, img_box-iip-iip);
-
+        if (sprites.instruments.hasOwnProperty(current_instrument.type))
+        {
+            ctx.drawImage(sprites.instruments[current_instrument.type],
+                local_ws+iip, local_ws+(target.show_step*oy)+iip, img_box-iip-iip, img_box-iip-iip);
+        }
         return ctx;
     },
     draw_instrument_hotbar: function(target)
@@ -1619,35 +1678,31 @@ const EntFieldSH = new engine.Entity({
             case 'KeyC':
                 if (globalkeys.Ctrl && !globalkeys.Shift && !globalkeys.Alt)
                 {
-                    let selection = fieldboard.selection;
-                    let selected_cells = [];
-                    let palette = [];
-                    for (let iy = 0; iy < fieldboard.board_height; iy++)
-                    {
-                        for (let ix = 0; ix < fieldboard.board_width; ix++)
-                        {
-                            if ((selection[iy] & (1<<ix)) > 0)
-                            {
-                                let cellid = fieldboard.board[iy][ix].cellid;
-                                selected_cells.push([ix,iy,gvars[0].idlist[cellid]]);
-                                palette.push(gvars[0].idlist[cellid]);
-                            }
-                        }
-                    }
-                    palette = Array.from(new Set(palette));
-                    let backpalette = {};
-                    for (let key in palette)
-                    {
-                        backpalette[palette[key]] = key;
-                    }
-                    let ret = '1|'+palette.join(',')+'|';
-                    for (let i=0; i < selected_cells.length; i++)
-                    {
-                        ret += [selected_cells[i][0], selected_cells[i][1], backpalette[selected_cells[i][2]]].join(',');
-                        if (i !== selected_cells.length-1) ret += ';';
-                    }
-                    navigator.clipboard.writeText(ret);
-                };
+                    let ret = clippar.copy(fieldboard.board, fieldboard.selection, idlist);
+                    if (ret !== null) navigator.clipboard.writeText(ret[0]);
+                    console.log(ret[1]);
+                    logger.push([
+                        comp.LoggerClass.ERROR,
+                        new Date(),
+                        ret[1],
+                    ]);
+                }
+                break;
+            case 'KeyV':
+                if (globalkeys.Ctrl && !globalkeys.Shift && !globalkeys.Alt)
+                {
+                    current_instrument.type = 'paste';
+                    navigator.clipboard.readText().then((clipboardtext)=>{
+                        let ret = clippar.paste(clipboardtext, objdata);
+                        for (let k in ret[0]) current_instrument[k] = ret[0][k];
+                        console.log(ret[1]);
+                        logger.push([
+                            comp.LoggerClass.ERROR,
+                            new Date(),
+                            ret[1],
+                        ]);
+                    });
+                }
                 break;
         }
     },
@@ -2592,7 +2647,6 @@ canvas_element.addEventListener('mousemove', function(event)
 });
 canvas_element.addEventListener('mousedown', function(event)
 {
-    engine.current_room.do_mouse_down(event.button);
     switch (event.button)
     {
         case engine.LMB:
@@ -2605,10 +2659,10 @@ canvas_element.addEventListener('mousedown', function(event)
             globalkeys.MMB = true;
             break;
     }
+    engine.current_room.do_mouse_down(event.button);
 });
 canvas_element.addEventListener('mouseup', function(event)
 {
-    engine.current_room.do_mouse_up(event.button);
     switch (event.button)
     {
         case engine.LMB:
@@ -2621,6 +2675,7 @@ canvas_element.addEventListener('mouseup', function(event)
             globalkeys.MMB = false;
             break;
     }
+    engine.current_room.do_mouse_up(event.button);
 });
 canvas_element.addEventListener('wheel', function(event)
 {

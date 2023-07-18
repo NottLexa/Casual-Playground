@@ -153,6 +153,12 @@
         "__noloc": "Selection brush",
         "rus": "Кисть выделения"
       },
+      "paste":
+      {
+        "__usage": "Paste instrument, 'paste' the area of cells previously copied, a verb, capitalized",
+        "__noloc": "Paste",
+        "rus": "Вставить"
+      },
       "line":
       {
         "__usage": "Drawing line instrument, capitalized",
