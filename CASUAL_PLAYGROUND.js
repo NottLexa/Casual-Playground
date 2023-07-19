@@ -248,6 +248,7 @@ const load_mod = function(modfolder, mod_origin, official)
                     {
                         moddata.texture_ready = true;
                         update_board_fully = true;
+                        update_objmenu = true;
                     };
                     moddata.texture.src = imgpath;
                 }
@@ -288,7 +289,6 @@ const load_images = function(folder, preload=false)
 
 //#region [SETTINGS]
 let user_settings = JSON.parse(fs.readFileSync('./settings.json', {encoding:"utf8"}));
-
 var loc = user_settings.localization;
 var locstrings = JSON.parse(fs.readFileSync('./core/localization.json', {encoding:"utf8"})).localization;
 var current_instrument = {'type': 'none'};
@@ -336,6 +336,7 @@ console.log(idlist.map((value, index) => [index, value]));
 var update_board = false;
 var update_board_fully = false;
 var update_selection = false;
+var update_objmenu = false;
 
 //#endregion
 
@@ -1112,7 +1113,7 @@ const EntFieldSUI = new engine.Entity({
             this.mouse_move(target);
         }
 
-        if (update_board) target.objmenu_surface = this.draw_objmenu(target);
+        if (update_objmenu) target.objmenu_surface = this.draw_objmenu(target);
     },
     draw: function(target, surface)
     {
@@ -1432,6 +1433,7 @@ const EntFieldSUI = new engine.Entity({
                     engine.draw_text(ctx, cx + (ds/2), cy + ds + (eb/2),
                         cut_string(name_string, `${target.object_name_size}px "Source Sans Pro"`, ds), 'fill',
                         target.object_name_size, 'center', 'top', 'white', '"Source Sans Pro"');
+                    break;
             }
         }
 
@@ -1556,8 +1558,17 @@ const EntFieldSUI = new engine.Entity({
                                 if (current_instrument.pastedata[iy].hasOwnProperty(ix))
                                 {
                                     let nid = current_instrument.pastedata[iy][ix];
-                                    ctx2.fillStyle = rgb_to_style(...objdata[nid].notexture);
-                                    ctx2.fillRect(ps*(pmax-pw)/2 + ps*ix, ps*(pmax-ph)/2 + ps*iy, ps, ps);
+                                    if (objdata.hasOwnProperty(nid))
+                                    {
+                                        if (objdata[nid].hasOwnProperty('texture'))
+                                            ctx2.drawImage(objdata[nid].texture, ps*(pmax-pw)/2 + ps*ix,
+                                                ps*(pmax-ph)/2 + ps*iy, ps, ps);
+                                        else
+                                        {
+                                            ctx2.fillStyle = rgb_to_style(...objdata[nid].notexture);
+                                            ctx2.fillRect(ps*(pmax-pw)/2 + ps*ix, ps*(pmax-ph)/2 + ps*iy, ps, ps);
+                                        }
+                                    }
                                 }
                             }
 
@@ -1650,6 +1661,33 @@ const EntFieldSUI = new engine.Entity({
                     engine.draw_text(ctx, ox + target.hotbar_height / 2, target.hotbar_height / 2, '' + instrument.scale,
                         'fill', textsize * Math.min(1, textsize / textwidth), 'center', 'center',
                         'rgba(255, 255, 255, 0.5)', '"Montserrat"');
+                    break;
+                case 'paste':
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                    ctx.fillRect(ox+wb, wb, target.hotbar_height-(2*wb), target.hotbar_height-(2*wb));
+                    if (instrument.hasOwnProperty('pastedata'))
+                    {
+                        let pw = instrument.pastewidth; let ph = instrument.pasteheight;
+                        let pmax = Math.max(pw, ph);
+                        let ps = (target.hotbar_height-(2*wb))/pmax;
+                        for (let ix=0; ix<pw; ix++)
+                        {
+                            for (let iy=0; iy<ph; iy++)
+                            {
+                                if (instrument.pastedata.hasOwnProperty(iy))
+                                {
+                                    if (instrument.pastedata[iy].hasOwnProperty(ix))
+                                    {
+                                        let nid = instrument.pastedata[iy][ix];
+                                        ctx.fillStyle = rgb_to_style(...objdata[nid].notexture);
+                                        ctx.fillRect(ox + wb + ps*(pmax-pw)/2 + ps*ix,
+                                            wb + ps*(pmax-ph)/2 + ps*iy, ps, ps);
+                                    }
+                                }
+
+                            }
+                        }
+                    }
                     break;
                 default:
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
@@ -2621,7 +2659,6 @@ engine.change_current_room(room_mainmenu);
 var running = true;
 var prevtime = 0.0;
 var deltatime = 0.0;
-
 var mx = 0;
 var my = 0;
 var scroll_delta = 0;
@@ -2731,8 +2768,5 @@ const main = function (time)
         window.requestAnimationFrame(main);
     }
 };
-
 window.requestAnimationFrame(main);
-
-
 //#endregion
