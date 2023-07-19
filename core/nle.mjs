@@ -19,7 +19,7 @@ Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 
 /*
 NLE2 (NotLexaEngine 2) for JavaScript
-Version: 1.0.0
+Version: 1.2.0
 */
 
 const [LMB, MMB, RMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP] = Array(7).keys();
@@ -281,6 +281,29 @@ const Instance = function (entity)
     this.entity = entity;
 };
 
+const Bitarray = function () // Array of bits
+{
+    this.value = [];
+    this.get = function(index)
+    {
+        while (index >= 32*this.value.length) this.value.push(0);
+        let divd = Math.floor(index/32); let modd = index % 32;
+        return (this.value[divd] & (1<<modd)) > 0;
+    };
+    this.invert = function(index)
+    {
+        while (index >= 32*this.value.length) this.value.push(0);
+        let divd = Math.floor(index/32); let modd = index % 32;
+        this.value[divd] ^= 1<<modd;
+    };
+    this.set = function(index, value)
+    {
+        while (index >= 32*this.value.length) this.value.push(0);
+        let divd = Math.floor(index/32);
+        if ((!!value) !== this.get(index)) this.invert(index);
+    };
+};
+
 export {Display, current_room, change_current_room, Room, Entity, Instance, clamp, linear_interpolation,
     draw_text, LMB, RMB, MMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP, draw_line, range2range, wrap,
-    lengthdir_x, lengthdir_y, default_room};
+    lengthdir_x, lengthdir_y, default_room, Bitarray};

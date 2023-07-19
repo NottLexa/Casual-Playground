@@ -30,7 +30,7 @@ const copy = function(board, selection_array, idlist)
     {
         for (let ix = 0; ix < board[0].length; ix++)
         {
-            if ((selection[iy] & (1<<ix)) > 0) // [iy][ix] is selected
+            if (selection[iy].get(ix))
             {
                 minx = Math.min(ix, minx);
                 miny = Math.min(iy, miny);

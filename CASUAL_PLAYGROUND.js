@@ -488,8 +488,9 @@ const EntFieldBoard = new engine.Entity({
                 target.board[target.board.length-1].push(celldata);
             }
         }
-        target.selection = Array(target.board_height).fill(0);
-        target.selection[0] = 1+4+16;
+        target.selection = [];
+        for (let i=0; i<target.board_height; i++) target.selection.push(new engine.Bitarray());
+        target.selection[0].set(0, 1); target.selection[0].set(2, 1); target.selection[0].set(4, 1);
         target.linecolor_infield = gvars[0].linecolor_infield;
         target.linecolor_outfield = gvars[0].linecolor_outfield;
         target.cells_to_redraw = [];
@@ -855,11 +856,11 @@ const EntFieldBoard = new engine.Entity({
         {
             for (let iy = 0; iy < bh; iy++)
             {
-                if ((target.selection[iy] & (1<<ix)) > 0)
+                if (target.selection[iy].get(ix))
                 {
                     let cx = (ix*cellsize)+bordersize;
                     let cy = (iy*cellsize)+bordersize;
-                    surface_selection.fillRect(cx, cy, target.viewscale, target.viewscale)
+                    surface_selection.fillRect(cx, cy, target.viewscale, target.viewscale);
                 }
             }
         }
@@ -919,7 +920,7 @@ const EntFieldBoard = new engine.Entity({
         let maxcx = target.board_width;
         let maxcy = target.board_height;
         let commands = {
-            "selection_brush": (ix,iy)=>{target.selection[iy] |= (1<<ix); update_selection = true},
+            "selection_brush": (ix,iy)=>{target.selection[iy].set(ix, 1); update_selection = true},
             "brush": (ix,iy)=>{
                 if (current_instrument.hasOwnProperty('cell'))
                 {
@@ -1488,7 +1489,7 @@ const EntFieldSUI = new engine.Entity({
 
         let local_ws = Math.round(ws/(2-ss));
 
-        let rounded_image = function()
+        let rounded_image = function(image)
         {
             let ctx1 = document.createElement('canvas').getContext('2d');
             ctx1.canvas.width = img_box;
@@ -1499,14 +1500,7 @@ const EntFieldSUI = new engine.Entity({
             ctx2.canvas.width = img_box;
             ctx2.canvas.height = img_box;
             ctx2.imageSmoothingEnabled = false;
-            let celldata = objdata[idlist[current_instrument.cell]];
-            if (celldata.hasOwnProperty('texture') && celldata.texture_ready)
-                ctx2.drawImage(celldata.texture, 0, 0, img_box, img_box);
-            else
-            {
-                ctx2.fillStyle = rgb_to_style(...celldata.notexture);
-                ctx2.fillRect(0, 0, img_box, img_box);
-            }
+            ctx2.drawImage(image, 0, 0, img_box, img_box);
             ctx1.globalCompositeOperation = 'source-atop';
             ctx1.drawImage(ctx2.canvas, 0, 0);
             ctx1.globalCompositeOperation = 'source-over';
@@ -1525,19 +1519,61 @@ const EntFieldSUI = new engine.Entity({
                     'fill', textsize*0.8, 'left', 'center', 'white', '"Source Sans Pro"');
                 if (current_instrument.hasOwnProperty('cell'))
                 {
-                    let ctx1 = rounded_image();
+                    let ctx1;
+                    let celldata = objdata[idlist[current_instrument.cell]];
+                    if (celldata.hasOwnProperty('texture') && celldata.texture_ready)
+                        ctx1 = rounded_image(celldata.texture);
+                    else
+                    {
+                        let ctx2 = document.createElement('canvas').getContext('2d');
+                        ctx2.canvas.width = img_box; ctx2.canvas.height = img_box;
+                        ctx2.fillStyle = rgb_to_style(...celldata.notexture);
+                        ctx2.fillRect(0, 0, img_box, img_box);
+                        ctx1 = rounded_image(ctx2.canvas);
+                        ctx2.canvas.remove()
+                    }
                     ctx.drawImage(ctx1.canvas, local_ws, local_ws + (ss*oy));
                     ctx1.canvas.remove();
                     ctx.fillStyle = `rgba(0, 0, 0, ${(1-ss)*0.25})`;
-                    roundRect(ctx, local_ws, local_ws + (ss*oy), img_box, img_box, 2+(ss*(8-2)));
-                    break;
+                }
+                else ctx.fillStyle = 'rgba(102, 102, 102, 0.5)';
+                roundRect(ctx, local_ws, local_ws + (ss*oy), img_box, img_box, 2+(ss*(8-2)));
+                break;
+            case 'paste':
+                if (current_instrument.hasOwnProperty('pastedata'))
+                {
+                    let ctx2 = document.createElement('canvas').getContext('2d');
+                    ctx2.canvas.width = img_box; ctx2.canvas.height = img_box;
+                    let pw = current_instrument.pastewidth; let ph = current_instrument.pasteheight;
+                    let pmax = Math.max(pw, ph);
+                    let ps = img_box/pmax;
+                    for (let ix=0; ix<pw; ix++)
+                    {
+                        for (let iy=0; iy<ph; iy++)
+                        {
+                            if (current_instrument.pastedata.hasOwnProperty(iy))
+                            {
+                                if (current_instrument.pastedata[iy].hasOwnProperty(ix))
+                                {
+                                    let nid = current_instrument.pastedata[iy][ix];
+                                    ctx2.fillStyle = rgb_to_style(...objdata[nid].notexture);
+                                    ctx2.fillRect(ps*(pmax-pw)/2 + ps*ix, ps*(pmax-ph)/2 + ps*iy, ps, ps);
+                                }
+                            }
+
+                        }
+                    }
+                    let ctx1 = rounded_image(ctx2.canvas);
+                    ctx.drawImage(ctx1.canvas, local_ws, local_ws + (ss*oy));
+                    ctx1.canvas.remove();
+                    ctx2.canvas.remove();
                 }
                 else
                 {
                     ctx.fillStyle = 'rgba(102, 102, 102, 0.5)';
                     roundRect(ctx, local_ws, local_ws + (ss*oy), img_box, img_box, 2+(ss*(8-2)));
-                    break;
                 }
+                break;
             default:
                 ctx.fillStyle = 'rgba(102, 102, 102, 0.5)';
                 roundRect(ctx, local_ws, local_ws + (ss*oy), img_box, img_box, 2+(ss*(8-2)));
