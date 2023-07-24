@@ -288,7 +288,7 @@ const load_images = function(folder, preload=false)
 //#endregion
 
 //#region [SETTINGS]
-let user_settings = JSON.parse(fs.readFileSync('./settings.json', {encoding:"utf8"}));
+var user_settings = JSON.parse(fs.readFileSync('./settings.json', {encoding:"utf8"}));
 var loc = user_settings.localization;
 var locstrings = JSON.parse(fs.readFileSync('./core/localization.json', {encoding:"utf8"})).localization;
 var current_instrument = {'type': 'none'};
@@ -302,6 +302,7 @@ var gvars = [{'objdata':{}, // = {'grass':{CELLDATA}, 'dirt':{CELLDATA}, ...}
               'selection_color': [55, 55, 200],
               'cellbordersize': 0.125,
               'cell_fill_on_init': 'grass',
+              'history_max_length': user_settings.history_max_length
               },
              {}];
 var sprites = load_images('./core/sprites', true);
@@ -420,6 +421,10 @@ const EntGlobalConsole = new engine.Entity({
                 surface.canvas.height-100+((i-target.log.length)*target.log_size),
                 target.log[i], 'fill', target.log_size, 'left', 'bottom', color, '"DejaVu Sans Mono"');
         }
+
+        if (!document.hasFocus())
+            engine.draw_text(surface, target.padding_size, surface.canvas.height-100, 'Window is not focused', 'fill',
+                target.log_size, 'left', 'bottom', 'rgba(255, 50, 50, 0.6)', '"DejaVu Sans Mono"');
     },
     canvas_resize: function(target, width, height)
     {
@@ -458,6 +463,14 @@ const EntFieldBoard = new engine.Entity({
         target.text_size_default = target.text_size_default_origin;
         target.text_size_small_origin = fontsize_small;
         target.text_size_small = target.text_size_small_origin;
+
+        target.history = [];
+        target.history.pointer = -1;
+        target.history.add_record = function(record)
+        {
+            target.history.splice(++target.history.pointer, target.history.length, record);
+            for (let i=0;i<=(target.history.length-gvars[0].history_max_length); i++) target.history.shift();
+        };
 
         // See other initiations in room_start
     },
@@ -513,6 +526,9 @@ const EntFieldBoard = new engine.Entity({
         target.board_step_executed = false;
         target.board_step_finished = false;
         target.board_tasks_executed = false;
+
+        target.history.splice(0,target.history.length);
+        target.history.pointer = -1;
     },
     step: function(target)
     {
@@ -765,6 +781,7 @@ const EntFieldBoard = new engine.Entity({
     board_tasks: function(target)
     {
         let taskcount = 0;
+        let history_record = [];
         for (let y = 0; y < target.board_height; y++)
         {
             for (let x = 0; x < target.board_width; x++)
@@ -775,6 +792,8 @@ const EntFieldBoard = new engine.Entity({
                     {
                         case ctt.SET_CELL:
                             let [_x, _y, _cellid] = args.slice(1);
+                            history_record.push({type: "cell_changed", old: target.board[_y][_x].cellid,
+                                new: _cellid, x: _x, y: _y});
                             target.board[_y][_x].reset(_cellid);
                             target.cells_to_redraw.push([_x, _y]);
                             update_board = true;
@@ -785,6 +804,7 @@ const EntFieldBoard = new engine.Entity({
                 target.board[y][x].tasks = [];
             }
         }
+        if (history_record.length > 0) target.history.add_record(history_record);
     },
     draw_board: function(target)
     {
@@ -920,11 +940,14 @@ const EntFieldBoard = new engine.Entity({
         let cy = Math.floor(ry/cellsize);
         let maxcx = target.board_width;
         let maxcy = target.board_height;
+        let history_record = [];
         let commands = {
             "selection_brush": (ix,iy)=>{target.selection[iy].set(ix, 1); update_selection = true},
             "brush": (ix,iy)=>{
                 if (current_instrument.hasOwnProperty('cell'))
                 {
+                    history_record.push({type: "cell_changed", old: target.board[iy][ix].cellid,
+                        new: current_instrument.cell, x: ix, y: iy});
                     target.board[iy][ix].reset(current_instrument.cell);
                     target.cells_to_redraw.push([ix, iy]);
                 }
@@ -957,6 +980,7 @@ const EntFieldBoard = new engine.Entity({
                 }
                 break;
         }
+        if (history_record.length > 0) target.history.add_record(history_record);
     },
     board_do_instrument_start: function(target)
     {
