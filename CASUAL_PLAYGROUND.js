@@ -683,7 +683,6 @@ const EntFieldBoard = new engine.Entity({
     },
     kb_down: function(target, key)
     {
-        let setkey = true;
         switch (key.code)
         {
             case 'KeyQ':
@@ -699,7 +698,6 @@ const EntFieldBoard = new engine.Entity({
                     target.hsp = 0;
                     target.vsp = 0;
                 }
-
                 break;
             case 'Space':
                 target.time_paused = !target.time_paused;
@@ -721,6 +719,57 @@ const EntFieldBoard = new engine.Entity({
             case 'Minus':
                 if (globalkeys.Shift)
                     current_instrument.scale = Math.max(current_instrument.scale-1, 1);
+                break;
+            case 'KeyZ':
+                if (globalkeys.Ctrl)
+                {
+                    if (globalkeys.Shift) // redo
+                    {
+                        if (target.history.pointer < target.history.length-1)
+                        {
+                            let record = target.history[++target.history.pointer];
+                            for (let action of record)
+                            {
+                                switch (action.type)
+                                {
+                                    case "cell_changed":
+                                        target.board[action.y][action.x].reset(action.new);
+                                        target.cells_to_redraw.push([action.x, action.y]);
+                                        update_board = true;
+                                        break;
+                                }
+                            }
+                            logger.push([
+                                comp.LoggerClass.INFO,
+                                new Date(),
+                                'Redo.',
+                            ]);
+                        }
+                    }
+                    else // undo
+                    {
+                        if (target.history.pointer > -1)
+                        {
+                            let record = target.history[target.history.pointer--];
+                            for (let action of record)
+                            {
+                                switch (action.type)
+                                {
+                                    case "cell_changed":
+                                        target.board[action.y][action.x].reset(action.old);
+                                        target.cells_to_redraw.push([action.x, action.y]);
+                                        update_board = true;
+                                        break;
+                                }
+                            }
+                            logger.push([
+                                comp.LoggerClass.INFO,
+                                new Date(),
+                                'Undo.',
+                            ]);
+                        }
+                    }
+                }
                 break;
         }
     },
@@ -944,7 +993,7 @@ const EntFieldBoard = new engine.Entity({
         let commands = {
             "selection_brush": (ix,iy)=>{target.selection[iy].set(ix, 1); update_selection = true},
             "brush": (ix,iy)=>{
-                if (current_instrument.hasOwnProperty('cell'))
+                if (current_instrument.hasOwnProperty('cell') && current_instrument.cell !== target.board[iy][ix].cellid)
                 {
                     history_record.push({type: "cell_changed", old: target.board[iy][ix].cellid,
                         new: current_instrument.cell, x: ix, y: iy});
@@ -1780,7 +1829,7 @@ const EntFieldSH = new engine.Entity({
                     if (ret !== null) navigator.clipboard.writeText(ret[0]);
                     console.log(ret[1]);
                     logger.push([
-                        comp.LoggerClass.ERROR,
+                        comp.LoggerClass.INFO,
                         new Date(),
                         ret[1],
                     ]);
@@ -1795,7 +1844,7 @@ const EntFieldSH = new engine.Entity({
                         for (let k in ret[0]) current_instrument[k] = ret[0][k];
                         console.log(ret[1]);
                         logger.push([
-                            comp.LoggerClass.ERROR,
+                            comp.LoggerClass.INFO,
                             new Date(),
                             ret[1],
                         ]);
@@ -1833,6 +1882,10 @@ const EntMMIntro = new engine.Entity({
         target.author_text_size_origin = 60;
         target.author_text_size = target.author_text_size_origin;
     },
+    room_start: function(target)
+    {
+        target.show_title = true;
+    },
     step: function(target)
     {
         target.time += deltatime;
@@ -1849,12 +1902,8 @@ const EntMMIntro = new engine.Entity({
         */
         let moment_func = (start, end) => engine.range2range(engine.clamp(target.time, start, end), start, end, 0, 1);
 
-        let moment2 = 1-moment_func(4, 4.5);
-        moment2 = Math.cos((1-moment2)/2*Math.PI);
-        moment2 = Math.pow(moment2, 2/3);
-        let moment3 = 1-moment_func(4.5, 5);
-        moment3 = Math.cos(moment3/2*Math.PI);
-        moment3 = 1-Math.pow(moment3, 2/3);
+        let moment2 = Math.pow(Math.cos(moment_func(4,4.5)/2*Math.PI), 2/3);
+        let moment3 = 1-Math.pow(Math.sin(moment_func(4.5,5)/2*Math.PI), 2/3);
         //moment3 = Math.sin(moment3/2*Math.PI);
         surface.beginPath();
         surface.moveTo(0, 0);
@@ -1866,9 +1915,11 @@ const EntMMIntro = new engine.Entity({
         surface.fill();
 
         let moment1 = moment_func(0, 2)*(1-moment_func(4, 5));
-        engine.draw_text(surface, surface.canvas.width/2, surface.canvas.height/2,
-            'Casual Playground', 'fill', target.name_text_size, 'center', 'center', `rgba(255, 255, 255, ${moment1})`,
-            '"Montserrat", serif');
+        let moment4 = Math.pow(Math.sin(moment_func(4,5)*Math.PI/2), 2/3);
+        if (target.show_title)
+            engine.draw_text(surface, surface.canvas.width/2, surface.canvas.height*((2-moment4)/4),
+                'Casual Playground', 'fill', target.name_text_size, 'center', 'center', `rgba(255, 255, 255, 1)`,
+                '"Montserrat", serif');
         engine.draw_text(surface, surface.canvas.width/2, surface.canvas.height/2 + target.author_text_size*1.5,
             'by NotLexa', 'fill', target.author_text_size, 'center', 'top', `rgba(255, 255, 255, ${moment1})`,
             '"Montserrat", serif');
@@ -2060,6 +2111,7 @@ const EntMMController = new engine.Entity({
                     - target.exit_button.triangle_width;
                 target.time = 4;
                 target.time_paused = true;
+                mainmenu_intro.show_title = false;
             }
         );
 
