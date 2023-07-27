@@ -19,7 +19,7 @@ Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 
 /*
 NLE2 (NotLexaEngine 2) for JavaScript
-Version: 1.2.0
+Version: 1.3.0
 */
 
 const [LMB, MMB, RMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP] = Array(7).keys();
@@ -304,6 +304,22 @@ const Bitarray = function () // Array of bits
     };
 };
 
+const create_text_blob = (text) => (new Blob([text],{type:"text/plain"}));
+
+const save = function (content, file)
+{
+    let a = document.createElement('a');
+    let is_blob = content.toString().indexOf("Blob") !== -1;
+    let url = content;
+    if (is_blob) url = window.URL.createObjectURL(content);
+    a.href = url;
+    a.download = file;
+    a.click();
+    if (is_blob) window.URL.revokeObjectURL(url);
+    a.remove();
+    return 'Successfully saved area!';
+};
+
 export {Display, current_room, change_current_room, Room, Entity, Instance, clamp, linear_interpolation,
     draw_text, LMB, RMB, MMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP, draw_line, range2range, wrap,
-    lengthdir_x, lengthdir_y, default_room, Bitarray};
+    lengthdir_x, lengthdir_y, default_room, Bitarray, create_text_blob, save};
