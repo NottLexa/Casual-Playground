@@ -88,7 +88,7 @@ const draw_text = function(ctx, x, y, string = 'Sample Text', type = 'fill',
         ctx.strokeStyle = color;
         ctx.strokeText(string, x, y);
     }
-}
+};
 
 const draw_line = function(ctx, x1, y1, x2, y2, color = 'black', linewidth = 1)
 {
@@ -99,12 +99,12 @@ const draw_line = function(ctx, x1, y1, x2, y2, color = 'black', linewidth = 1)
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.stroke();
-}
+};
 
 const Display = function(canvas, canvas_width, canvas_height)
 {
     this.ctx = canvas.getContext('2d');
-    this.buffer = document.createElement('canvas').getContext('2d');
+    this.buffer = canvas.getContext('2d');
     this.buffer.canvas.width = canvas_width;
     this.buffer.canvas.height = canvas_height;
 
