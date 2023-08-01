@@ -119,22 +119,22 @@ const Display = function(canvas, canvas_width, canvas_height)
     this.oh = () => this.original_height;
 
     // Resizes canvas.
-    this.resizeCanvas = function(width, height)
+    this.resizeCanvas = function(current_room, width, height)
     {
         this.ctx.canvas.width = width;
         this.ctx.canvas.height = height;
-        this.scale_level = Math.min(this.sw()/this.ow(), this.sh()/this.oh())
+        this.scale_level = Math.min(this.sw()/this.ow(), this.sh()/this.oh());
         this.scaled_size = [this.ow() * this.scale_level, this.oh() * this.scale_level];
-        this.resizeBuffer(...this.scaled_size);
+        this.resizeBuffer(current_room, ...this.scaled_size);
         this.offset_x = (this.sw() - this.scaled_size[0])/2;
         this.offset_y = (this.sh() - this.scaled_size[1])/2;
     };
 
-    this.resizeBuffer = function(width, height)
+    this.resizeBuffer = function(current_room, width, height)
     {
         this.buffer.canvas.width = width;
         this.buffer.canvas.height = height;
-        current_room.do_resize_canvas(width, height);
+        if (current_room.hasOwnProperty('do_resize_canvas')) current_room.do_resize_canvas(width, height);
     }
 
     // Applies this.buffer on the real canvas element.
@@ -169,14 +169,6 @@ const Display = function(canvas, canvas_width, canvas_height)
 var default_room = {do_step: function(){}, do_start: function(){}, do_end: function(){}, do_kb_down: function(){},
     do_kb_up: function(){}, do_mouse_down: function(){}, do_mouse_up: function(){}, do_mouse_move: function(){},
     do_resize_canvas: function(){}};
-var current_room = default_room;
-const change_current_room = function(new_room)
-{
-    let old_room = current_room;
-    current_room.do_end(new_room);
-    current_room = new_room;
-    current_room.do_start(old_room);
-}
 
 const Room = function(entities)
 {
@@ -267,11 +259,11 @@ const Entity = function(events)
 
     for (let e in events) this[e] = events[e];
 
-    this.create_instance = function()
+    this.create_instance = function(...create_args)
     {
         let ins = new Instance(this);
         this.instances.push(ins);
-        this.create(ins);
+        this.create(ins, ...create_args);
         return ins;
     };
 };
@@ -281,7 +273,7 @@ const Instance = function (entity)
     this.entity = entity;
 };
 
-const Bitarray = function () // Array of bits
+const Bitarray = function () // Array of bits -- TODO: REPLACE NUMBERS WITH BIGINTS
 {
     this.value = [];
     this.get = function(index)
@@ -320,6 +312,6 @@ const save = function (content, file)
     return 'Successfully saved area!';
 };
 
-export {Display, current_room, change_current_room, Room, Entity, Instance, clamp, linear_interpolation,
+module.exports = {Display, Room, Entity, Instance, clamp, linear_interpolation,
     draw_text, LMB, RMB, MMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP, draw_line, range2range, wrap,
     lengthdir_x, lengthdir_y, default_room, Bitarray, create_text_blob, save};
