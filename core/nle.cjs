@@ -101,10 +101,10 @@ const draw_line = function(ctx, x1, y1, x2, y2, color = 'black', linewidth = 1)
     ctx.stroke();
 };
 
-const Display = function(canvas, canvas_width, canvas_height)
+const Display = function(doc, canvas, canvas_width, canvas_height)
 {
     this.ctx = canvas.getContext('2d');
-    this.buffer = canvas.getContext('2d');
+    this.buffer = doc.createElement('canvas').getContext('2d');
     this.buffer.canvas.width = canvas_width;
     this.buffer.canvas.height = canvas_height;
 
