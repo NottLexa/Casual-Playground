@@ -7,8 +7,5 @@ NOTEXTURE 73 208 239
 LOCALIZATION
     rus "Голова сигнала" "Клетка головы сигнала из WireWorld."
 
-INCLUDE MOD
-    MYSELF @wireworld
-
 SCRIPT STEP
     :setcell(__X, __Y, #tail@wireworld)

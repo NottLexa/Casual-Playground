@@ -1,5 +1,5 @@
 /*
-    Copyright © 2022 Alexey Kozhanov
+    Copyright © 2023 Alexey Kozhanov
 
     =====
 
@@ -41,6 +41,10 @@ const DEFAULT = {
         create: undefined,
         step: undefined,
     },
+    script_string: {
+        create: '',
+        step: '',
+    },
 };
 
 const LoggerClass = {
@@ -65,10 +69,10 @@ const get = function(code = '')
     }
     else return [{}, new ccc.CompilerConclusion(2), new ccc.CompilerCursor()];
 
-    let compilers = fs.readdirSync(path.join('core', 'compiler_versions'));
+    let compilers = fs.readdirSync(path.join(__dirname, 'compiler_versions'));
     let compiler;
     if (compilers.includes(version)) // exact compiler name
-        {}//compiler = path.join('core', 'compiler_version', version);
+        {}//compiler = path.join(__dirname, 'compiler_version', version);
     else if ([...version].every(letter => csc.s_num.has(letter)))
     {
         let versions_filtered = compilers.filter(value => value.startsWith(`CPLv${version}`))
@@ -81,21 +85,26 @@ const get = function(code = '')
     let ret;
 
     try {
-        let compiler_path = path.join('core', 'compiler_versions', version);
+        let compiler_path = path.join(__dirname, 'compiler_versions', version);
 
         let compiler = require(compiler_path);
 
         ret = compiler.get(code, l);
+        ret[0] = {...DEFAULT, ...ret[0]}
 
         if (ret[0].hasOwnProperty('script'))
         {
             for (let i in ret[0].script)
             {
                 if (ret[0].script[i] === undefined)
+                {
                     ret[0].script[i] = (caller)=>{};
+                    ret[0].script_string[i] = '';
+                }
                 else
                 {
                     let jsc = compiler.jsconvert(ret[0].script[i]);
+                    ret[0].script_string[i] = jsc;
                     jsc = new Function('caller', 'ctt', jsc);
                     ret[0].script[i] = (caller)=>{jsc(caller, ctt)};
                 }
@@ -107,7 +116,7 @@ const get = function(code = '')
         ret = [{}, new ccc.CompilerConclusion(200),
             new ccc.CompilerCursor(err.message+'\n'+err.fileName+'\n'+err.lineNumber)];
     }
-    return [{...DEFAULT, ...ret[0]}, ret[1], ret[2]];
+    return ret;
 }
 
 const Cell = function(
