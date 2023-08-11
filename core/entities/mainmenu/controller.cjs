@@ -51,10 +51,13 @@ const EntMMController = new engine.Entity({
                 target.gvars[0].mm_intro.show_title = false;
             }
         );
-
-        target.exit_button = create_button(target.exit_button_width, target.exit_button_height, 'mm/exit_button', 0,
-            target.exit_button_yoffset, ()=>{nw.Window.get().close()}
-        );
+        if (target.gvars[0].platform === 'NODE')
+            target.exit_button = create_button(target.exit_button_width, target.exit_button_height, 'mm/exit_button', 0,
+                target.exit_button_yoffset, ()=>{nw.Window.get().close()}
+            );
+        else
+            target.exit_button = create_button(target.exit_button_width, target.exit_button_height, 'mm/exit_button', 0,
+                target.exit_button_yoffset+10000, ()=>{});
     },
     step: function(target)
     {

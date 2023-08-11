@@ -12,10 +12,12 @@
   "chromium-args": "--disable-devtools --enable-logging=stderr",
   "devDependencies": {
     "nw": "^0.68.0",
-    "nw-builder": "^3.8.3"
+    "nw-builder": "^3.8.3",
+    "browserify": "^17.0.0"
   },
   "scripts": {
     "dist": "nwbuild * ./core/** ./data/** --mode=build --zip=false --buildDir=./dist --platforms=win64,win32",
-    "start": "nw ."
+    "start": "nw .",
+    "browserify": "browserify CASUAL_PLAYGROUND.js > bundle.js"
   }
 }

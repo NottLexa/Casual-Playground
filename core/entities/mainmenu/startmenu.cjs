@@ -75,23 +75,28 @@ const EntMMStartMenu = new engine.Entity({
         target.start_button = create_button(target.start_button_width, target.start_button_height, 'start_menu/start_button',
             0, 3*target.subwindow_padding + target.mods_height + target.settings_height, ()=>
             {
-                gvars[0].board_width = target.settings.filter(x => x.name === 'board_width')[0].value;
-                gvars[0].board_height = target.settings.filter(x => x.name === 'board_height')[0].value;
-
-                gvars[0].objdata = {};
-                objdata = gvars[0].objdata;
-                gvars[0].idlist = [];
-                idlist = gvars[0].idlist;
-
-                let loaded_mod = target.gvars[0].load_mod(path.join('core', 'corecontent'), 'Casual Playground', true);
-                idlist.push(...Object.keys(loaded_mod));
-                for (let k in loaded_mod) objdata[k] = loaded_mod[k];
-
-                for (let mod of target.modlist.filter(x => x.enabled))
+                target.gvars[0].board_width = target.settings.filter(x => x.name === 'board_width')[0].value;
+                target.gvars[0].board_height = target.settings.filter(x => x.name === 'board_height')[0].value;
+                if (target.gvars[0].platform === 'NODE')
                 {
-                    let loaded_mod = target.gvars[0].load_mod(path.join('data', 'addons', mod.name), mod.name, false);
+                    target.gvars[0].objdata = {};
+                    objdata = target.gvars[0].objdata;
+                    target.gvars[0].idlist = [];
+                    idlist = target.gvars[0].idlist;
+                    let loaded_mod = target.gvars[0].load_mod(path.join('core', 'corecontent'), 'Casual Playground', true);
                     idlist.push(...Object.keys(loaded_mod));
                     for (let k in loaded_mod) objdata[k] = loaded_mod[k];
+
+                    for (let mod of target.modlist.filter(x => x.enabled))
+                    {
+                        let loaded_mod = target.gvars[0].load_mod(path.join('data', 'addons', mod.name), mod.name, false);
+                        idlist.push(...Object.keys(loaded_mod));
+                        for (let k in loaded_mod) objdata[k] = loaded_mod[k];
+                    }
+                }
+                else
+                {
+                    // pass TODO: ADD MOD LOADING FOR WEB
                 }
 
                 //engine.change_current_room(room_field);
@@ -156,7 +161,7 @@ const EntMMStartMenu = new engine.Entity({
         target.start_button.const_x = -surface.canvas.width/2 - target.start_button.box_width/2
             - target.start_button.triangle_width + (surface.canvas.width*target.show_step);
 
-        let surf1 = document.createElement('canvas').getContext('2d');
+        let surf1 = target.gvars[0].document.createElement('canvas').getContext('2d');
         surf1.canvas.width = ww;
         surf1.canvas.height = wh;
         surf1.fillStyle = bg;
@@ -211,8 +216,8 @@ const EntMMStartMenu = new engine.Entity({
                     if (0 <= mouse_x && mouse_x <= wwidth && 0 <= mouse_y && mouse_y <= wheight)
                     {
                         let limit = (oneline * linesnum < wheight) ? 0 : wheight;
-                        target.new_scroll[ind] = Math.max(0, engine.clamp(target.new_scroll[ind] + scroll_delta, 0,
-                            linesnum * oneline - limit));
+                        target.new_scroll[ind] = Math.max(0, engine.clamp(target.new_scroll[ind] +
+                            target.gvars[0].scroll_delta, 0, linesnum * oneline - limit));
                         target.old_scroll[ind] = target.scroll[ind];
                         target.scroll_step[ind] = 0;
                     }
@@ -313,7 +318,7 @@ const EntMMStartMenu = new engine.Entity({
         let box = lh-(2*ip);
         let bw = target.border_width;
 
-        let surf = document.createElement('canvas').getContext('2d');
+        let surf = target.gvars[0].document.createElement('canvas').getContext('2d');
         surf.canvas.width = sww;
         surf.canvas.height = swh;
         surf.fillStyle = bg_darker;
@@ -358,7 +363,7 @@ const EntMMStartMenu = new engine.Entity({
         let box = lh-(2*ip);
         let bw = target.border_width;
 
-        let surf = document.createElement('canvas').getContext('2d');
+        let surf = target.gvars[0].document.createElement('canvas').getContext('2d');
         surf.canvas.width = sww;
         surf.canvas.height = swh;
         surf.fillStyle = bg_darker;

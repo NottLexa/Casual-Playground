@@ -69,9 +69,9 @@ const EntFieldBoard = new engine.Entity({
         target.linecolor_infield = target.gvars[0].linecolor_infield;
         target.linecolor_outfield = target.gvars[0].linecolor_outfield;
         target.cells_to_redraw = [];
-        target.surfaces = {board: document.createElement('canvas').getContext('2d'),
-            grid:  document.createElement('canvas').getContext('2d'),
-            selection:  document.createElement('canvas').getContext('2d')};
+        target.surfaces = {board: target.gvars[0].document.createElement('canvas').getContext('2d'),
+            grid: target.gvars[0].document.createElement('canvas').getContext('2d'),
+            selection: target.gvars[0].document.createElement('canvas').getContext('2d')};
         target.surfaces.board.canvas.style.imageRendering = 'pixelated';
         target.surfaces.grid.canvas.style.imageRendering  = 'pixelated';
         target.surfaces.selection.canvas.style.imageRendering  = 'pixelated';
@@ -234,7 +234,7 @@ const EntFieldBoard = new engine.Entity({
             'fill', target.text_size_default, 'left', 'top', 'white', '"Source Sans Pro"');
 
         // time elapsed
-        let clr = target.time_elapsed <= target.timepertick ? 'white' : rgb_to_style(17*14, 17, 17);
+        let clr = target.time_elapsed <= target.timepertick ? 'white' : target.gvars[0].rgb_to_style(17*14, 17, 17);
         engine.draw_text(surface,
             5, -10 + surface.canvas.height - target.text_size_default - 2*target.text_size_small,
             `${Math.round(target.time_elapsed*100000)/100000} s`,
@@ -275,7 +275,9 @@ const EntFieldBoard = new engine.Entity({
                 target.timepertick = target.get_tpt(target.tpt_power);
                 break;
             case 'Escape':
-                engine.change_current_room(room_mainmenu);
+                target.gvars[0].current_room.do_end();
+                target.gvars[0].current_room = target.gvars[0].room_mainmenu;
+                target.gvars[0].current_room.do_start();
                 break;
             case 'Equal':
                 if (globalkeys.Shift) current_instrument.scale++;
@@ -303,7 +305,7 @@ const EntFieldBoard = new engine.Entity({
                                         break;
                                 }
                             }
-                            logger.push([
+                            target.gvars[0].logger.push([
                                 comp.LoggerClass.INFO,
                                 new Date(),
                                 'Redo.',
@@ -315,6 +317,8 @@ const EntFieldBoard = new engine.Entity({
                         if (target.history.pointer > -1)
                         {
                             let record = target.history[target.history.pointer--];
+                            console.log(target.history);
+                            console.log(record);
                             for (let action of record)
                             {
                                 switch (action.type)
@@ -326,7 +330,7 @@ const EntFieldBoard = new engine.Entity({
                                         break;
                                 }
                             }
-                            logger.push([
+                            target.gvars[0].logger.push([
                                 comp.LoggerClass.INFO,
                                 new Date(),
                                 'Undo.',

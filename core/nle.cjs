@@ -118,6 +118,9 @@ const Display = function(doc, canvas, canvas_width, canvas_height)
     this.ow = () => this.original_width;
     this.oh = () => this.original_height;
 
+    this.scale_level = Math.min(this.sw()/this.ow(), this.sh()/this.oh());
+    this.scaled_size = [this.ow() * this.scale_level, this.oh() * this.scale_level];
+
     // Resizes canvas.
     this.resizeCanvas = function(current_room, width, height)
     {

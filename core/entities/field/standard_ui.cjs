@@ -55,18 +55,18 @@ const EntFieldSUI = new engine.Entity({
 
         target.desc_window_width_origin = 256+128;
         target.desc_window_width =  target.desc_window_width_origin;
-        target.desc_window_surface = document.createElement('canvas').getContext('2d');
+        target.desc_window_surface = target.gvars[0].document.createElement('canvas').getContext('2d');
         target.desc_window_id = -1;
         target.desc_window_show = false;
         target.desc_window_offset = [0,0];
 
         target.objmenu_surface = this.draw_objmenu(target);
 
-        /*target.objmenu_surface = document.createElement('canvas').getContext('2d'); // object menu
+        /*target.objmenu_surface = target.gvars[0].document.createElement('canvas').getContext('2d'); // object menu
         target.objmenu_surface.canvas.width = target.width_part;
         target.objmenu_surface.canvas.height = target.objmenu_height;*/
 
-        /*target.instrmenu_surface = document.createElement('canvas').getContext('2d'); // instrument menu
+        /*target.instrmenu_surface = target.gvars[0].document.createElement('canvas').getContext('2d'); // instrument menu
         target.instrmenu_surface.canvas.width = target.width_part;
         target.instrmenu_surface.canvas.height = target.instrmenu_height;*/
     },
@@ -283,7 +283,7 @@ const EntFieldSUI = new engine.Entity({
         let border_color = '#4d4d4d';
         let bg_color = 'rgba(0,0,0,0.5)';
 
-        let surface = document.createElement('canvas').getContext('2d');
+        let surface = target.gvars[0].document.createElement('canvas').getContext('2d');
         surface.font = `${name_size}px sans-serif`;
         let txt_size1 = get_text_width(name_string, surface.font);//surface.measureText(name_string);
         name_size = name_size * Math.min(1, canvaswidth / txt_size1);
@@ -364,7 +364,7 @@ const EntFieldSUI = new engine.Entity({
         let objdata = target.gvars[0].objdata;
         let idlist = target.gvars[0].idlist;
         let loc = target.gvars[0].loc;
-        let ctx = document.createElement('canvas').getContext('2d');
+        let ctx = target.gvars[0].document.createElement('canvas').getContext('2d');
         ctx.canvas.width = target.width_part;
         ctx.canvas.height = target.objmenu_height;
 
@@ -376,7 +376,7 @@ const EntFieldSUI = new engine.Entity({
 
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-        let alphabg = document.createElement('canvas').getContext('2d');
+        let alphabg = target.gvars[0].document.createElement('canvas').getContext('2d');
         let roundRect = target.gvars[0].roundRect;
         alphabg.canvas.width = ctx.canvas.width;
         alphabg.canvas.height = ctx.canvas.height;
@@ -443,7 +443,7 @@ const EntFieldSUI = new engine.Entity({
         let rgb_to_style = target.gvars[0].rgb_to_style;
         let roundRect = target.gvars[0].roundRect;
         let sprites = target.gvars[0].sprites;
-        let ctx = document.createElement('canvas').getContext('2d');
+        let ctx = target.gvars[0].document.createElement('canvas').getContext('2d');
         ctx.canvas.width = target.width_part;
         ctx.canvas.height = target.instrmenu_height;
 
@@ -462,7 +462,7 @@ const EntFieldSUI = new engine.Entity({
         ctx.clearRect(0, 0,
             ctx.canvas.width, ctx.canvas.height);
 
-        let alphabg = document.createElement('canvas').getContext('2d');
+        let alphabg = target.gvars[0].document.createElement('canvas').getContext('2d');
         alphabg.canvas.width = ctx.canvas.width;
         alphabg.canvas.height = ctx.canvas.height;
         alphabg.fillStyle = '#1a1a1a';
@@ -495,12 +495,12 @@ const EntFieldSUI = new engine.Entity({
 
         let rounded_image = function(image)
         {
-            let ctx1 = document.createElement('canvas').getContext('2d');
+            let ctx1 = target.gvars[0].document.createElement('canvas').getContext('2d');
             ctx1.canvas.width = img_box;
             ctx1.canvas.height = img_box;
             ctx.fillStyle = 'white';
             roundRect(ctx1, 0, 0, img_box, img_box, 2+(ss*(8-2)));
-            let ctx2 = document.createElement('canvas').getContext('2d');
+            let ctx2 = target.gvars[0].document.createElement('canvas').getContext('2d');
             ctx2.canvas.width = img_box;
             ctx2.canvas.height = img_box;
             ctx2.imageSmoothingEnabled = false;
@@ -529,7 +529,7 @@ const EntFieldSUI = new engine.Entity({
                         ctx1 = rounded_image(celldata.texture);
                     else
                     {
-                        let ctx2 = document.createElement('canvas').getContext('2d');
+                        let ctx2 = target.gvars[0].document.createElement('canvas').getContext('2d');
                         ctx2.canvas.width = img_box; ctx2.canvas.height = img_box;
                         ctx2.fillStyle = rgb_to_style(...celldata.notexture);
                         ctx2.fillRect(0, 0, img_box, img_box);
@@ -546,7 +546,7 @@ const EntFieldSUI = new engine.Entity({
             case 'paste':
                 if (target.gvars[0].current_instrument.hasOwnProperty('pastedata'))
                 {
-                    let ctx2 = document.createElement('canvas').getContext('2d');
+                    let ctx2 = target.gvars[0].document.createElement('canvas').getContext('2d');
                     ctx2.canvas.width = img_box; ctx2.canvas.height = img_box;
                     let pw = target.gvars[0].current_instrument.pastewidth; let ph = target.gvars[0].current_instrument.pasteheight;
                     let pmax = Math.max(pw, ph);
@@ -611,7 +611,7 @@ const EntFieldSUI = new engine.Entity({
         let rgb_to_style = target.gvars[0].rgb_to_style;
         let roundRect = target.gvars[0].roundRect;
         let sprites = target.gvars[0].sprites;
-        let ctx = document.createElement('canvas').getContext('2d');
+        let ctx = target.gvars[0].document.createElement('canvas').getContext('2d');
         ctx.canvas.width = target.width_part;
         ctx.canvas.height = target.hotbar_height;
 
@@ -717,6 +717,7 @@ const EntFieldSUI = new engine.Entity({
     },
     canvas_resize: function(target, width, height)
     {
+        console.log('resized');
         let display = target.gvars[0].display;
         let measure = Math.min(height/target.gvars[0].HEIGHT, width/target.gvars[0].WIDTH);
         target.window_spacing = target.window_spacing_origin * measure;
