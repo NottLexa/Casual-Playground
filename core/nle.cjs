@@ -1,5 +1,5 @@
 /*
-    Copyright © 2022 Alexey Kozhanov
+    Copyright © 2023 Alexey Kozhanov
 
     =====
 
@@ -19,7 +19,7 @@ Casual Playground. If not, see <https://www.gnu.org/licenses/>.
 
 /*
 NLE2 (NotLexaEngine 2) for JavaScript
-Version: 1.0.0
+Version: 1.3.0
 */
 
 const [LMB, MMB, RMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP] = Array(7).keys();
@@ -88,7 +88,7 @@ const draw_text = function(ctx, x, y, string = 'Sample Text', type = 'fill',
         ctx.strokeStyle = color;
         ctx.strokeText(string, x, y);
     }
-}
+};
 
 const draw_line = function(ctx, x1, y1, x2, y2, color = 'black', linewidth = 1)
 {
@@ -99,12 +99,12 @@ const draw_line = function(ctx, x1, y1, x2, y2, color = 'black', linewidth = 1)
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.stroke();
-}
+};
 
-const Display = function(canvas, canvas_width, canvas_height)
+const Display = function(doc, canvas, canvas_width, canvas_height)
 {
     this.ctx = canvas.getContext('2d');
-    this.buffer = document.createElement('canvas').getContext('2d');
+    this.buffer = doc.createElement('canvas').getContext('2d');
     this.buffer.canvas.width = canvas_width;
     this.buffer.canvas.height = canvas_height;
 
@@ -118,23 +118,26 @@ const Display = function(canvas, canvas_width, canvas_height)
     this.ow = () => this.original_width;
     this.oh = () => this.original_height;
 
+    this.scale_level = Math.min(this.sw()/this.ow(), this.sh()/this.oh());
+    this.scaled_size = [this.ow() * this.scale_level, this.oh() * this.scale_level];
+
     // Resizes canvas.
-    this.resizeCanvas = function(width, height)
+    this.resizeCanvas = function(current_room, width, height)
     {
         this.ctx.canvas.width = width;
         this.ctx.canvas.height = height;
-        this.scale_level = Math.min(this.sw()/this.ow(), this.sh()/this.oh())
+        this.scale_level = Math.min(this.sw()/this.ow(), this.sh()/this.oh());
         this.scaled_size = [this.ow() * this.scale_level, this.oh() * this.scale_level];
-        this.resizeBuffer(...this.scaled_size);
+        this.resizeBuffer(current_room, ...this.scaled_size);
         this.offset_x = (this.sw() - this.scaled_size[0])/2;
         this.offset_y = (this.sh() - this.scaled_size[1])/2;
     };
 
-    this.resizeBuffer = function(width, height)
+    this.resizeBuffer = function(current_room, width, height)
     {
         this.buffer.canvas.width = width;
         this.buffer.canvas.height = height;
-        current_room.do_resize_canvas(width, height);
+        if (current_room.hasOwnProperty('do_resize_canvas')) current_room.do_resize_canvas(width, height);
     }
 
     // Applies this.buffer on the real canvas element.
@@ -169,14 +172,6 @@ const Display = function(canvas, canvas_width, canvas_height)
 var default_room = {do_step: function(){}, do_start: function(){}, do_end: function(){}, do_kb_down: function(){},
     do_kb_up: function(){}, do_mouse_down: function(){}, do_mouse_up: function(){}, do_mouse_move: function(){},
     do_resize_canvas: function(){}};
-var current_room = default_room;
-const change_current_room = function(new_room)
-{
-    let old_room = current_room;
-    current_room.do_end(new_room);
-    current_room = new_room;
-    current_room.do_start(old_room);
-}
 
 const Room = function(entities)
 {
@@ -267,11 +262,11 @@ const Entity = function(events)
 
     for (let e in events) this[e] = events[e];
 
-    this.create_instance = function()
+    this.create_instance = function(...create_args)
     {
         let ins = new Instance(this);
         this.instances.push(ins);
-        this.create(ins);
+        this.create(ins, ...create_args);
         return ins;
     };
 };
@@ -281,6 +276,45 @@ const Instance = function (entity)
     this.entity = entity;
 };
 
-export {Display, current_room, change_current_room, Room, Entity, Instance, clamp, linear_interpolation,
+const Bitarray = function () // Array of bits -- TODO: REPLACE NUMBERS WITH BIGINTS
+{
+    this.value = [];
+    this.get = function(index)
+    {
+        while (index >= 32*this.value.length) this.value.push(0);
+        let divd = Math.floor(index/32); let modd = index % 32;
+        return (this.value[divd] & (1<<modd)) > 0;
+    };
+    this.invert = function(index)
+    {
+        while (index >= 32*this.value.length) this.value.push(0);
+        let divd = Math.floor(index/32); let modd = index % 32;
+        this.value[divd] ^= 1<<modd;
+    };
+    this.set = function(index, value)
+    {
+        while (index >= 32*this.value.length) this.value.push(0);
+        let divd = Math.floor(index/32);
+        if ((!!value) !== this.get(index)) this.invert(index);
+    };
+};
+
+const create_text_blob = (text) => (new Blob([text],{type:"text/plain"}));
+
+const save = function (content, file)
+{
+    let a = document.createElement('a');
+    let is_blob = content.toString().indexOf("Blob") !== -1;
+    let url = content;
+    if (is_blob) url = window.URL.createObjectURL(content);
+    a.href = url;
+    a.download = file;
+    a.click();
+    if (is_blob) window.URL.revokeObjectURL(url);
+    a.remove();
+    return 'Successfully saved area!';
+};
+
+module.exports = {Display, Room, Entity, Instance, clamp, linear_interpolation,
     draw_text, LMB, RMB, MMB, MBBACK, MBFORWARD, WHEELDOWN, WHEELUP, draw_line, range2range, wrap,
-    lengthdir_x, lengthdir_y, default_room};
+    lengthdir_x, lengthdir_y, default_room, Bitarray, create_text_blob, save};

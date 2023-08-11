@@ -7,15 +7,17 @@
     "type": "git",
     "url": "https://github.com/NottLexa/Casual-Playground"
   },
-  "version": "0.3.0",
+  "version": "0.4.0",
   "main": "run_nwjs.js",
   "chromium-args": "--disable-devtools --enable-logging=stderr",
   "devDependencies": {
     "nw": "^0.68.0",
-    "nw-builder": "^3.8.3"
+    "nw-builder": "^3.8.3",
+    "browserify": "^17.0.0"
   },
   "scripts": {
     "dist": "nwbuild * ./core/** ./data/** --mode=build --zip=false --buildDir=./dist --platforms=win64,win32",
-    "start": "nw ."
+    "start": "nw .",
+    "browserify": "browserify CASUAL_PLAYGROUND.js > bundle.js"
   }
 }

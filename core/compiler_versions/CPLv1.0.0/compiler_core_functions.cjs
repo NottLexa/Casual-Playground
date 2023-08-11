@@ -72,7 +72,7 @@ const ccf = function(ctt)
         },
         reply: function(caller, string)
         {
-            caller.reply(0, toString(string.read(caller)));
+            caller.reply(0, string.read(caller)+'');
         },
         and: function(caller, a, b)
         {
@@ -120,7 +120,7 @@ const ccf = function(ctt)
         gt: (a, b) => ['(', a, `>`, b, ')'],
         le: (a, b) => ['(', a, `<=`, b, ')'],
         lt: (a, b) => ['(', a, `<`, b, ')'],
-        reply: (string) => ['caller.reply(0, toString(', string, '))'],
+        reply: (string) => ['caller.reply(0, ', string, '+\'\')'],
         and: (a, b) => ['(', a, `&`, b, ')'],
         or: (a, b) => ['(', a, `|`, b, ')'],
         xor: (a, b) => ['(', a, `^`, b, ')'],
