@@ -29,8 +29,9 @@ const EntFieldBoard = new engine.Entity({
         target.history.pointer = -1;
         target.history.add_record = function(record)
         {
-            target.history.splice(++target.history.pointer, target.history.length, record);
-            for (let i=0;i<=(target.history.length-target.gvars[0].history_max_length); i++) target.history.shift();
+            target.history.pointer = Math.min(target.history.pointer+1, target.gvars[0].history_max_length-1);
+            target.history.splice(target.history.pointer, target.history.length, record);
+            for (let i=0;i<(target.history.length-target.gvars[0].history_max_length); i++) target.history.shift();
         };
 
         // See other initiations in room_start
@@ -317,8 +318,6 @@ const EntFieldBoard = new engine.Entity({
                         if (target.history.pointer > -1)
                         {
                             let record = target.history[target.history.pointer--];
-                            console.log(target.history);
-                            console.log(record);
                             for (let action of record)
                             {
                                 switch (action.type)
