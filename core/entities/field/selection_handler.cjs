@@ -23,7 +23,7 @@ const EntFieldSH = new engine.Entity({
                     if (ret !== null)
                     {
                         if (target.gvars[0].platform === 'NODE' || location.protocol === 'https:')
-                            navigator.clipboard.writeText(ret[0]);
+                            target.gvars[0].navigator.clipboard.writeText(ret[0]);
                         else
                             alert("Sorry! Casual Playground Online can't support copy/paste actions on HTTP"+
                                 "protocol. We don't have an SSL-certificate to run on HTTPS yet.\n"+
@@ -38,7 +38,7 @@ const EntFieldSH = new engine.Entity({
                 {
                     target.gvars[0].current_instrument.type = 'paste';
                     if (target.gvars[0].platform === 'NODE' || location.protocol === 'https:')
-                        navigator.clipboard.readText().then((clipboardtext)=>{
+                        target.gvars[0].navigator.clipboard.readText().then((clipboardtext)=>{
                             let ret = clippar.paste(clipboardtext, objdata);
                             for (let k in ret[0]) target.gvars[0].current_instrument[k] = ret[0][k];
                             console.log(ret[1]);
