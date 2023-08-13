@@ -636,7 +636,7 @@ const EntFieldBoard = new engine.Entity({
                                 {
                                     if (current_instrument.pastedata[iy].hasOwnProperty(ix))
                                     {
-                                        let cellid = idlist.indexOf(current_instrument.pastedata[iy][ix]);
+                                        let cellid = target.gvars[0].idlist.indexOf(current_instrument.pastedata[iy][ix]);
                                         target.board[jy][jx].reset(cellid);
                                         target.cells_to_redraw.push([jx, jy]);
                                     }

@@ -515,6 +515,7 @@ const init3 = async function ()
               'has_focus': false,
               'platform': platform,
               'document': document,
+              'navigator': navigator,
               'running': true,
               },
              {}];

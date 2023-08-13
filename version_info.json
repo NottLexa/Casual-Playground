@@ -1,9 +1,9 @@
 {
   "version_info":
   {
-    "version": "1.0.0",
+    "version": "1.0.2",
       "stage": "Alpha Build",
-      "build": 59
+      "build": 60
   },
-  "devtools": false
+  "devtools": true
 }
