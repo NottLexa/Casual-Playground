@@ -276,27 +276,12 @@ const Instance = function (entity)
     this.entity = entity;
 };
 
-const Bitarray = function () // Array of bits -- TODO: REPLACE NUMBERS WITH BIGINTS
+const Bitarray = function ()
 {
-    this.value = [];
-    this.get = function(index)
-    {
-        while (index >= 32*this.value.length) this.value.push(0);
-        let divd = Math.floor(index/32); let modd = index % 32;
-        return (this.value[divd] & (1<<modd)) > 0;
-    };
-    this.invert = function(index)
-    {
-        while (index >= 32*this.value.length) this.value.push(0);
-        let divd = Math.floor(index/32); let modd = index % 32;
-        this.value[divd] ^= 1<<modd;
-    };
-    this.set = function(index, value)
-    {
-        while (index >= 32*this.value.length) this.value.push(0);
-        let divd = Math.floor(index/32);
-        if ((!!value) !== this.get(index)) this.invert(index);
-    };
+    this.value = 0n;
+    this.get = (index)=>((this.value & (1n<<BigInt(index))) > 0n);
+    this.invert = (index)=>{this.value ^= 1n<<BigInt(index)};
+    this.set = (index, value)=>{if ((!!value) !== this.get(index)) this.invert(index)};
 };
 
 const create_text_blob = (text) => (new Blob([text],{type:"text/plain"}));

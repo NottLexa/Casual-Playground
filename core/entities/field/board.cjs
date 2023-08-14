@@ -72,10 +72,12 @@ const EntFieldBoard = new engine.Entity({
         target.cells_to_redraw = [];
         target.surfaces = {board: target.gvars[0].document.createElement('canvas').getContext('2d'),
             grid: target.gvars[0].document.createElement('canvas').getContext('2d'),
-            selection: target.gvars[0].document.createElement('canvas').getContext('2d')};
+            selection: target.gvars[0].document.createElement('canvas').getContext('2d'),
+            instrument_highlight: target.gvars[0].document.createElement('canvas').getContext('2d')};
         target.surfaces.board.canvas.style.imageRendering = 'pixelated';
         target.surfaces.grid.canvas.style.imageRendering  = 'pixelated';
         target.surfaces.selection.canvas.style.imageRendering  = 'pixelated';
+        target.surfaces.instrument_highlight.canvas.style.imageRendering  = 'pixelated';
         target.gvars[0].update_board_fully = true;
         this.draw_board(target);
 
@@ -189,6 +191,7 @@ const EntFieldBoard = new engine.Entity({
         surface.drawImage(target.surfaces.board.canvas, realx, realy);
         surface.drawImage(target.surfaces.grid.canvas, realx, realy);
         surface.drawImage(target.surfaces.selection.canvas, realx, realy);
+        surface.drawImage(target.surfaces.instrument_highlight.canvas, realx, realy);
 
         let linex, liney, startx, starty, endx, endy;
         surface.fillStyle = target.gvars[0].rgb_to_style(...target.linecolor_outfield);
@@ -342,7 +345,7 @@ const EntFieldBoard = new engine.Entity({
     },
     mouse_up: function(target, mb)
     {
-        if (target.gvars[0].globalkeys.LMB && !target.gvars[0].field_sui.show) this.board_do_instrument_end(target);
+        if (mb === engine.LMB && !target.gvars[0].field_sui.show) this.board_do_instrument_end(target);
     },
     mouse_down: function(target, mb)
     {
@@ -556,8 +559,9 @@ const EntFieldBoard = new engine.Entity({
     board_do_instrument: function(target)
     {
         let current_instrument = target.gvars[0].current_instrument;
-        let bordersize = Math.floor(target.viewscale*target.gvars[0].cellbordersize);
-        let cellsize = bordersize + target.viewscale;
+        let vs = target.viewscale;
+        let bordersize = Math.floor(vs*target.gvars[0].cellbordersize);
+        let cellsize = bordersize + vs;
         let rx = target.gvars[0].mx + target.viewx - bordersize;
         let ry = target.gvars[0].my + target.viewy - bordersize;
         let cx = Math.floor(rx/cellsize);
@@ -566,14 +570,44 @@ const EntFieldBoard = new engine.Entity({
         let maxcy = target.board_height;
         let history_record = [];
         let commands = {
-            "selection_brush": (ix,iy)=>{target.selection[iy].set(ix, 1); update_selection = true},
+            "selection_brush": (ix,iy)=>{target.selection[iy].set(ix, 1); target.gvars[0].update_selection = true},
             "brush": (ix,iy)=>{
                 if (current_instrument.hasOwnProperty('cell') && current_instrument.cell !== target.board[iy][ix].cellid)
+                    history_record.push(this.change_cell(target, ix, iy, current_instrument.cell));
+            },
+            "line": (ex,ey)=>{
+                let surface_hl = target.surfaces.instrument_highlight;
+                surface_hl.canvas.width = (cellsize*target.board_width)+bordersize;
+                surface_hl.canvas.height = (cellsize*target.board_height)+bordersize;
+                surface_hl.clearRect(0,0,surface_hl.canvas.width,surface_hl.canvas.height);
+                surface_hl.fillStyle = 'rgba(132,198,215,0.4)';
+                let [sx, sy] = current_instrument.startpos;
+                let dx = ex-sx; let dy = ey-sy;
+                let dw = Math.abs(dx); let dh = Math.abs(dy);
+                if (dh > dw)
                 {
-                    history_record.push({type: "cell_changed", old: target.board[iy][ix].cellid,
-                        new: current_instrument.cell, x: ix, y: iy});
-                    target.board[iy][ix].reset(current_instrument.cell);
-                    target.cells_to_redraw.push([ix, iy]);
+                    for (let iy = 0; iy <= dh; iy++)
+                    {
+                        let cix = Math.round(engine.range2range(iy, 0, dh, sx, ex));
+                        let ciy = sy+iy*Math.sign(dy);
+                        if (0 <= cix && cix < target.board_width && 0 <= ciy && ciy < target.board_height)
+                            surface_hl.fillRect(cellsize*cix+bordersize, cellsize*ciy+bordersize, vs, vs);
+                    }
+                }
+                else if (dw > dh)
+                {
+                    for (let ix = 0; ix <= dw; ix++)
+                    {
+                        let cix = sx+ix*Math.sign(dx);
+                        let ciy = Math.round(engine.range2range(ix, 0, dw, sy, ey));
+                        if (0 <= cix && cix < target.board_width && 0 <= ciy && ciy < target.board_height)
+                            surface_hl.fillRect(cellsize*cix+bordersize, cellsize*ciy+bordersize, vs, vs);
+                    }
+                }
+                else {
+                    for (let ix = 0; ix <= dw; ix++)
+                        surface_hl.fillRect(cellsize*(sx+ix*Math.sign(dx))+bordersize,
+                            cellsize*(sy+ix*Math.sign(dy))+bordersize, target.viewscale, target.viewscale)
                 }
             },
         };
@@ -600,8 +634,12 @@ const EntFieldBoard = new engine.Entity({
                             }
                         }
                     }
-                    this.draw_board(target);
                 }
+                break;
+            case 'line':
+                let command = commands[current_instrument.type];
+                command(cx,cy);
+                target.gvars[0].update_board = true;
                 break;
         }
         if (history_record.length > 0) target.history.add_record(history_record);
@@ -617,6 +655,7 @@ const EntFieldBoard = new engine.Entity({
         let cy = Math.floor(ry/cellsize);
         let maxcx = target.board_width;
         let maxcy = target.board_height;
+        let history_record = [];
         let commands = {
             "paste": (ox,oy)=>{
                 if (current_instrument.hasOwnProperty('pastedata'))
@@ -637,8 +676,7 @@ const EntFieldBoard = new engine.Entity({
                                     if (current_instrument.pastedata[iy].hasOwnProperty(ix))
                                     {
                                         let cellid = target.gvars[0].idlist.indexOf(current_instrument.pastedata[iy][ix]);
-                                        target.board[jy][jx].reset(cellid);
-                                        target.cells_to_redraw.push([jx, jy]);
+                                        history_record.push(this.change_cell(target, jx, jy, cellid));
                                     }
                                 }
                             }
@@ -646,6 +684,10 @@ const EntFieldBoard = new engine.Entity({
                     }
                 }
             },
+            "line": (ox, oy)=>{
+                current_instrument.startpos = [ox, oy];
+                current_instrument.started = true;
+            }
         };
         switch (current_instrument.type)
         {
@@ -654,13 +696,71 @@ const EntFieldBoard = new engine.Entity({
                 {
                     let command = commands[current_instrument.type];
                     command(cx,cy);
-                    this.draw_board(target);
                 }
+                break;
+            case 'line':
+                let command = commands[current_instrument.type];
+                command(cx,cy);
+                break;
         }
+        if (history_record.length > 0) target.history.add_record(history_record);
     },
     board_do_instrument_end: function(target)
     {
-        // placeholder
+        let current_instrument = target.gvars[0].current_instrument;
+        let bordersize = Math.floor(target.viewscale*target.gvars[0].cellbordersize);
+        let cellsize = bordersize + target.viewscale;
+        let rx = target.gvars[0].mx + target.viewx - bordersize;
+        let ry = target.gvars[0].my + target.viewy - bordersize;
+        let cx = Math.floor(rx/cellsize);
+        let cy = Math.floor(ry/cellsize);
+        let maxcx = target.board_width;
+        let maxcy = target.board_height;
+        let history_record = [];
+        let commands = {
+            "line": (ex, ey)=>{
+                let [sx, sy] = current_instrument.startpos;
+                let dx = ex-sx; let dy = ey-sy;
+                let dw = Math.abs(dx); let dh = Math.abs(dy);
+                if (dh > dw)
+                {
+                    for (let iy = 0; iy <= dh; iy++)
+                        history_record.push(this.change_cell(target, Math.round(engine.range2range(iy, 0, dh, sx, ex)),
+                            sy+iy*Math.sign(dy), current_instrument.cell));
+                }
+                else if (dw > dh)
+                {
+                    for (let ix = 0; ix <= dw; ix++)
+                        history_record.push(this.change_cell(target, sx+ix*Math.sign(dx),
+                            Math.round(engine.range2range(ix, 0, dw, sy, ey)), current_instrument.cell));
+                }
+                else {
+                    for (let ix = 0; ix <= dw; ix++)
+                        history_record.push(this.change_cell(target, sx+ix*Math.sign(dx), sy+ix*Math.sign(dy),
+                            current_instrument.cell));
+                }
+            }
+        };
+        switch (current_instrument.type)
+        {
+            case 'line':
+                let command = commands[current_instrument.type];
+                command(cx,cy);
+                target.gvars[0].update_board = true;
+                break;
+        }
+        let surface_hl = target.surfaces.instrument_highlight;
+        surface_hl.canvas.width = (cellsize*target.board_width)+bordersize;
+        surface_hl.canvas.height = (cellsize*target.board_height)+bordersize;
+        surface_hl.clearRect(0,0,surface_hl.canvas.width,surface_hl.canvas.height);
+        if (history_record.length > 0) target.history.add_record(history_record);
+    },
+    change_cell: function (target, x, y, cellid)
+    {
+        target.board[y][x].reset(cellid);
+        target.cells_to_redraw.push([x, y]);
+        target.gvars[0].update_board = true;
+        return {type: "cell_changed", old: target.board[y][x].cellid, new: cellid, x: x, y: y};
     },
     canvas_resize: function(target, width, height)
     {

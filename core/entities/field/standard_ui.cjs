@@ -148,7 +148,7 @@ const EntFieldSUI = new engine.Entity({
                         target.gvars[0].current_instrument.scale = target.gvars[0].current_instrument.hasOwnProperty('scale')
                             ? target.gvars[0].current_instrument.scale : 1;
                         target.gvars[0].current_instrument.shape = target.gvars[0].current_instrument.hasOwnProperty('shape')
-                            ? target.gvars[0].current_instrument.scale : 'square';
+                            ? target.gvars[0].current_instrument.shape : 'square';
                         break;
                 }
                 break;
@@ -158,7 +158,9 @@ const EntFieldSUI = new engine.Entity({
                 target.gvars[0].current_instrument.scale = target.gvars[0].current_instrument.hasOwnProperty('scale')
                     ? target.gvars[0].current_instrument.scale : 1;
                 target.gvars[0].current_instrument.shape = target.gvars[0].current_instrument.hasOwnProperty('shape')
-                    ? target.gvars[0].current_instrument.scale : 'square';
+                    ? target.gvars[0].current_instrument.shape : 'square';
+                target.gvars[0].current_instrument.started = false;
+                target.gvars[0].current_instrument.startpos = [0,0];
                 break;
             default:
                 if (key.code.slice(0, 5) === 'Digit')
@@ -201,14 +203,13 @@ const EntFieldSUI = new engine.Entity({
                     case engine.LMB:
                         target.hotbar[target.hotbar_slot] =
                             {
-                                type: 'brush',
+                                type: ['brush', 'line'].includes(target.gvars[0].current_instrument.type)
+                                    ? target.gvars[0].current_instrument.type : 'brush',
                                 cell: ci,
                                 shape: target.gvars[0].current_instrument.hasOwnProperty('shape')
-                                    ? target.gvars[0].current_instrument.shape
-                                    : 'square',
+                                    ? target.gvars[0].current_instrument.shape : 'square',
                                 scale: target.gvars[0].current_instrument.hasOwnProperty('scale')
-                                    ? target.gvars[0].current_instrument.scale
-                                    : 1,
+                                    ? target.gvars[0].current_instrument.scale : 1,
                             };
                         target.gvars[0].current_instrument = target.hotbar[target.hotbar_slot];
                         break;
@@ -515,6 +516,7 @@ const EntFieldSUI = new engine.Entity({
         switch (target.gvars[0].current_instrument.type)
         {
             case 'brush':
+            case 'line':
                 let string = get_locstring(`instrument/shape/${target.gvars[0].current_instrument.shape}`)
                     +` [${target.gvars[0].current_instrument.scale}] | `+idlist[target.gvars[0].current_instrument.cell];
                 let string_limit = target.width_part-instr_name_length-ws-(ss*ws)-((1-ss)*img_box);
@@ -632,6 +634,7 @@ const EntFieldSUI = new engine.Entity({
 
             switch (instrument.type) {
                 case 'brush':
+                case 'line':
                     if (instrument.hasOwnProperty('cell'))
                     {
                         let celldata = objdata[idlist[instrument.cell]];
