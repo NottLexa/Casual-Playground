@@ -358,11 +358,16 @@ const init2 = async function ()
     }
     else
     {
-        load_modlist = (modsfolder)=>([]); // PLACEHOLDER
+        load_modlist = async function()
+        {
+            return JSON.parse(await getapi('addon_list'));
+        };
         load_mod = async function(modfolder, mod_origin, official)
         {
             let mods = {};
-            let content = JSON.parse(await getapi('get_corecontent_folder'));
+            let content;
+            if (official === 1) content = JSON.parse(await getapi('get_corecontent_folder'));
+            else content = JSON.parse(await getapi('addon_folder', {addon: modfolder}));
             let i = 0;
             for (let k in content)
             {
@@ -371,7 +376,11 @@ const init2 = async function ()
                 {
                     loading_substate.innerText =
                         `Loading "${content[k]}" from "${modfolder}"... (${i}/${content.length})`;
-                    let compiled = JSON.parse(await getapi('compile_corecontent_cell', {file: content[k]}));
+                    let compiled;
+                    if (official === 1)
+                        compiled = JSON.parse(await getapi('compile_corecontent_cell', {file: content[k]}));
+                    else
+                        compiled = JSON.parse(await getapi('compile_addon_cell', {addon: modfolder, file: content[k]}));
                     let moddata = compiled.cell;
                     let concl = compiled.conc;
                     let cur = compiled.curs;
@@ -517,6 +526,10 @@ const init3 = async function ()
               'document': document,
               'navigator': navigator,
               'running': true,
+              'addonlist': [],
+              'loading_substate': loading_substate,
+              'loading_state': loading_state,
+              'loading_spinner': loading_spinner,
               },
              {}];
 
@@ -531,8 +544,8 @@ const init3 = async function ()
     }
     else
     {
+        gvars[0].addonlist = await load_modlist();
         coremods = await load_mod('corecontent', 'Casual Playground', 1);
-        console.log(coremods);
     }
     idlist.push(...Object.keys(coremods));
     objdata = {...objdata, ...coremods};
@@ -711,7 +724,7 @@ const run = async function ()
         await init3(); loading_state.innerText = 'Loading... (4/5)'; loading_substate.innerText = '';
         await init4(); loading_state.innerText = 'Loading... (5/5)'; loading_substate.innerText = '';
         await init5(); loading_state.innerText = 'Loaded!'; loading_substate.innerText = '';
-        loading_state.style.display = 'none';
+        loading_state.innerText = '';
         loading_spinner.style.display = 'none';
         window.requestAnimationFrame(mainloop);
     }

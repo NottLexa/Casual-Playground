@@ -12,7 +12,10 @@ const EntMMStartMenu = new engine.Entity({
         let objdata = target.gvars[0].objdata;
         let idlist = target.gvars[0].idlist;
         let loc = target.gvars[0].loc;
-        target.modlist = load_modlist(modsfolder).map(value => ({name: value, enabled: false}));
+        if (target.gvars[0].platform === 'NODE')
+            target.modlist = load_modlist(modsfolder).map(value => ({name: value, enabled: false}));
+        else
+            target.modlist = target.gvars[0].addonlist.map(value => ({name: value, enabled: false}));
         target.line_height_origin = 30;
         target.line_height = target.line_height_origin;
         target.line_separation_origin = 2;
@@ -29,6 +32,7 @@ const EntMMStartMenu = new engine.Entity({
         target.subwindow_width = target.window_width-(2*target.subwindow_padding);
         target.mods_height = Math.round((target.window_height-(4*target.subwindow_padding))*3/6);
         target.settings_height = Math.round((target.window_height-(4*target.subwindow_padding))*2/6);
+        target.pressed_start = false;
         // target.show_step = 0;
         // target.show = false;
         // target.scroll = [0, 0];
@@ -75,34 +79,64 @@ const EntMMStartMenu = new engine.Entity({
         target.start_button = create_button(target.start_button_width, target.start_button_height, 'start_menu/start_button',
             0, 3*target.subwindow_padding + target.mods_height + target.settings_height, ()=>
             {
-                target.gvars[0].board_width = target.settings.filter(x => x.name === 'board_width')[0].value;
-                target.gvars[0].board_height = target.settings.filter(x => x.name === 'board_height')[0].value;
-                if (target.gvars[0].platform === 'NODE')
+                if (!target.pressed_start)
                 {
-                    target.gvars[0].objdata = {};
-                    objdata = target.gvars[0].objdata;
-                    target.gvars[0].idlist = [];
-                    idlist = target.gvars[0].idlist;
-                    let loaded_mod = target.gvars[0].load_mod(path.join('core', 'corecontent'), 'Casual Playground', true);
-                    idlist.push(...Object.keys(loaded_mod));
-                    for (let k in loaded_mod) objdata[k] = loaded_mod[k];
-
-                    for (let mod of target.modlist.filter(x => x.enabled))
+                    target.pressed_start = true;
+                    target.gvars[0].board_width = target.settings.filter(x => x.name === 'board_width')[0].value;
+                    target.gvars[0].board_height = target.settings.filter(x => x.name === 'board_height')[0].value;
+                    if (target.gvars[0].platform === 'NODE')
                     {
-                        let loaded_mod = target.gvars[0].load_mod(path.join('data', 'addons', mod.name), mod.name, false);
+                        target.gvars[0].objdata = {};
+                        objdata = target.gvars[0].objdata;
+                        target.gvars[0].idlist = [];
+                        idlist = target.gvars[0].idlist;
+                        let loaded_mod = target.gvars[0].load_mod(path.join('core', 'corecontent'), 'Casual Playground', true);
                         idlist.push(...Object.keys(loaded_mod));
                         for (let k in loaded_mod) objdata[k] = loaded_mod[k];
+
+                        for (let mod of target.modlist.filter(x => x.enabled))
+                        {
+                            let loaded_mod = target.gvars[0].load_mod(path.join('data', 'addons', mod.name), mod.name, false);
+                            idlist.push(...Object.keys(loaded_mod));
+                            for (let k in loaded_mod) objdata[k] = loaded_mod[k];
+                        }
+
+                        target.gvars[0].current_room.do_end();
+                        target.gvars[0].current_room = target.gvars[0].room_field;
+                        target.gvars[0].current_room.do_start();
+                    }
+                    else
+                    {
+                        target.gvars[0].loading_spinner.style.display = 'block';
+                        target.gvars[0].loading_state.innerText = 'Loading addons...';
+                        target.gvars[0].objdata = {};
+                        objdata = target.gvars[0].objdata;
+                        target.gvars[0].idlist = [];
+                        idlist = target.gvars[0].idlist;
+                        new Promise((resolve, reject)=>{
+                            target.gvars[0].load_mod('corecontent', 'Casual Playground', 1).then(resolve)
+                        }).then((loaded_mod)=>{
+                            idlist.push(...Object.keys(loaded_mod));
+                            for (let k in loaded_mod) objdata[k] = loaded_mod[k];
+                        }).then(()=>{
+                            (async ()=>{
+                                for (let mod of target.modlist.filter(x => x.enabled))
+                                {
+                                    let loaded_mod = await target.gvars[0].load_mod(mod.name, mod.name, 0);
+                                    idlist.push(...Object.keys(loaded_mod));
+                                    for (let k in loaded_mod) objdata[k] = loaded_mod[k];
+                                }
+                                target.gvars[0].loading_substate.innerText = '';
+                                target.gvars[0].loading_state.innerText = '';
+                                target.gvars[0].loading_spinner.style.display = 'none';
+                                target.gvars[0].current_room.do_end();
+                                target.gvars[0].current_room = target.gvars[0].room_field;
+                                target.gvars[0].current_room.do_start();
+                            })();
+                        });
                     }
                 }
-                else
-                {
-                    // pass TODO: ADD MOD LOADING FOR WEB
-                }
 
-                //engine.change_current_room(room_field);
-                target.gvars[0].current_room.do_end();
-                target.gvars[0].current_room = target.gvars[0].room_field;
-                target.gvars[0].current_room.do_start();
             }
         );
     },
@@ -114,6 +148,7 @@ const EntMMStartMenu = new engine.Entity({
         target.old_scroll = [0, 0];
         target.new_scroll = [0, 0];
         target.scroll_step = [0, 0];
+        target.pressed_start = false;
     },
     step: function(target)
     {
